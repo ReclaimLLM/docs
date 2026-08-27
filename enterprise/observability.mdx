@@ -1,0 +1,125 @@
+---
+title: "Enterprise Observability: Org-Wide AI Usage Analytics"
+sidebarTitle: "Observability"
+description: "Track AI usage, token spend, and data risk across every developer and team — then drill into the exact session behind any metric spike or anomaly."
+---
+
+Enterprise observability gives you a cross-developer view of how AI is being used across your entire organization. You see usage by developer, team, model, and project — and when something looks unusual, you can follow the trail from a metric spike all the way to the exact session that caused it. No guesswork, no waiting for a monthly bill with no context behind it.
+
+## Org-wide usage dashboard
+
+The enterprise usage dashboard aggregates captured session data across every developer in your org. It is the starting point for understanding AI usage at scale.
+
+<CardGroup cols={2}>
+  <Card title="Usage by developer" icon="user">
+    See which developers are the heaviest users and how their usage changes over time. Drill into any developer's session list directly from the dashboard.
+  </Card>
+  <Card title="Usage by team" icon="users">
+    Compare activity across teams. Identify which teams are driving the most LLM traffic and which are underutilizing AI tooling.
+  </Card>
+  <Card title="Usage by model" icon="microchip-ai">
+    Understand your model distribution. See whether teams are standardizing on approved models or using an uncontrolled mix of providers.
+  </Card>
+  <Card title="Usage by project" icon="folder-open">
+    Track which projects are generating the most AI activity. Project-level attribution helps link AI investment to the work it supports.
+  </Card>
+</CardGroup>
+
+<Note>
+  Cross-developer analytics refresh every **15 minutes**. Dashboard figures may lag up to 15 minutes behind real-time capture activity.
+</Note>
+
+## Session drill-down
+
+The dashboard is the entry point, not the destination. Every metric and aggregation links directly to the sessions behind it.
+
+<Steps>
+  <Step title="Identify a signal">
+    Spot a spike in token usage, an unusual model in the distribution, or a team whose activity has changed sharply. The dashboard surfaces these as time-series charts and ranked lists.
+  </Step>
+  <Step title="Filter to the relevant context">
+    Apply filters by developer, team, model, date range, or project to narrow the view to the activity you want to investigate.
+  </Step>
+  <Step title="Open the session list">
+    Click through from any chart or table row to a filtered session list scoped to that developer, team, or time range.
+  </Step>
+  <Step title="Inspect the session">
+    Open an individual session to see the full interaction — messages, tool calls, file diffs, token counts, and model metadata. For encrypted sessions, admins with decrypt access can open the raw transcript.
+  </Step>
+</Steps>
+
+## Token usage and efficiency
+
+Navigate to **Enterprise → your org → Tokens** to see a per-project token breakdown with efficiency ratios. This view helps you understand not just how many tokens you're using, but whether that usage is working well.
+
+### Metrics available
+
+| Metric | What it tells you |
+|---|---|
+| **Tokens per session** | Average token load per agent run or conversation in a project |
+| **Tokens per line changed** | How much AI context is consumed relative to actual code output |
+| **Cache-hit ratio** | How often the model can serve from prompt cache rather than processing full context |
+| **vs. org median** | Each project's metrics compared to the organization-wide median, so you can identify outliers |
+
+<Tip>
+  A high tokens-per-line-changed ratio may indicate developers are sending unnecessary context on every request. A low cache-hit ratio may suggest prompt structure optimizations that could meaningfully reduce cost.
+</Tip>
+
+## Historical backfill
+
+When a developer joins your organization, their existing captured sessions can be backfilled into the enterprise view. This means your analytics aren't limited to sessions captured after you set up the org — you get a full historical picture from day one.
+
+<Info>
+  Backfilled sessions are attributed to your org and the developer's assigned team using the team assignment active at the time of backfill. Historical attribution reflects current team membership, not team membership at the time the session was originally captured.
+</Info>
+
+## What's coming
+
+The current observability release covers the org-wide usage dashboard, cross-developer analytics, session drill-down, and the Tokens tab. The following are in active development:
+
+<AccordionGroup>
+  <Accordion title="Cost attribution + budget alerts">
+    Break spend down by team, developer, project, and org. Set budget thresholds and get notified before costs exceed them — via email, Slack, or webhook.
+  </Accordion>
+  <Accordion title="Anomaly detection">
+    Automatically flag runaway agents, token spikes, and unusual usage patterns. An anomaly review queue groups flagged activity so admins can investigate without manually watching dashboards.
+  </Accordion>
+  <Accordion title="Sensitive data alerts">
+    Receive real-time alerts when DLP scanning flags sensitive content in captured sessions. Route alerts to Slack, PagerDuty, email, or a webhook.
+  </Accordion>
+  <Accordion title="SIEM integration">
+    Export structured event data via webhook or syslog into your existing SIEM stack for correlation with other organizational security signals.
+  </Accordion>
+  <Accordion title="Observability backend export">
+    Forward normalized cross-provider metrics and events from RCLM into your existing observability stack — dashboards, alerting, or event analysis tools — through a single export integration.
+  </Accordion>
+  <Accordion title="Provider-normalized cost model">
+    Compare Claude, OpenAI, Gemini, and other provider usage on a common reporting surface, with normalized per-token cost estimates regardless of provider-specific pricing structures.
+  </Accordion>
+</AccordionGroup>
+
+## How RCLM extends your existing visibility
+
+If your developers already use Claude Code or other AI coding assistants, you may have some usage metrics available through those tools. ReclaimLLM adds the layers that standalone tool metrics cannot provide on their own.
+
+| Layer | What you get |
+|---|---|
+| **Per-tool metrics** | Sessions, tokens, and activity data scoped to a single tool or provider |
+| **RCLM cross-tool capture** | Unifies Claude Code, browser sessions, API proxy traffic, and gateway calls into one org view |
+| **RCLM session detail** | Every metric spike links to the underlying session — not just a number but the actual interaction |
+| **RCLM governance workflows** | Retention enforcement, sensitive session review, scoped access, and export controls tied to captured content |
+
+<Note>
+  Individual tool metrics tell you what happened in aggregate. RCLM adds the full session record so any alert or anomaly can be traced all the way back to the exact interaction that triggered it.
+</Note>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="LLM Gateway" icon="arrow-right-arrow-left" href="/enterprise/llm-gateway">
+    Route gateway traffic through RCLM so it flows into the same analytics surfaces as captured sessions.
+  </Card>
+  <Card title="Roles & Access" icon="user-shield" href="/enterprise/roles-access">
+    Control which roles can see org-wide analytics and drill into individual sessions.
+  </Card>
+</CardGroup>

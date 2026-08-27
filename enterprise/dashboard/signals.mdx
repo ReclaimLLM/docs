@@ -1,0 +1,106 @@
+---
+title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
+sidebarTitle: "Signals"
+description: "Find recurring AI-work patterns by team and project, inspect linked sessions, and review deterministic anomalies for unusual usage, new technology, and runaway sessions."
+icon: "wave-pulse"
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly"]
+---
+
+The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them.
+
+<Warning>
+  Signals are investigation aids, not employee-performance scores or automatic policy violations. Review the linked evidence and the interpretation guardrails before acting.
+</Warning>
+
+## Date range
+
+The page opens to the last 30 days. Set **From** and **To** dates or select **Last 30 days** to reset the range.
+
+The range applies slightly differently to each section:
+
+- The Signals matrix includes signal periods written during the selected window.
+- Anomaly reports include findings whose latest occurrence falls inside the selected window.
+- The selected **To** day is included; the frontend sends the following day as the API's exclusive upper bound.
+
+## Signals matrix
+
+Signals group recurring patterns by team and project so you can see where enablement, policy, or durable project context will have the most leverage.
+
+Each populated cell shows:
+
+- **Projected tokens per week** when the signal has an estimate.
+- **Open signal count** when projected-token coverage is unavailable.
+- A stronger color for a larger projected opportunity or open count within that matrix.
+- Linked evidence sessions when the cell is clickable.
+
+The page provides three views:
+
+- **P4 · Users with waiting sessions** — sessions, qualifying wait events, maximum and total wait, the worst session, and a direct evidence-session link.
+- **Teams × patterns** — concentration across a team, best used for shared conventions, policy, and enablement rather than individual performance review.
+- **Projects × patterns** — concentration by codebase. Projects with the same configured display name are merged into one row.
+
+For P4 project cells, the value is the number of affected sessions. Elapsed wait time is not converted into token savings.
+
+### How to investigate a Signal
+
+1. **Find concentration** — start with the darkest or largest populated cells.
+2. **Choose the owner** — team rows usually point to a policy or enablement owner; project rows point to a codebase owner; P4 user rows identify exact sessions to review.
+3. **Open evidence** — inspect linked sessions before deciding whether the pattern needs a change.
+4. **Read the pattern details** — select a code in **What the pattern codes mean** for examples, recommended admin actions, and interpretation guardrails.
+
+### Pattern catalog
+
+| Code | Pattern | What it identifies | Typical admin action |
+| --- | --- | --- | --- |
+| **P1** | Restart churn | Work repeatedly restarts on the same project instead of continuing from a useful handoff. | Improve handoffs or project instructions. |
+| **P2** | Groundhog files | The same files are re-read across sessions or contributors to recover context that could be documented once. | Add durable project context or use `file_brief`. |
+| **P3** | Exploration without landing | A session spends heavily on searching and reading but produces few or no edits. | Tighten task briefs and entry points without penalizing legitimate discovery. |
+| **P4** | Session idle gaps | The next user prompt repeatedly arrives after the configured wait threshold. | Review interruption and handoff patterns; do not use this as activity monitoring. |
+| **P5** | Session bloat | Sessions run beyond the member's normal completion point while context keeps growing. | Define sensible handoff or session-splitting guidance. |
+| **P6** | Compression policy drift | Supported hooks remain off or observe-only when the organization requires enforcement. | Check policy sync and stale hook installations before assuming intent. |
+| **P7** | Project onboarding cost | New contributors use materially more tokens than veterans on comparable project work. | Build or improve a project context pack. |
+| **P8** | Cross-team duplicated work | Separate teams repeat substantially similar work without finding or reusing the earlier result. | Make the earlier work or artifact discoverable. |
+| **P9** | Context-weight burn | A session carries much more cached context through each tool call than the member's normal baseline. | Split, hand off, or delegate unusually heavy sessions. |
+| **P10** | Model–task mismatch | A costly model is used where comparable work is routinely completed with a lighter model. | Set targeted model-selection guidance instead of blocking premium models globally. |
+
+### Monthly CSV report
+
+Select **Export YYYY-MM CSV** to download the current month's organization-, team-, and project-scoped Signals. The report includes the period, scope, pattern, status, evidence count, idle minutes, measured opportunity tokens, and projected tokens. Member identities are not included.
+
+## Anomaly reports
+
+Anomaly reports are nightly deterministic checks over completed session data. They are not AI-generated classifications.
+
+The header shows the number of open findings and the number currently marked high or critical. Filter the list by:
+
+- Status: open, new, acknowledged, resolved, dismissed, or all.
+- Severity: warning, high, critical, or all.
+- Detector.
+- The page-level date range.
+
+Each finding shows its detector code, severity, status, subject, latest occurrence, occurrence count, evidence summary, and linked sessions when available.
+
+### Detectors
+
+| Code | Detector | What it checks | Interpretation guardrail |
+| --- | --- | --- | --- |
+| **AD-001** | Usage baseline deviation | Daily session or token volume materially above that member's own rolling history. | It compares each member with themselves, not with an organization-wide threshold. Missing or inconsistent coverage does not fire a finding. |
+| **AD-002** | New technology fingerprint | A first-seen combination of dependencies, imports, manifests, tools, or project activity. | Novelty is not an access or policy violation. Confirm a legitimate new project or role change before escalating. |
+| **AD-003** | Runaway or looping session | Repeated failures, identical retries, failed build/test loops, unusually high tool-call volume, abnormal duration, or related stuck-workflow behavior. | The finding indicates possible operational waste, not malicious behavior. Relative checks need history; exact retry loops can fire without a baseline. |
+
+### Finding status workflow
+
+- **Acknowledge** a new finding when it is under review.
+- **Resolve** it when the relevant work or remediation is complete.
+- **Dismiss** it when the finding is expected behavior or a false positive.
+- Resolved and dismissed findings are closed and cannot transition to another status.
+
+## Who sees it
+
+The Signals tab, organization matrix, anomaly findings, status actions, and monthly CSV export are administrator-only. The navigation hides this tab from team leads and developers, and the backend enforces the same boundary.
+
+<Note>
+  Empty matrices or report lists do not mean collection is broken. Signals require eligible completed-session evidence, and anomaly detectors may require sufficient historical coverage before they can fire.
+</Note>
+
+For the surrounding operating model, see [Enterprise Observability](/enterprise/observability). Use [Sessions](/enterprise/dashboard/sessions) to continue a broader investigation and [Tokens](/enterprise/dashboard/tokens) for organization-wide consumption and measured context reduction.

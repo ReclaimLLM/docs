@@ -1,0 +1,37 @@
+---
+title: "Settings Tab: Org-Wide Governance Controls"
+sidebarTitle: "Settings"
+description: "Data retention, session sharing, encryption, project name mappings, and SSO — the org-wide governance controls, admin only."
+---
+
+The Settings tab (`/enterprise/orgs/{org_id}/settings`) collects org-wide governance controls that apply across every member and team.
+
+## Data retention policy
+
+Set a retention period in days (blank = retain indefinitely), or place the org under **legal hold** to override retention entirely and block deletion.
+
+## Session sharing
+
+Two independent toggles control who can see whose sessions:
+
+- **Share across organization** — any member can view and search any other member's sessions.
+- **Share within teams** — members can view and search sessions from others on their own team(s) (has no effect while org-wide sharing is on).
+
+Sharing is always read-only — a member can never edit, delete, or share a session they don't own via this setting.
+
+## Session encryption
+
+- **Org-wide encryption** — new sessions are marked for background encryption going forward (existing sessions keep their current state until a backfill runs).
+- **Admin decrypt access** — an Allow/Block toggle controlling whether org admins and team leads can open encrypted session details for other members. Owners and system jobs can always access their own data.
+
+## Project name mappings
+
+Rename or merge project names org-wide. These org-level names take precedence over each member's own personal project mappings, everywhere a project name is shown in the dashboard.
+
+## SSO (SAML/OIDC)
+
+A sub-page under Settings for configuring single sign-on: choose OIDC or SAML, paste provider config as JSON, and enable SSO for the org. See [Roles & Access → SSO](/enterprise/roles-access#sso-saml-oidc) for what's available now versus coming soon.
+
+## Who sees it
+
+Admin only, including the SSO sub-page.

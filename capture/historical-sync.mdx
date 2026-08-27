@@ -1,0 +1,102 @@
+---
+title: "Historical Sync: Backfill Sessions Captured Before Hooks Were Installed"
+sidebarTitle: "Historical Sync"
+description: "Run rclm-sync to discover and upload Claude Code, Gemini CLI, Codex CLI, and Cursor sessions that predate your hooks install."
+---
+
+Native hooks only capture sessions that happen after you install them. If you used Claude Code, Gemini CLI, Codex CLI, or Cursor before running `rclm-hooks-install`, those earlier sessions are still sitting in each tool's local transcript files — `rclm-sync` finds them and uploads them into your RCLM history.
+
+<Note>
+  Historical sync is a one-time (or repeatable) backfill, not a replacement for hooks. Install hooks first so new sessions are captured going forward, then run `rclm-sync` to bring in everything that happened before.
+</Note>
+
+## Run a sync
+
+```bash
+# Scan all providers, ask for confirmation before uploading
+rclm-sync
+```
+
+By default `rclm-sync` scans every supported provider, shows how many sessions it found, and asks for confirmation before uploading anything. Pass `--yes` (or `-y`) to skip the confirmation prompt.
+
+<Note>
+  `rclm-sync` requires an API key. If you haven't run `rclm-hooks-install` yet, do that first — the sync command reads the same `~/.reclaimllm/config.json` credentials.
+</Note>
+
+## Where sessions are discovered
+
+| Provider | Flag | Discovery path |
+| --- | --- | --- |
+| Claude Code | `--claude` | `~/.claude/projects/**/*.jsonl` |
+| Gemini CLI | `--gemini` | `~/.gemini/tmp/**/chats/*.json` |
+| Codex CLI | `--codex` | `~/.codex/sessions/**/*.jsonl` |
+| Cursor | `--cursor` | `~/.cursor/projects/*/agent-transcripts/*/*.jsonl` |
+
+## CLI flags
+
+### Scope to specific providers
+
+Omit provider flags to scan everything (the default), or combine flags to scan a subset:
+
+```bash
+rclm-sync --claude              # Claude Code only
+rclm-sync --gemini --codex      # Gemini + Codex
+rclm-sync --cursor               # Cursor only
+```
+
+### Skip the confirmation prompt
+
+```bash
+rclm-sync --yes
+```
+
+### Re-upload everything
+
+By default, `rclm-sync` tracks which files it has already uploaded in a local index and skips them on subsequent runs. To ignore that index and re-upload every discovered session:
+
+```bash
+rclm-sync --resync
+```
+
+### Reprocess failed uploads
+
+If a session fails to upload (for example, a network error), it's quarantined locally instead of being dropped. Reprocess quarantined records with:
+
+```bash
+rclm-sync --failed
+rclm-sync --failed --yes   # without a confirmation prompt
+```
+
+## The sync index
+
+`rclm-sync` tracks which session files it has already uploaded in `~/.reclaimllm/synced_sessions.json`. On every run, newly discovered files are checked against this index so re-running `rclm-sync` never creates duplicate sessions in your dashboard. Use `--resync` when you specifically want to bypass this and re-upload everything — for example, after a parsing bug fix that changed how older sessions are converted.
+
+<Tip>
+  Sync runs safely alongside live hooks capture. If a session file is picked up by both a running hook and a later `rclm-sync` pass, the sync index prevents it from being uploaded twice.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="No sessions found for a provider">
+    Confirm the tool's local transcript directory actually contains files, using the discovery path from the table above. If the directory is empty, that provider simply has no local history to sync — this is expected on a machine where the tool has never been used.
+  </Accordion>
+
+  <Accordion title="A session appears to be missing after sync">
+    Check whether it was already marked as synced in a prior run:
+
+    ```bash
+    cat ~/.reclaimllm/synced_sessions.json
+    ```
+
+    If the file's path or ID appears there but the session isn't visible in your dashboard, run `rclm-sync --resync` to force re-upload.
+  </Accordion>
+
+  <Accordion title="Uploads keep failing">
+    Failed uploads are quarantined rather than lost. Reprocess them once the underlying issue (network, API key, rate limit) is resolved:
+
+    ```bash
+    rclm-sync --failed
+    ```
+  </Accordion>
+</AccordionGroup>

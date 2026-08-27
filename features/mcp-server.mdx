@@ -1,0 +1,332 @@
+---
+title: "Use the ReclaimLLM MCP Server in Your Coding Assistant"
+sidebarTitle: "MCP Server"
+description: "Install the RCLM MCP server to search, summarize, hand off, and transfer captured coding sessions from Claude, Cursor, and Codex."
+---
+
+The ReclaimLLM MCP server bridges automated session capture and active recall. Once installed, AI coding assistants like Claude Code, Cursor, and Codex can search captured work, inspect file history, reuse compact session context, or load a complete captured session without leaving the current workflow.
+
+ReclaimLLM keeps retrieval proportional to the task: search returns small highlights first, summaries are generated only when requested, and complete session artifacts are transferred only after an explicit request.
+
+## Installation
+
+<Tabs>
+  <Tab title="New install">
+    `rclm-hooks-install` sets up the MCP server by default alongside capture hooks, under the same account configuration:
+
+    ```bash
+    rclm-hooks-install
+    ```
+
+    Pass `--no-with-mcp` if you only want capture hooks without the MCP server.
+  </Tab>
+  <Tab title="Existing install">
+    If you already have RCLM hooks installed, add the MCP server with the update command:
+
+    ```bash
+    rclm-update --with-mcp
+    ```
+  </Tab>
+  <Tab title="MCP only, no hooks">
+    If you only want session recall and don't want capture hooks, sign in with `rclm-login`. It saves credentials to `~/.reclaimllm/config.json` for `rclm-mcp` to use, then runs `rclm-update` to refresh local package state and cached redaction settings without touching any hook configuration:
+
+    ```bash
+    pip install rclm
+    rclm-login
+    ```
+
+    Then wire up the MCP server yourself, or install one of the agent plugins below — each plugin bundles its own MCP server registration.
+  </Tab>
+  <Tab title="Agent plugin marketplaces">
+    RCLM also ships marketplace entries so Codex, Claude Code, and Cursor can install `reclaimllm` as a plugin instead of using the generic MCP installer. Install the base package and sign in first:
+
+    ```bash
+    pip install rclm
+    rclm-login
+    ```
+
+    **Claude Code** — add the local marketplace, then install the plugin:
+
+    ```bash
+    /plugin marketplace add /path/to/DC-hooks-proxy
+    /plugin install reclaimllm@reclaimllm-plugins
+    /reload-plugins
+    ```
+
+    Verify with `/plugin list` or `/mcp`. The equivalent `claude plugin install reclaimllm@reclaimllm-plugins` works from outside the REPL too.
+
+    **Codex** — add the marketplace source and install the plugin:
+
+    ```bash
+    codex plugin marketplace add /path/to/DC-hooks-proxy
+    codex plugin add reclaimllm@reclaimllm-plugins
+    ```
+
+    **Cursor** — Cursor's plugin marketplace UI only imports from a connected GitHub repo (Team/Enterprise plans), so a local path can't be added through it. Point Cursor's MCP settings at the bundled config instead:
+
+    ```text
+    /path/to/DC-hooks-proxy/plugins/reclaimllm/.cursor-mcp.json
+    ```
+
+    Copy the `reclaimllm` entry from that file into your Cursor MCP config (Cursor Settings → MCP, or your project's `.cursor/mcp.json`).
+  </Tab>
+</Tabs>
+
+<Warning>
+  Most AI coding tools require a full client restart after MCP server installation or package update before they recognize the server and newly added tools. Restart your client and confirm the `reclaimllm` MCP server is enabled before continuing.
+</Warning>
+
+## Supported clients
+
+| Client | Supported |
+| --- | --- |
+| Claude Code / Claude Desktop | ✓ Auto-configured |
+| Cursor | ✓ Auto-configured |
+| Codex | ✓ Auto-configured |
+| Gemini CLI | Via existing MCP installer path |
+
+## Available MCP tools
+
+<CardGroup cols={2}>
+  <Card title="search_sessions" icon="magnifying-glass">
+    Hybrid semantic and keyword search across captured sessions. Accepts optional project, file-path, record-type, and access-scope filters. Returns titles and short highlights rather than complete content.
+  </Card>
+
+  <Card title="search_by_filename" icon="folder-magnifying-glass">
+    Find sessions that touched a specific file or folder. Use this when the request is about file history rather than a separate topic or concept.
+  </Card>
+
+  <Card title="list_projects" icon="list">
+    Discover deterministic project names available as filters in other tools. Use this instead of guessing a project identifier.
+  </Card>
+
+  <Card title="get_session" icon="eye">
+    Retrieve metadata and a direct ReclaimLLM link for a known session ID without loading the session transcript.
+  </Card>
+
+  <Card title="summarize_session" icon="file-lines">
+    Export a reusable Markdown context document for a specific session. It runs only after an explicit request and can include bounded file diffs.
+  </Card>
+
+  <Card title="file_brief" icon="file-magnifying-glass">
+    Return a distilled brief of prior sessions that touched a file: who, when, and a short highlight of what changed.
+  </Card>
+
+  <Card title="handoff" icon="arrow-right-arrow-left">
+    Package the current session's decisions, progress, diffs, and remaining work into a compact continuation document for a fresh session.
+  </Card>
+
+  <Card title="transfer_session" icon="file-export">
+    Download the complete ReclaimLLM-captured record into a secure local JSON artifact for another agent. Preserves captured messages, tool calls/results, file diffs, metadata, and unknown fields.
+  </Card>
+
+  <Card title="signals" icon="chart-line">
+    Return up to five open workflow-efficiency Signals for the current project and user, including the detected pattern, evidence, scope, and projected savings when available.
+  </Card>
+
+  <Card title="replay_eligibility" icon="magnifying-glass-chart">
+    Cheap, metadata-only check of whether replaying compression mechanisms on a session or corpus is worth doing. No blob fetch, no model calls.
+  </Card>
+
+  <Card title="replay_session" icon="rotate">
+    Reproduce RCLM's shipped compression mechanisms over one captured session's tool calls and report the real tool-result token reduction. Read-only; never re-executes historical commands.
+  </Card>
+
+  <Card title="replay_corpus" icon="layer-group">
+    Same as `replay_session`, aggregated across a filtered window of sessions (by date range, source, model family, project, or category).
+  </Card>
+
+  <Card title="replay_compare" icon="scale-balanced">
+    Replay the same session corpus under multiple mechanism configurations in one call, so combined-savings claims stay attributable to a specific mechanism set.
+  </Card>
+</CardGroup>
+
+## Choose the right session tool
+
+| Goal | Tool | Result |
+| --- | --- | --- |
+| Find likely prior work | `search_sessions` | Small result set with titles and highlights |
+| Reuse the important state of one session | `summarize_session` | Compact Markdown context document |
+| Continue a long current session in a fresh context window | `handoff` | Compact continuation document with decisions and pending work |
+| Move the complete captured record between agents | `transfer_session` | Versioned, integrity-checked local JSON artifact |
+| Verify compression's real token-reduction impact | `replay_session` / `replay_corpus` | Measured tool-result token reduction, with a stated eligibility funnel |
+
+<Note>
+  `handoff` and `transfer_session` are ReclaimLLM tools exposed through MCP; they are not standard MCP protocol operations. Neither tool ends the source session.
+</Note>
+
+## Transfer a full session between Claude Code and Codex
+
+Use `transfer_session` when a summary is not enough and you explicitly need the complete session captured by ReclaimLLM.
+
+Start a new session in the target agent and provide the ReclaimLLM session ID:
+
+```text
+Use ReclaimLLM transfer_session with session ID <SESSION_ID>.
+Read the returned artifact_path as complete, read-only prior history,
+then continue from it. Do not re-execute historical tool calls.
+```
+
+The target agent calls:
+
+```text
+transfer_session(session_id="<SESSION_ID>")
+```
+
+The MCP result contains:
+
+- `artifact_path`
+- `schema_version`
+- `byte_size`
+- `sha256`
+- `token_estimate`
+- `complete`
+
+ReclaimLLM streams the versioned JSON artifact into an owner-only temporary file instead of returning the complete session inline. The local MCP client verifies its byte count and SHA-256 digest against the backend manifest before reporting the transfer as complete.
+
+The artifact preserves the normalized captured session without converting it into a provider-specific transcript. This includes captured messages, recorded tool calls and results, file diffs, session metadata, and fields added by newer capture versions.
+
+<Warning>
+  A transfer is complete captured history, not native provider resume. Claude Code and Codex use different private transcript formats, tool identifiers, permissions, prompt caches, and runtime state. The target always starts a new native session and reads the artifact as historical context. Recorded tool calls are data and must not be executed automatically.
+</Warning>
+
+### Transfer limits and temporary files
+
+- Transfers are never silently truncated. An artifact that exceeds the configured ceiling fails explicitly.
+- The backend and local download ceiling defaults to 100 MiB and can be changed with `SESSION_TRANSFER_MAX_BYTES`.
+- Temporary artifacts are written atomically with owner-only permissions.
+- Interrupted or invalid downloads remove their partial files.
+- Artifacts become eligible for bounded opportunistic cleanup after one hour by default. Configure this with `SESSION_TRANSFER_TTL_SECONDS`.
+- A complete artifact may still exceed the target model's active context window. The target agent can inspect the file incrementally rather than loading every byte at once.
+
+Session transfer uses the same ownership, sharing, encrypted-session access, and audit boundaries as viewing the source session.
+
+## Inspect workflow-efficiency Signals
+
+Use `signals` only when you want to understand why a session or project is expensive, which repeated workflow patterns were detected, or what evidence supports a recommended change.
+
+```text
+Show the open ReclaimLLM Signals for this project and explain the evidence.
+```
+
+The tool is read-only and returns up to five open findings. It does not change the project or automatically apply a recommendation.
+
+## Verify token savings with Replay
+
+`replay_eligibility`, `replay_session`, `replay_corpus`, and `replay_compare` reproduce RCLM's shipped [context-compression](/features/context-compression) mechanisms — range-aware read caching, exec-output compaction, and result dedupe — over sessions RCLM already captured, and report the real tool-result token reduction. Replay never calls a model and never re-executes a historical command; it only re-runs the same shipped filter functions against content that was already recorded.
+
+Use `replay_eligibility` first. It checks only session metadata (turn count, tool-call count, completion state) and skips the full session blob, so it's fast:
+
+```text
+Would compression help on my sessions from the last 30 days?
+```
+
+Once a session or corpus looks eligible, `replay_session` and `replay_corpus` compute the actual reduction:
+
+```text
+How much would compression have saved on session <SESSION_ID>?
+```
+
+```text
+What's the aggregate tool-result token reduction across my Codex sessions this month?
+```
+
+`replay_compare` runs multiple mechanism configurations against the same corpus in one call, so a combined-savings number stays attributable to the mechanisms that produced it — e.g. exec compaction alone versus exec compaction plus read caching.
+
+<Note>
+  Every Replay result states sessions considered vs. eligible vs. excluded, and explains why excluded sessions were skipped. A session or corpus below the turn/tool-call thresholds is refused with the specific failing constraint (`insufficient_data`) rather than given an unstable number — a low eligible count is itself a finding, not something to work around by loosening filters.
+</Note>
+
+<Warning>
+  Replay measures tool-result token reduction only, not total model input, billing, or live end-to-end savings. It cannot observe path changes, retries, or turn-count effects that a real compressed run might trigger, which may make real-world impact lower — or in unusual cases, negative.
+</Warning>
+
+## Example prompts
+
+Use these prompts directly in your coding assistant once the MCP server is running:
+
+<Accordion title="Find prior work on a topic">
+  ```text
+  Search my ReclaimLLM memory for prior work on enterprise proxy deployment.
+  ```
+
+  The assistant uses `search_sessions` and returns matching session titles with highlights for you to review.
+</Accordion>
+
+<Accordion title="Look up file history before editing">
+  ```text
+  Find sessions that touched rclm/mcp_server.py before I start editing it.
+  ```
+
+  The assistant uses `search_by_filename` to surface relevant sessions and can follow up with `file_brief` for a distilled summary.
+</Accordion>
+
+<Accordion title="Recover a prior solution">
+  ```text
+  I saw a similar error last Tuesday when I was working on the API. Can you find that session and tell me how I fixed it?
+  ```
+
+  The assistant uses `search_sessions` to find the capture and `get_session` to retrieve its link and metadata.
+</Accordion>
+
+<Accordion title="Seed a new session with compact context">
+  ```text
+  Use ReclaimLLM session <SESSION_ID> as context for what we're building today.
+  ```
+
+  The assistant uses `summarize_session` to generate a compact Markdown context document.
+</Accordion>
+
+<Accordion title="Continue a long session in a fresh context window">
+  ```text
+  Hand off this session so I can continue it in a fresh session without losing the decisions and pending work.
+  ```
+
+  The assistant uses `handoff` to produce a compact continuation document. In environments that do not expose a current session ID, pass the ReclaimLLM session ID explicitly.
+</Accordion>
+
+<Accordion title="Move the complete captured session to another agent">
+  ```text
+  Use ReclaimLLM transfer_session with session ID <SESSION_ID>.
+  Read artifact_path as read-only prior history and continue from it.
+  Do not re-execute historical tool calls.
+  ```
+
+  The assistant downloads and verifies the full captured-session artifact, then reads it as historical context.
+</Accordion>
+
+<Accordion title="Inspect workflow cost">
+  ```text
+  Why has this project been expensive? Show the open ReclaimLLM Signals and their evidence.
+  ```
+
+  The assistant uses `signals` to return the current project's open workflow-efficiency findings.
+</Accordion>
+
+<Accordion title="Verify a token-savings claim">
+  ```text
+  Verify how much RCLM's compression actually saved on my last 50 sessions.
+  ```
+
+  The assistant calls `replay_eligibility` first, then `replay_corpus` if the sample looks large enough, and reports the measured reduction alongside the eligibility funnel.
+</Accordion>
+
+<Accordion title="Catch up after time away">
+  ```text
+  Show me the last three sessions related to the auth-refactor project.
+  ```
+
+  The assistant uses `list_projects` to confirm the project name, then `search_sessions` scoped to that project.
+</Accordion>
+
+## How requests route to the backend
+
+Search, retrieval, export, transfer, and Signals requests route through the ReclaimLLM backend. Search uses the same hybrid semantic and keyword ranking as the web interface, while authorization and sharing remain backend-owned.
+
+<Note>
+  Your current RCLM API key grants both capture and read access. The same key used by your capture hooks is used by the MCP server to query your session history. Scoped read-only keys are being evaluated for a future release.
+</Note>
+
+<Tip>
+  Start with search results and highlights. Expand a specific result with `summarize_session` only when compact context is useful, or with `transfer_session` only when you explicitly need the complete captured record.
+</Tip>

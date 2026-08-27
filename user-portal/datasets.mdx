@@ -1,0 +1,57 @@
+---
+title: "Datasets: Organize, Export, and Publish Session Collections"
+sidebarTitle: "Datasets"
+description: "Create datasets from related sessions, edit their metadata, export redacted or raw archives, or publish a read-only collection."
+---
+
+Datasets group related sessions without removing them from your main Dashboard. A session can belong to more than one dataset.
+
+## Create a dataset
+
+You can start from the **Datasets** page or add selected sessions from the Dashboard.
+
+<Steps>
+  <Step title="Create the dataset">
+    Select **New Dataset**, or choose **Add to dataset** while organizing sessions.
+  </Step>
+  <Step title="Add metadata">
+    Enter a required name. You can also add a description and tags.
+  </Step>
+  <Step title="Add sessions">
+    Add one or more sessions now or return later from the Dashboard or Session Details page.
+  </Step>
+</Steps>
+
+## Manage a dataset
+
+Open a dataset to:
+
+- Rename it
+- Edit its description
+- Add or remove tags
+- Review and remove member sessions
+- Export an archive
+- Publish or unpublish the collection
+- Delete the dataset without deleting its underlying sessions
+
+## Export
+
+Choose **Export ZIP** to apply your substitution redactions or **Raw** to export without those substitutions. ReclaimLLM prepares the archive asynchronously and emails the download link to your account address.
+
+## Publish a dataset
+
+Publishing creates a public read-only link at `/public/datasets/{dataset_id}`. Anyone with the link can view the collection without signing in.
+
+<Warning>
+  Publishing a dataset also makes its underlying sessions publicly viewable with substitution redactions applied. Review the included sessions and their sensitive content before publishing.
+</Warning>
+
+When you make a dataset private again, choose whether its underlying sessions should also become private or keep their existing visibility.
+
+## Delete a dataset
+
+Deleting a dataset removes only the collection. It does not delete the sessions inside it.
+
+<Note>
+  Free accounts can create up to five datasets. Paid accounts have unlimited datasets. See [Plans](/plans/overview) for the current comparison.
+</Note>

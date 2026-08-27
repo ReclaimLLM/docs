@@ -1,0 +1,121 @@
+---
+title: "Data Residency: Choose Where Your Sessions Are Stored"
+sidebarTitle: "Data Residency"
+description: "Select US or EU storage on Paid, run RCLM on your own infrastructure with Enterprise, and keep session data in the region your compliance requires."
+---
+
+Data residency controls where your captured session data is physically stored. By default, all accounts use the standard US region. Paid users can choose between US and EU storage. Enterprise customers add a third option: running RCLM entirely on your own infrastructure.
+
+## Available regions by plan
+
+| Plan | Available regions |
+| --- | --- |
+| Free | Default region (US) |
+| Paid | US or EU |
+| Enterprise | US, EU, or on-premises |
+
+<Info>
+  Region selection takes effect for all new session ingests immediately after you save your choice. A background migration moves your existing session history to the new region without interrupting your access.
+</Info>
+
+## Choosing your region (Paid)
+
+<Steps>
+  <Step title="Open your account profile">
+    Select **Settings** from the top navigation and scroll to **Data Residency**.
+  </Step>
+  <Step title="Select your data residency region">
+    Under **Data residency**, choose **US** or **EU** from the dropdown. Read the confirmation message before proceeding — region selection is currently treated as permanent in the UI.
+  </Step>
+  <Step title="Confirm your selection">
+    Confirm the change. RCLM immediately routes all new session ingests to your chosen region's storage and begins an asynchronous migration of your existing session history.
+  </Step>
+  <Step title="Monitor migration progress">
+    The migration runs in the background. New sessions appear in the new region right away. Existing sessions migrate incrementally — they remain accessible throughout the process.
+  </Step>
+</Steps>
+
+<Warning>
+  Region changes are currently permanent in the UI. RCLM prevents back-and-forth migrations to avoid data consistency issues. Choose your region carefully before confirming.
+</Warning>
+
+## How regional routing works
+
+Once you select a region, RCLM's backend routes every relevant operation to that region's storage:
+
+<CardGroup cols={2}>
+  <Card title="New session ingests" icon="arrow-right-to-bracket">
+    All sessions captured after you set your region are written directly to your chosen region's storage. No data touches any other region.
+  </Card>
+
+  <Card title="Existing session migration" icon="arrows-rotate">
+    RCLM automatically migrates your historical sessions to the new region in the background: copying them, verifying integrity, then removing the originals. The migration is resumable — if interrupted, it picks up where it left off.
+  </Card>
+
+  <Card title="Background services" icon="gears">
+    Session summarization, statistics calculation, exports, and all other background jobs respect your region setting. Your data stays within your chosen region throughout its entire lifecycle.
+  </Card>
+
+  <Card title="Search and analytics" icon="magnifying-glass">
+    Hybrid search, semantic search, usage dashboards, and session filters all operate within your region. No cross-region data access occurs for normal product usage.
+  </Card>
+</CardGroup>
+
+## Enterprise: on-premises deployment
+
+Enterprise customers can run RCLM entirely within their own infrastructure, keeping session data inside their network boundary.
+
+<CardGroup cols={2}>
+  <Card title="Open-source server" icon="code">
+    The RCLM server (`rclm-server`) is open source. You can self-host it on any infrastructure you control today using Docker.
+  </Card>
+
+  <Card title="Packaged Helm deployment" icon="dharmachakra">
+    A fully packaged Helm chart for Kubernetes-based on-premises deployment is coming soon. This will be the supported enterprise deployment path for VPC and air-gapped environments.
+  </Card>
+</CardGroup>
+
+### On-premises deployment options
+
+<Accordion title="Docker (available now)">
+  Run `rclm-server` as a Docker container on your own infrastructure. This is the current self-hosted path. The server is open source and documented in the [rclm-server repository](https://github.com/reclaimllm/rclm-server).
+
+  Point your capture tools (hooks, proxy, browser extension) at your self-hosted server by setting the API endpoint in your RCLM config. All session data stays within your infrastructure.
+</Accordion>
+
+<Accordion title="Helm / Kubernetes (coming soon)">
+  A packaged Helm chart is in development for teams that run Kubernetes in their VPC or on-premises data center. This will include:
+
+  - Pre-configured deployment manifests
+  - Integrated database and object storage configuration
+  - Enterprise feature parity with the hosted product
+  - Support for air-gapped environments
+
+  Contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to discuss your deployment timeline and requirements.
+</Accordion>
+
+<Tip>
+  If you are evaluating RCLM for a regulated environment (HIPAA, FedRAMP, SOC 2, or similar), reach out to [enterprise@rclm.ai](mailto:enterprise@rclm.ai) before self-hosting. The enterprise team can provide guidance on deployment architecture, data handling documentation, and compliance requirements.
+</Tip>
+
+## Frequently asked questions
+
+<Accordion title="Can I migrate from US to EU after signing up?">
+  Yes. Paid users can change their region from the **Data residency** section on **Settings**. After confirming, RCLM routes new sessions to the EU immediately and migrates existing sessions in the background. The migration is resumable and does not interrupt normal product use.
+</Accordion>
+
+<Accordion title="Can I migrate back from EU to US?">
+  Region changes are currently treated as permanent in the UI to prevent inconsistent back-and-forth migrations. If you need to change your region after an initial selection, contact support.
+</Accordion>
+
+<Accordion title="How long does the background migration take?">
+  Migration time depends on how many sessions you have. For most users, the migration completes within minutes to a few hours. Large accounts with extensive session histories may take longer. New sessions land in the new region immediately regardless of migration progress.
+</Accordion>
+
+<Accordion title="Does region selection affect encrypted sessions?">
+  No. Encryption and data residency are independent controls. You can enable encrypted session storage and choose a specific region independently. Encrypted session blobs are stored in your chosen region's storage.
+</Accordion>
+
+<Accordion title="Are additional regions (APAC, etc.) planned?">
+  RCLM currently supports US and EU regions. Additional regions are on the roadmap, with priority determined by demand. Contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) if a specific region is a requirement for your deployment.
+</Accordion>

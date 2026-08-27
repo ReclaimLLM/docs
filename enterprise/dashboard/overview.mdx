@@ -1,0 +1,28 @@
+---
+title: "Overview Tab: Org Dashboard Home"
+sidebarTitle: "Overview"
+description: "The landing page for your org's enterprise portal — KPI cards, trial/billing status, and the full detailed-analytics view, filterable by time, type, user, and team."
+---
+
+This is the first page you land on when you open an organization in the enterprise portal (`/enterprise/orgs/{org_id}`).
+
+## What you'll see
+
+- Org header — org name, plan tier, and seat count.
+- Trial or suspension banner (admins only) — days left in a free trial, or a suspended-org notice if the subscription has lapsed.
+- Six KPI cards: **Total Sessions**, **Sessions (7d)**, **Input Tokens (7d)**, **Output Tokens (7d)**, **Active Devs (7d)**, **Top Model (7d)**.
+- The full **Detailed Analytics** block — the same component used elsewhere in the dashboard — including an overview stat row (sessions, tokens, turns, tool calls, lines changed, avg tokens/session), tool-call analytics, response timing, a 52-week activity heatmap, daily activity charts, and distribution charts (models, languages, session types, top tools).
+
+## What you can do
+
+Filter the detailed-analytics block by time range (1h–all time), session type (CLI / API Proxy / Browser Chat), user, and team. Overview is read-only — there's nothing to create, edit, or delete here.
+
+## Who sees it
+
+Visible to any role with portal access. The trial/billing banner only renders for admins.
+
+<Note>
+  Overview isn't a lighter version of the Stats tab — it embeds the same detailed-analytics component. [Stats](/enterprise/dashboard/stats) additionally has per-user and per-file tables that Overview doesn't show.
+</Note>
+
+For the concepts behind these metrics, see [Observability](/enterprise/observability).

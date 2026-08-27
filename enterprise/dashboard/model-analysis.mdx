@@ -1,0 +1,159 @@
+---
+title: "Model Analysis: Compare Models on Real Proxy Sessions"
+sidebarTitle: "Model Analysis"
+description: "Replay frozen cohorts of captured proxy sessions, measure classification agreement or blind-judge preference, and inspect response-level evidence."
+icon:
+  name: "flask-conical"
+  library: "lucide"
+keywords: ["model analysis", "model comparison", "LLM evaluation", "classification agreement", "blind LLM judge", "enterprise proxy replay"]
+---
+
+Model Analysis lets you replay real captured proxy requests against other enabled models. Use it to compare classification consistency or ask an independent model to judge response quality before you change providers or models.
+
+The page is available to organization administrators at `/enterprise/orgs/{org_id}/model-analysis`.
+
+<Note>
+  Model Analysis currently shows provider-call counts and hard execution limits. Cost estimates are disabled until model pricing data is available.
+</Note>
+
+## Before you start
+
+You need:
+
+- Proxy sessions captured through the [Enterprise LLM Gateway](/enterprise/llm-gateway).
+- At least one configured and enabled target model.
+- A shared operation title or tag on the sessions you want to compare.
+- Organization administrator access.
+
+Configure provider credentials and models from [API Keys](/enterprise/dashboard/api-keys).
+
+## Create a frozen dataset
+
+A frozen dataset keeps the selected source sessions and evaluation settings fixed. Multiple runs can reuse it, which makes later comparisons reproducible.
+
+<Steps>
+  <Step title="Open Model Analysis">
+    In the Enterprise Dashboard, select **Model Analysis**, then select **New frozen dataset**.
+  </Step>
+  <Step title="Describe the dataset">
+    Enter a **Dataset name**. **Purpose** is optional and can describe the workload or decision you are evaluating.
+  </Step>
+  <Step title="Select proxy sessions">
+    Choose one tag or one title. Optionally narrow the date range, then select the sessions to freeze. Only matching proxy sessions appear.
+  </Step>
+  <Step title="Choose an evaluation">
+    Select **Category agreement** or **Blind LLM judge**, configure it, then select **Freeze sessions**.
+  </Step>
+</Steps>
+
+The source model shown on the dataset comes from the captured responses. Freezing the dataset does not call a provider.
+
+## Choose an evaluation method
+
+### Category agreement
+
+Use **Category agreement** when each response contains a classification label, such as an intent, sentiment, routing decision, or risk category.
+
+Enter the **Category JQ path** where the label appears in the captured response. The page reads a sample session, shows candidate leaf paths, and can collect labels across all selected sessions. Review the **Allowed labels** before freezing the dataset.
+
+For example, a label might be stored at:
+
+```text
+response_body.choices[0].message.content.session_category
+```
+
+After a run, each result shows the source label and target label as **source → target**. The run summary shows **agreed / evaluated** sessions and the agreement percentage for every target model.
+
+<Note>
+  The field selector in a result's **Changes** view helps you inspect JSON output. It does not change the dataset's frozen category field or the aggregate agreement score.
+</Note>
+
+### Blind LLM judge
+
+Use **Blind LLM judge** for open-ended responses where exact labels are not enough.
+
+Choose an **Independent judge model** and enter the **Judge rubric**. The judge receives the original normalized request and randomized Response A/B outputs. It does not receive model identities, latency, cost, or the generated diff.
+
+The source model, target models, and judge model must be distinct. Each successful target response adds a judge call.
+
+After a run, the **Source ↔ target LLM judge comparison** summarizes each target model with source wins, target wins, ties, target win share, and judged coverage. These aggregate counts include only results where the blind judge returned a usable verdict.
+
+## Prepare and run the replay
+
+<Steps>
+  <Step title="Select target models">
+    On the frozen dataset, select **Prepare full run →**. Choose one or more enabled target models.
+  </Step>
+  <Step title="Prepare compatibility preflight">
+    Select **Prepare compatibility preflight**. ReclaimLLM checks every session-target pair without calling a provider.
+  </Step>
+  <Step title="Review the execution limit">
+    Review compatible cases, candidate calls, judge calls, and **Maximum attempts**. Incompatible cases remain in the total denominator.
+  </Step>
+  <Step title="Confirm the run">
+    Select **Confirm full dataset run** to start provider requests.
+  </Step>
+</Steps>
+
+Each selected session runs against every selected target. The header reports resolved cases and provider calls while the run is active. You can cancel an active run.
+
+## How requests are replayed
+
+Model Analysis supports captured Chat Completions requests. Before replay, ReclaimLLM:
+
+- Keeps supported request fields and drops unsupported fields.
+- Replaces the captured model with the selected target model.
+- Forces non-streaming output.
+- Removes credentials.
+- Sends the normalized request through the organization's governed enterprise proxy.
+
+Requests with unsupported message content, multiple choices, streaming source output, or missing usable request or response data are marked incompatible. They are not sent to a provider.
+
+Expand **Proxy request body** in a result to see the exact normalized input sent for that target replay. The result also lists controlled changes, including when unsupported fields were dropped.
+
+## Review results
+
+The run header separates cases into:
+
+- **Compatible**
+- **Succeeded**
+- **Incompatible**
+- **Failed**
+- **Unscorable**
+
+Use the state and target-model filters to narrow the result list. **Compatibility & failure reasons** groups the exact causes, even when only one case failed.
+
+Select any result to open its available evidence and attempt history. Failed results remain selectable even when no target response was produced:
+
+- **Proxy request body** shows the normalized session input.
+- **Structured comparison** compares JSON output and lets you specify a field in the **Changes** tab.
+- **Side by side** displays complete source and target outputs.
+- **Raw diff** displays a unified text diff.
+- **Attempt history** shows replay and judge attempts, errors, and latency.
+- Blind-judge results show the preferred response plus strengths and weaknesses.
+
+Decrypted result evidence is restricted to authorized administrators, and access is recorded in the enterprise audit trail.
+
+## Retry failed cases or rerun a failed run
+
+To repeat only one failed case, select **Retry** beside that result. ReclaimLLM preserves its attempt history, requeues only that session-target pair, and resumes at the unfinished candidate or judge stage. Successful cases are not rerun. A manual retry adds a bounded provider-call allowance and is recorded in the enterprise audit trail.
+
+To repeat the complete analysis, select **Rerun** on a failed run. ReclaimLLM prepares a new run with the same frozen dataset and target models. The original run remains available for diagnosis. Review the new preflight and select **Confirm full dataset run** when you are ready.
+
+A retry requires the target and judge models to remain enabled. A complete rerun can produce different compatibility results if a provider credential or enabled-model configuration changed after the original run.
+
+## Delete runs and datasets
+
+Select **Delete** on a run to remove it. A dataset can be deleted only when it has no runs, so delete its runs first. Dataset deletion removes the frozen analysis cohort; it does not delete the original captured sessions.
+
+## Troubleshooting
+
+| Symptom | What to check |
+| --- | --- |
+| No sessions appear | Select exactly one tag or title and confirm matching proxy sessions exist in the selected date range. |
+| No target models appear | Configure provider credentials and enable models from **API Keys**. |
+| Cases are incompatible | Open **Compatibility & failure reasons** and inspect the normalized proxy request where available. |
+| A case fails | Review its failure reason and attempt history. Fix the provider, credential, or model issue, then select **Retry** to requeue only that case. |
+| A complete run must be repeated | Select **Rerun** to create a new preflight from the same frozen dataset and target models. |
+| A result is unscorable | Confirm the category path and allowed labels, or verify that the judge returned the required verdict format. |
+| A run stays in preparation or execution | Contact your ReclaimLLM administrator with the run ID shown in the run header. |

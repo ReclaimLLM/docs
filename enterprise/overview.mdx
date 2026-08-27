@@ -1,0 +1,148 @@
+---
+title: "Enterprise: AI Governance for Your Engineering Org"
+sidebarTitle: "Overview"
+description: "ReclaimLLM Enterprise gives your org visibility into AI usage, cost, and data risk across every developer and team — starting at $10/seat/month."
+---
+
+The ReclaimLLM enterprise tier wraps a governance layer around the AI work your developers are already doing. Without changing how individuals capture sessions, your organization gains cross-developer analytics, a governed LLM gateway, role-based access control, org-wide encrypted session storage, and the audit trail you need for compliance and incident response.
+
+## Why most engineering orgs need this
+
+If your developers use coding assistants and LLM APIs today, you already have four problems whether you know it or not.
+
+<CardGroup cols={2}>
+  <Card title="You don't know what's leaving your network" icon="shield-exclamation">
+    Developers paste source code, database schemas, and internal infrastructure details into ChatGPT, Claude, and Gemini every day. Without a capture and visibility layer, you find out about leaks after the fact — if at all.
+  </Card>
+
+  <Card title="You don't know what it's costing you" icon="circle-dollar-to-slot">
+    A misconfigured agent running overnight or a developer sending huge context on every request can create real spend risk. Most teams lack usage breakdowns by developer, team, model, or project until the invoice arrives.
+  </Card>
+
+  <Card title="You have no observability into how AI is being used" icon="chart-mixed">
+    Which models are your developers using? Are some teams heavy users while others barely touch AI? Is AI improving output quality? Without data, these are guesses — and improving them is impossible.
+  </Card>
+
+  <Card title="You have no audit trail" icon="file-magnifying-glass">
+    For regulated industries or incident response, answering "what did our developers share with external AI providers over the past 90 days?" requires a capture layer. Without one, the question is simply unanswerable.
+  </Card>
+</CardGroup>
+
+## What the enterprise tier includes
+
+Enterprise builds on top of the full Paid feature set and adds an organizational layer that admins control without touching individual developer workflows.
+
+<CardGroup cols={2}>
+  <Card title="Org-wide usage dashboard" icon="gauge-high" href="/enterprise/observability">
+    See usage broken down by developer, team, model, and project. Cross-developer analytics refresh every 15 minutes and drill down to the exact session behind any metric spike.
+  </Card>
+
+  <Card title="Enterprise LLM Gateway" icon="arrow-right-arrow-left" href="/enterprise/llm-gateway">
+    Admins store provider credentials once. Teams receive scoped gateway keys. Provider secrets never reach developer machines, and every gateway call is logged with full org and team attribution.
+  </Card>
+
+  <Card title="Role-based access control" icon="user-shield" href="/enterprise/roles-access">
+    Three roles — admin, team lead, and developer — determine who can see what across the organization. Admins manage members and teams; team leads see their teams; developers see their own sessions.
+  </Card>
+
+  <Card title="Org-wide session encryption" icon="lock-keyhole">
+    Enable encrypted raw session storage at the org level with a single org recovery key. Admins control which roles can open encrypted member session details; summaries and search metadata stay usable without decrypting every transcript.
+  </Card>
+
+  <Card title="DLP scanning + policy enforcement" icon="shield-check">
+    Flag sensitive content, apply retention rules, and create a governance layer around real AI usage. Org-wide policy enforcement keeps data-risk controls consistent across every developer capture path.
+  </Card>
+
+  <Card title="Session sharing & governance" icon="key">
+    Control whether sessions are visible org-wide or team-only, set data retention and legal hold, and normalize project names across the org — all from the Settings tab.
+  </Card>
+</CardGroup>
+
+## How the org layer works
+
+When a developer joins your organization, their sessions are tagged server-side with durable org and team attribution. You don't need to change their local capture tools.
+
+- **Historical backfill** — existing sessions can be attributed to your org when a developer joins, so the enterprise view covers past and future activity from day one.
+- **Team assignment** — admins assign developers to teams, and attribution flows automatically from that point forward.
+- **Non-disruptive rollout** — enabling the enterprise layer does not change individual developer capture tools. Everything each developer already has set up continues to work as before.
+
+<Note>
+  The enterprise tier requires an organization account. Individual Paid accounts can be upgraded — contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to start the process.
+</Note>
+
+## Pricing
+
+Enterprise starts at **\$10/seat/month**, with your first 3 months completely free — no credit card charge until day 91. Cancel before day 91 and you won't be billed.
+
+For larger teams, volume pricing and annual billing are available. [Contact us](mailto:enterprise@rclm.ai) for a custom quote.
+
+## What's coming soon
+
+The current enterprise release focuses on observability, the LLM gateway, role-based access, encrypted session storage, DLP, and org-scoped API keys. The following are in active development:
+
+<AccordionGroup>
+  <Accordion title="Cost attribution + budget alerts">
+    Break spend down by team, developer, and project. Set budget thresholds and receive alerts before spend exceeds them.
+  </Accordion>
+
+  <Accordion title="Sensitive data alerts">
+    Route alerts for sensitive-content detections to Slack, PagerDuty, or a webhook of your choice so security teams can respond immediately.
+  </Accordion>
+
+  <Accordion title="SIEM integration">
+    Forward structured event data via webhook or syslog into your existing security information and event management stack.
+  </Accordion>
+
+  <Accordion title="Audit log">
+    A tamper-evident log of every admin action with actor and timestamp, scoped to your organization.
+  </Accordion>
+
+  <Accordion title="Data retention + legal hold">
+    Configure configurable delete policies and place sessions or date ranges under legal hold without changing day-to-day capture workflows.
+  </Accordion>
+
+  <Accordion title="SSO (SAML/OIDC)">
+    SSO configuration storage is available now. Enforced SSO login and SCIM provisioning are in progress.
+  </Accordion>
+
+  <Accordion title="On-premises deployment">
+    Run RCLM entirely inside your VPC. Docker-based self-hosting is available today; a fully packaged Helm chart is coming soon.
+  </Accordion>
+</AccordionGroup>
+
+## Get started
+
+<Steps>
+  <Step title="Start your free trial">
+    Go to [reclaimllm.com/pricing](https://reclaimllm.com/pricing#enterprise) and click **Try free for 3 months** under the Enterprise column. No credit card required until day 91.
+  </Step>
+  <Step title="Create your organization">
+    After signing up, create an org from the enterprise portal and set your org slug. Your slug becomes part of the LLM gateway URL.
+  </Step>
+  <Step title="Invite your team">
+    Add developers by email, assign roles, and organize them into teams. Existing sessions can be backfilled to cover prior activity.
+  </Step>
+  <Step title="Configure your governance layer">
+    Set up the LLM gateway, enable org-wide session encryption, and configure retention policy and session sharing.
+  </Step>
+</Steps>
+
+<Tip>
+  For a guided setup, contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai). We'll walk through the initial configuration with you.
+</Tip>
+
+## Explore the enterprise features
+
+<CardGroup cols={3}>
+  <Card title="LLM Gateway" icon="arrow-right-arrow-left" href="/enterprise/llm-gateway">
+    Set up governed API access for your teams.
+  </Card>
+
+  <Card title="Observability" icon="chart-mixed" href="/enterprise/observability">
+    Understand usage, cost, and data risk across your org.
+  </Card>
+
+  <Card title="Roles & Access" icon="user-shield" href="/enterprise/roles-access">
+    Manage members, teams, and permissions.
+  </Card>
+</CardGroup>

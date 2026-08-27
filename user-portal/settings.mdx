@@ -1,0 +1,61 @@
+---
+title: "Settings: Manage Your Account and Capture Preferences"
+sidebarTitle: "Settings"
+description: "Manage your ReclaimLLM plan, encryption, data residency, redaction substitutions, project names, personal API keys, password, and full-history export."
+---
+
+The **Settings** page is a single account-level page. Scroll through its sections to manage your plan and capture preferences.
+
+## Settings sections
+
+### Plan and billing
+
+Review your current tier in Settings. Paid users can open **Billing** to view the next invoice and invoice history, then continue to Stripe for payment or subscription changes.
+
+See [Billing](/plans/billing) for the workflow and [Plans](/plans/overview) for the feature comparison.
+
+### Session encryption
+
+The **Session Encryption** section lets Paid users enable encrypted raw session storage and download the one-time recovery key. It appears only when your account is eligible.
+
+Read [Session Encryption](/security/session-encryption) before enabling it so you understand the encryption boundary and recovery-key responsibility.
+
+### Data residency
+
+The **Data Residency** section shows the storage region for non-Enterprise accounts. Eligible Paid users can choose an available region and confirm migration.
+
+See [Data Residency](/security/data-residency) for availability and migration behavior. Enterprise storage policy is managed at the organization level.
+
+### Global substitutions
+
+Use **Global Substitutions** to create account-level string replacements that hooks can apply before captured content is uploaded. Run `rclm-update` on each machine after changing remote substitutions so the local hook cache is refreshed.
+
+See [Sensitive Data and DLP](/security/sensitive-data) for local substitutions, folder exclusions, precedence, and sharing warnings.
+
+### Project name mappings
+
+Use **Project Name Mappings** to map derived project names to a preferred display name when the same project appears under different folder or machine names. ReclaimLLM derives the original names from captured file paths.
+
+Mappings affect project labels and filters across the Dashboard and Stats page. An organization-wide mapping can override a personal mapping for Enterprise sessions.
+
+### API keys
+
+Use **API Keys** to create named personal keys for hooks, the local proxy, or direct ingest integrations. Copy a new key immediately; ReclaimLLM does not show the full secret again.
+
+You can create separate keys for different machines and revoke one key without affecting the others.
+
+<Warning>
+  Personal API keys are different from Enterprise organization keys and Gateway API keys. Do not use a personal key where an organization-scoped credential is required.
+</Warning>
+
+### Password
+
+The password section appears only for accounts that have an email/password identity. Accounts that use only GitHub or Google sign-in do not have a ReclaimLLM password to change.
+
+### Download all sessions
+
+Request a full-history ZIP export. Choose a redacted export to apply your substitutions or a raw export to preserve original content. The export runs asynchronously and the download link is delivered by email.
+
+<Warning>
+  Raw exports can contain credentials, source code, personal information, or other sensitive content captured in your sessions.
+</Warning>

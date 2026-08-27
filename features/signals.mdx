@@ -1,0 +1,133 @@
+---
+title: "RCLM Signals: Find Repeated AI Workflow Waste"
+sidebarTitle: "Signals"
+description: "RCLM Signals identifies repeated workflow-efficiency patterns in captured AI sessions, then links each finding back to the sessions, files, projects, teams, or models behind it."
+icon: "radar"
+keywords: ["RCLM Signals", "workflow efficiency", "AI observability", "session signals", "enterprise signals"]
+---
+
+RCLM Signals turns captured AI sessions into concrete investigation leads. Instead of only showing that a user, project, or team consumed tokens, Signals looks for repeated patterns that explain why the work may be expensive or inefficient.
+
+Signals are designed for review. A signal is not a verdict about a developer or a team. It is a finding with evidence behind it: sessions, files, model choices, policy snapshots, or similarity matches that an admin or developer can inspect.
+
+## What Signals helps you find
+
+<CardGroup cols={2}>
+  <Card title="Repeated restarts" icon="rotate-ccw">
+    Find work that keeps restarting on the same project instead of continuing from a useful handoff.
+  </Card>
+
+  <Card title="Missing project context" icon="file-question">
+    Find files that everyone keeps reopening because the important project knowledge is not documented once.
+  </Card>
+
+  <Card title="Exploration-heavy sessions" icon="search">
+    Find sessions with lots of reading and searching but little or no landing work.
+  </Card>
+
+  <Card title="Waiting sessions" icon="timer">
+    Find sessions where the assistant responded, then the next user prompt arrived after the configured wait threshold.
+  </Card>
+
+  <Card title="Session bloat" icon="maximize">
+    Find sessions that continue past a user's normal completion point while context keeps growing.
+  </Card>
+
+  <Card title="Model mismatch" icon="gauge">
+    Find repeatable cases where a costly model appears to be used for work that matched lighter-model sessions complete comparably.
+  </Card>
+</CardGroup>
+
+## Current pattern set
+
+Signals currently covers ten workflow patterns:
+
+| Code | Signal | What it points to |
+| --- | --- | --- |
+| `P1` | Restart churn | Poor continuation or missing handoff. |
+| `P2` | Groundhog files | Missing durable project context. |
+| `P3` | Exploration without landing | Prompt or entry-point ambiguity. |
+| `P4` | Session idle gaps | Waiting, review delay, interruption, or abandoned work. |
+| `P5` | Session bloat | Sessions that should be split or handed off. |
+| `P6` | Compression policy drift | Hook policy or installation mismatch. |
+| `P7` | Project onboarding cost | Missing onboarding material for a project. |
+| `P8` | Cross-team duplicated work | Prior work not discoverable across teams. |
+| `P9` | Context-weight burn | Excess cached context carried through a session. |
+| `P10` | Model-task mismatch | Model-selection guidance may be needed. |
+
+<Note>
+  Signals are calibrated as investigation leads. Always open the evidence before changing policy, coaching a user, or treating a finding as confirmed waste.
+</Note>
+
+## Personal and enterprise views
+
+Individual users can use Signals to understand why their own sessions or projects are expensive. The MCP `signals` tool can return open workflow-efficiency findings for the current project and user.
+
+Enterprise admins get broader scope. They can review open findings across members, projects, teams, and the organization, then drill into the exact sessions behind each pattern.
+
+<Tabs>
+  <Tab title="Developer workflow">
+    Use Signals when you want to understand why your current project has become expensive or repetitive.
+
+    ```text
+    Why has this project been expensive? Show the open ReclaimLLM Signals and their evidence.
+    ```
+
+    The assistant can use the RCLM MCP server to return current findings without changing your project.
+  </Tab>
+  <Tab title="Enterprise workflow">
+    Open the Enterprise Signals view to compare patterns across users and projects. Start with the pattern code, open the linked evidence, then decide whether the fix is a habit change, project artifact, team process, or org policy repair.
+  </Tab>
+</Tabs>
+
+## How Signals are calculated
+
+Signals are calculated from captured session metadata, normalized tool calls, project names, team membership, policy snapshots, model usage, provider-reported token data, and session similarity data.
+
+The backend evaluates patterns over a trailing weekly period. It records a score for evaluated patterns and creates an open signal only when the pattern crosses its threshold.
+
+Examples:
+
+- `P2` counts repeated reads of the same canonical file across sessions.
+- `P3` compares exploration calls to edit calls.
+- `P4` counts sessions with at least one assistant-to-next-user wait over the configured threshold. The default threshold is 20 minutes.
+- `P5` compares a session to the user's own baseline rather than a global constant.
+- `P8` requires conservative cross-team similarity evidence before it fires.
+- `P10` compares model choices only within matched user, project, and task-category contexts.
+
+For the full pattern-by-pattern calculation reference, see [Enterprise Signals](/enterprise/signals).
+
+## Acting on a signal
+
+<Steps>
+  <Step title="Read the pattern code">
+    The code tells you what kind of workflow problem to investigate. For example, `P4` means sessions waited over the configured threshold; it does not prove the user was blocked.
+  </Step>
+  <Step title="Open the evidence">
+    Review the linked sessions, files, models, projects, or teams. Confirm whether the examples match the pattern.
+  </Step>
+  <Step title="Choose the fix type">
+    Habit issues need workflow changes. Project issues need durable context. Team issues need process changes. Org issues need policy or installation repair.
+  </Step>
+  <Step title="Check the next period">
+    Signals refresh through backend jobs and backfills. Recheck after the next run before assuming a change worked.
+  </Step>
+</Steps>
+
+## Limits
+
+- Missing or incomplete captured sessions mean missing evidence.
+- Some patterns need provider-reported token or cache data.
+- Waiting time does not explain why the user waited.
+- Similarity and model-comparison patterns are conservative by design.
+- Signals should reduce the search space, not replace human review.
+
+<CardGroup cols={2}>
+  <Card title="Enterprise Signals reference" icon="book-open" href="/enterprise/signals">
+    Read the full P1-P10 pattern reference, including calculation details, examples, and admin actions.
+  </Card>
+
+  <Card title="MCP Server" icon="plug" href="/features/mcp-server">
+    Use the `signals` MCP tool from an AI coding assistant to inspect current workflow-efficiency findings.
+  </Card>
+</CardGroup>

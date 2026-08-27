@@ -1,0 +1,62 @@
+---
+title: "What Is ReclaimLLM? AI Session Capture & Observability"
+sidebarTitle: "Introduction"
+description: "ReclaimLLM captures, indexes, and governs every LLM interaction you generate — across every provider, tool, and team — so your AI work is never lost."
+---
+
+Every debugging session you close, every architecture discussion you finish, every pipeline you build with an AI coding assistant — that work is yours. Today it evaporates into ephemeral chat histories, unlogged API calls, and disconnected tools spread across half a dozen vendors. ReclaimLLM is the layer that captures it all, stores it permanently, and gives it back to you in a form you can actually use.
+
+## The problem RCLM solves
+
+When you work with AI tools, you're generating valuable intellectual output: solutions to hard bugs, architectural decisions, implementation details, data-shaping workflows. None of that is preserved in a way you control. Provider chat histories vanish when tabs close, API calls are completely untracked, and there's no way to search across tools. You can't audit what you (or your team) sent to external models, you can't reuse prior context without rebuilding it by hand, and you have no visibility into token costs or model usage.
+
+RCLM fixes this with a capture-first approach. Before anything else, it records your sessions — in full fidelity, locally and privately — so that every downstream feature (search, replay, governance, export) works on data you actually own.
+
+<Note>
+  RCLM never trains on your data. Nothing is shared or sold without an explicit action from you. Your sessions are private by default.
+</Note>
+
+## Who RCLM is for
+
+**Individual developers and researchers** get a permanent, searchable record of every AI interaction: full message logs, tool call traces, file diffs from coding agents, and per-session token analytics. You can find work from weeks ago in seconds, carry prior context into new sessions, and export your history in standard formats whenever you want.
+
+**Engineering teams and enterprises** get the governance layer that's missing today: org-wide usage dashboards, cost attribution by team and developer, DLP scanning to detect proprietary code or credentials flowing to external APIs, role-based access control, configurable retention policies, and an Enterprise LLM Gateway with team-scoped keys.
+
+## Three capture methods
+
+RCLM offers three independent capture methods. Use one, use all three — each produces the same normalized session record.
+
+<CardGroup cols={3}>
+  <Card title="Native Hooks" icon="hook" href="/capture/native-hooks">
+    Plugs directly into Claude Code, Gemini CLI, and Codex CLI lifecycle events. Captures messages, tool calls, file diffs, and token usage. The richest capture path available.
+  </Card>
+  <Card title="Browser Extension" icon="puzzle-piece" href="/capture/browser-extension">
+    A Chrome extension for ChatGPT, Claude.ai, and Gemini. Captures conversations in the background with no API key required. Currently in developer mode pending Chrome Web Store review.
+  </Card>
+  <Card title="Local API Proxy" icon="server" href="/capture/api-proxy">
+    A local proxy powered by LiteLLM that sits between your app and LLM providers. Set one environment variable — no code changes needed. Supports Anthropic, OpenAI, Azure OpenAI, and Gemini.
+  </Card>
+</CardGroup>
+
+## What you can do with captured sessions
+
+Once your sessions are captured and indexed, RCLM gives you a set of tools to put that history to work:
+
+- **Search everything** — Full-text keyword search and AI semantic search across every provider, model, and session. Find a debugging insight from three weeks ago in seconds.
+- **Replay and debug** — Full session logs show every message, every tool call, every file the agent changed (before and after). When an AI workflow goes wrong, you can see exactly what happened.
+- **Reuse prior context** — Export sessions as working context for a new assistant, carry architectural decisions forward, and stop rebuilding background from scratch.
+- **Auto-organized** — Sessions are automatically titled, described, tagged, and categorized at ingest. No manual labeling required.
+- **Export your data** — Download individual sessions or your full history in JSON or JSONL. Your data, on your schedule.
+- **Govern AI usage** — Enterprise users get org-wide dashboards, audit trails, DLP alerts, and retention policies with legal hold support.
+
+<Tip>
+  The Native Hooks capture method produces file diffs — a before-and-after record of every file your coding agent created or modified. This is the highest-fidelity data in the system and the most useful for debugging and audit.
+</Tip>
+
+## Ready to start?
+
+RCLM is free for individuals — up to 200 sessions with full-text search, sharing, and all three capture methods, forever. No credit card required.
+
+<Card title="Quickstart: Up and running in 2 minutes" icon="rocket" href="/quickstart">
+  Install hooks, capture your first session, and verify it appears in your dashboard.
+</Card>

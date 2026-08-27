@@ -1,0 +1,97 @@
+---
+title: "ReclaimLLM Account Setup: Keys, Auth, and Plan Tiers"
+sidebarTitle: "Account Setup"
+description: "Create your RCLM account, generate an API key, understand authentication, and choose the right plan for your capture volume and feature needs."
+---
+
+Your RCLM account is the central hub where captured sessions land, get indexed, and become searchable. This page walks you through creating your account, generating an API key, understanding how authentication works, and choosing a plan that fits how you work.
+
+## Creating your account
+
+Go to [reclaimllm.com/register](https://reclaimllm.com/register) and create an account with **GitHub**, **Google**, or an email address and password. No credit card is required — the Free plan is free forever, and paid plans include a three-month free trial before any charge applies.
+
+<Info>
+  Use the same sign-in method whenever you return. Email/password accounts can change their password from **Settings**; OAuth-only accounts continue through GitHub or Google.
+</Info>
+
+## Finding and creating API keys
+
+RCLM uses API keys to authenticate session data ingest from hooks, the proxy, and any direct API usage.
+
+<Steps>
+  <Step title="Open Settings">
+    Sign in and select **Settings** from the top navigation.
+  </Step>
+  <Step title="Find API Keys">
+    Scroll to **API Keys** on the Settings page.
+  </Step>
+  <Step title="Create a new key">
+    Click **Create API Key**, give it a descriptive name (for example, `laptop-hooks` or `work-proxy`), and confirm. Copy the key immediately — it is only shown once.
+  </Step>
+</Steps>
+
+<Warning>
+  Store your API key in a secure location. RCLM does not display the full key again after creation. If you lose a key, revoke it and create a new one.
+</Warning>
+
+You can create multiple keys for different machines or capture methods, and revoke any key individually without affecting the others.
+
+## How API keys are used for ingest
+
+All three capture methods — hooks, proxy, and browser extension — authenticate with your RCLM account when uploading session data. The ingest endpoint accepts two authentication formats:
+
+| Method | Format | When to use |
+| --- | --- | --- |
+| API Key header | `X-API-Key: rclm_your_key_here` | Hooks, proxy, direct API calls from scripts |
+| Bearer JWT | `Authorization: Bearer <token>` | Browser extension and user-context flows |
+
+If you're building a custom integration against the RCLM ingest API, pass your key as the `X-API-Key` header on every `POST /api/ingest` request.
+
+## Account tiers
+
+RCLM offers three tiers. All tiers include every capture method and full-text search.
+
+| Feature | Free | Paid | Enterprise |
+| --- | --- | --- | --- |
+| **Price** | \$0 / month | \$8 / month | \$10 / seat / month |
+| **Sessions stored** | 200 | Unlimited | Unlimited |
+| **Native hooks capture** | 200 sessions | Unlimited | Managed deployment |
+| **Local proxy capture** | Unlimited | Unlimited | Unlimited |
+| **Browser extension capture** | Unlimited | Unlimited | Unlimited |
+| **Full-text search** | ✓ | ✓ | ✓ |
+| **AI semantic search** | — | ✓ | ✓ |
+| **AI session summaries & tagging** | Title only | Full (summary, tags, language) | Full \+ custom taxonomy |
+| **Encrypted raw session storage** | — | User toggle \+ recovery key | Org-wide \+ admin policy |
+| **Sensitive data detection** | — | Hook DLP | Org-wide policies |
+| **Bulk export** | — | Zip download | Zip \+ API |
+| **Data residency** | Default region | US / EU | US / EU \+ on-premises |
+| **Usage history** | Last 7 days | Full history \+ trends | Full \+ org-wide |
+| **Org-wide dashboard** | — | — | ✓ |
+| **Role-based access control** | — | — | ✓ |
+| **Enterprise LLM Gateway** | — | — | ✓ |
+| **DLP scanning \+ policy enforcement** | — | — | Partial (more coming) |
+| **SSO (SAML / OIDC)** | — | — | Partial (more coming) |
+| **On-premises deployment** | — | — | Partial (more coming) |
+
+<Tip>
+  Both the Paid and Enterprise plans include **three months free** — your first charge doesn't occur until day 91. You can cancel any time before then without being billed.
+</Tip>
+
+## Upgrading your plan
+
+To upgrade from Free to Paid, open **Settings**, find the plan and billing section, and select **Upgrade**. The Paid plan activates immediately with a three-month free trial; no credit card is charged until day 91.
+
+For Enterprise, go to [reclaimllm.com/pricing#enterprise](https://reclaimllm.com/pricing#enterprise) or email [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to discuss seat counts, volume pricing, annual billing, and deployment requirements.
+
+## Enterprise org membership
+
+If your organization uses RCLM Enterprise, an org admin invites you by email from the enterprise portal. Once you accept:
+
+- Your account is linked to the org, and new sessions are tagged with your team attribution at ingest.
+- An admin can optionally backfill your existing sessions into the org's view so historical activity is included.
+- Your personal capture tools (hooks, proxy, extension) continue working without any reconfiguration.
+- Your access level — developer, team lead, or admin — is set by the org admin and determines what you can see in the enterprise portal.
+
+<Note>
+  Developers in an Enterprise org do not get access to the enterprise portal by default. The portal is visible to org admins and, within their team scope, to team leads.
+</Note>

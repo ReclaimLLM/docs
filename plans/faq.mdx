@@ -1,0 +1,146 @@
+---
+title: "ReclaimLLM Pricing FAQ: Plans, Trials, and Features"
+sidebarTitle: "FAQ"
+description: "Answers to the most common questions about ReclaimLLM's Free, Paid, and Enterprise plans — storage limits, trials, encryption, and self-hosting."
+---
+
+Whether you're deciding between plans or figuring out how a specific feature works, these answers cover the most common questions about ReclaimLLM's pricing, storage, trials, and security. If you don't find what you need here, reach out at [enterprise@rclm.ai](mailto:enterprise@rclm.ai).
+
+## Common questions
+
+<Accordion title="Is the Free plan really free forever?">
+  Yes. The Free plan has no credit card requirement and no expiration date. You get:
+
+  - Local proxy, hooks, and browser capture
+  - 200 stored hook sessions (proxy and browser are unlimited)
+  - Full-text search across all your sessions
+  - Session sharing via link
+  - Up to 5 collections
+  - Context export for handoffs
+
+  The only feature that's exclusively enterprise is the hosted **Enterprise LLM Gateway**. Everything else on the Free plan is yours for as long as you need it.
+</Accordion>
+
+<Accordion title="How does the free trial work for Paid and Enterprise?">
+  When you subscribe to either the Paid or Enterprise plan, your **first 3 months are completely free** — no charge until day 91. You get full access to all features in your plan from the moment you subscribe.
+
+  <Steps>
+    <Step title="Subscribe">
+      Click the subscription link for [Paid](https://buy.stripe.com/aFa9ATcVr9NP9ka1F1bMQ00?prefilled_promo_code=3MONTHSFREE) or [Enterprise](https://buy.stripe.com/dRm6oHdZvgcd9kacjFbMQ01?prefilled_promo_code=3MONTHSFREE). The promo code `3MONTHSFREE` is pre-filled automatically.
+    </Step>
+    <Step title="Get full access immediately">
+      Your account upgrades as soon as the subscription is confirmed. No waiting, no partial access.
+    </Step>
+    <Step title="Cancel before day 91 to pay nothing">
+      If the plan isn't right for you, cancel any time before day 91 and you won't be billed. No questions asked.
+    </Step>
+  </Steps>
+</Accordion>
+
+<Accordion title="What's the difference between Free and Paid?">
+  The Paid plan ($8/month after your free trial) unlocks the following on top of everything in Free:
+
+  - **Unlimited session storage** — no 200-session cap on hooks
+  - **Encrypted raw session storage** with a downloadable recovery key
+  - **AI semantic search** — find sessions by meaning, not just keywords
+  - **Full auto-tagging** — title, summary, tags, and language detected automatically
+  - **AI session summary** and **AI diff explanation**
+  - **AI similar session finder**
+  - **Sensitive data detection + auto-redaction**
+  - **Bulk export** as a zip download
+  - **Data residency** — choose US or EU storage
+  - **Full usage history and trends** (vs. the last 7 days on Free)
+  - **Weekly usage digest**
+  - **Unlimited collections**
+
+  <Tip>
+    The Paid plan is designed for developers who use AI tools daily and want their session history to be searchable, safe, and exportable without limits.
+  </Tip>
+</Accordion>
+
+<Accordion title="What counts as a session?">
+  A session is one of the following:
+
+  - **Hooks session** — one continuous agent run captured via Claude Code or Gemini CLI native hooks
+  - **Browser session** — one conversation captured via the browser extension (ChatGPT, Claude.ai, Gemini)
+  - **Proxy session** — one request record captured via the local API proxy or enterprise gateway
+
+  Proxy and gateway sessions store request metadata, model, duration, and token counts when available. Full conversation transcripts are stored for hooks and browser sessions.
+
+  <Info>
+    The 200-session limit on the Free plan applies only to **hooks-captured sessions**. Proxy and browser sessions are unlimited on all plans.
+  </Info>
+</Accordion>
+
+<Accordion title="How does Enterprise pricing work?">
+  Enterprise starts at **$10/seat/month**, with the same 3-month free trial as the Paid plan — no charge until day 91.
+
+  For larger teams, contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to discuss:
+
+  - **Volume pricing** for 10+ seats
+  - **Annual billing** options
+  - **VPC or on-premises deployment** requirements
+  - **Enterprise LLM Gateway** rollout and team-scoped key configuration
+
+  When you're added to an Enterprise organization, your account automatically upgrades to match your team's access level.
+</Accordion>
+
+<Accordion title="How does encrypted session storage work?">
+  Encryption protects the raw content of your session transcripts at rest. Here's how it works at each tier:
+
+  **Paid users:**
+  - Toggle encryption on from your account settings
+  - Download your one-time recovery key and store it somewhere safe
+  - Your raw session transcripts are encrypted; summaries, stats, and search metadata remain accessible without decrypting
+
+  **Enterprise:**
+  - The org admin enables org-wide encryption across all member sessions
+  - Admins control whether other admins and team leads can open encrypted member session details
+  - Session summaries, statistics, and search metadata continue to work without full decryption
+
+  <Warning>
+    Download your recovery key when prompted. It is shown only once. If you lose it and forget your password, you will not be able to recover the raw content of encrypted sessions.
+  </Warning>
+</Accordion>
+
+<Accordion title="Can I self-host ReclaimLLM?">
+  Yes. The ReclaimLLM server is open source and can run on any infrastructure you control.
+
+  - **Individual / small team**: run it anywhere — your own server, a VPS, or a home lab
+  - **Enterprise**: a supported deployment path inside your VPC is available; contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to scope it
+  - **Packaged Helm chart**: a fully packaged on-prem offering is coming soon for teams that need a one-command enterprise install
+
+  <Info>
+    Self-hosted deployments still benefit from all the capture methods (proxy, hooks, browser extension) — the server is the only piece that moves to your infrastructure.
+  </Info>
+</Accordion>
+
+<Accordion title="How does the hooks session limit work on Free?">
+  The **local proxy and browser extension are unlimited on all plans** — there is no cap there regardless of your tier.
+
+  The 200-session limit on Free applies specifically to **hooks-captured sessions** (Claude Code, Gemini CLI). Once you reach 200 stored hook sessions, older ones are removed automatically as new ones arrive.
+
+  To avoid losing sessions you care about, you have two options:
+
+  <Steps>
+    <Step title="Export and delete manually">
+      Export any session as JSON before it rolls off. Delete sessions you no longer need to stay under the cap.
+    </Step>
+    <Step title="Upgrade to Paid">
+      The Paid plan removes the cap entirely. All hook sessions are kept indefinitely with no roll-off.
+    </Step>
+  </Steps>
+</Accordion>
+
+---
+
+## Ready to get started?
+
+<CardGroup cols={2}>
+  <Card title="Create your free account" icon="rocket" href="https://reclaimllm.com/register">
+    No credit card. No time limit. Start capturing sessions in minutes.
+  </Card>
+  <Card title="Contact enterprise" icon="envelope" href="mailto:enterprise@rclm.ai">
+    Questions about volume pricing, VPC deployment, or the Enterprise LLM Gateway? We'll scope it with you.
+  </Card>
+</CardGroup>

@@ -1,0 +1,268 @@
+---
+title: "Enterprise LLM Gateway: Govern Team LLM API Access"
+sidebarTitle: "LLM Gateway"
+description: "Issue team-scoped gateway keys, restrict provider and model access, and log every LLM call with full org and team attribution — no raw secrets exposed."
+---
+
+The Enterprise LLM Gateway lets your organization route all LLM API traffic through a single, governed endpoint. Admins configure provider credentials once. Teams receive scoped gateway keys — not raw provider secrets. Every call is logged with full org and team attribution, so admins and team leads can inspect usage from the same session and analytics surfaces they already use.
+
+## How it works
+
+Instead of giving every developer direct access to an OpenAI, Anthropic, Gemini, or Azure OpenAI key, your team points its requests at the ReclaimLLM gateway URL and uses a team gateway key as the bearer token. The gateway validates the key, checks provider and model access against the policy you configured, forwards the request to the correct upstream provider, and logs the result.
+
+<Note>
+  The team gateway key is **not** a provider API key. It is a ReclaimLLM key that authorizes access according to your org's configured provider policy. Developer machines never receive the upstream provider secret.
+</Note>
+
+## Setup
+
+<Steps>
+  <Step title="Open the LLM Gateway page">
+    Sign in as an org admin and navigate to your organization's **LLM Gateway** page in the enterprise portal.
+  </Step>
+  <Step title="Store provider credentials">
+    Add credentials for the providers your organization wants to use. The gateway currently supports **OpenAI**, **Azure OpenAI**, **Anthropic**, and **Gemini**. Credentials are stored server-side and never exposed to developers.
+  </Step>
+  <Step title="Create a team-scoped gateway key">
+    Click **New gateway key**, then:
+
+    - Select the team that will use this key.
+    - Give the key a descriptive name (for example, `backend-team-prod`).
+    - Choose the allowed providers and, optionally, restrict to specific model patterns.
+
+    Copy the key immediately — it is shown only once.
+  </Step>
+  <Step title="Update your app's base URL and auth header">
+    Point your application or SDK at the enterprise gateway URL and swap in the team gateway key as the bearer token. No other code changes are required.
+
+    ```text
+    Base URL:  https://proxy.reclaimllm.com/<your-org-slug>/v1
+    Auth:      Authorization: Bearer rclm-gw-your-team-key
+    ```
+  </Step>
+  <Step title="Review traffic in enterprise reporting">
+    Admins and team leads can inspect logged proxy requests under **Enterprise → Reporting** and from team session views. Each logged call includes org, team, model, duration, token counts, and gateway key metadata.
+  </Step>
+</Steps>
+
+<Note>
+  The gateway runs as a separate hosted service at `proxy.reclaimllm.com`, distinct from the main `reclaimllm.com` app. Always use the `proxy.reclaimllm.com` host for gateway requests.
+</Note>
+
+## Request examples
+
+The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming convention](https://docs.litellm.ai/docs/providers) — prefix the model name with the provider — so the gateway can route the request to the correct upstream provider.
+
+<Tabs>
+  <Tab title="Chat completions">
+    Replace `acme` with your org slug and use your team's gateway key as the bearer token.
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "openai/gpt-4o-mini",
+        "messages": [
+          { "role": "user", "content": "Summarize this incident report." }
+        ]
+      }'
+    ```
+
+    For Anthropic, use the `anthropic/` prefix:
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "anthropic/claude-3-5-sonnet-20241022",
+        "messages": [
+          { "role": "user", "content": "Review this pull request description." }
+        ]
+      }'
+    ```
+
+    Streaming is supported — set `"stream": true` in the request body and read the response as server-sent events, the same as calling the provider directly.
+  </Tab>
+  <Tab title="Responses">
+    The gateway also proxies the Responses API for providers that support it. Same host, auth, and org-slug pattern as chat completions.
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/responses \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "openai/gpt-4o-mini",
+        "input": "Summarize this incident report."
+      }'
+    ```
+
+    <Note>
+      Responses API support depends on the underlying provider and LiteLLM version behind the gateway. If a provider or runtime doesn't support it yet, the gateway returns a `501`.
+    </Note>
+  </Tab>
+  <Tab title="Embeddings">
+    Embedding traffic uses the same team gateway key, so retrieval and search pipelines follow the same org policy as your chat traffic.
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/embeddings \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "azure/text-embedding-small",
+        "input": ["Searchable context from an LLM session."]
+      }'
+    ```
+
+    Use the `openai/` prefix for OpenAI embedding models:
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/embeddings \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "openai/text-embedding-3-small",
+        "input": ["Session context for semantic retrieval."]
+      }'
+    ```
+  </Tab>
+  <Tab title="Python (OpenAI SDK)">
+    The gateway is OpenAI-compatible, so you can use the OpenAI Python SDK by overriding `base_url` and `api_key`.
+
+    ```python
+    from openai import OpenAI
+    
+    client = OpenAI(
+        base_url="https://proxy.reclaimllm.com/acme/v1",
+        api_key="rclm-gw-your-team-key",
+    )
+    
+    response = client.chat.completions.create(
+        model="openai/gpt-4o-mini",
+        messages=[
+            {"role": "user", "content": "Summarize this incident report."}
+        ],
+    )
+    
+    print(response.choices[0].message.content)
+    ```
+
+    Switch providers by changing the `model` prefix — no other changes required:
+
+    ```python
+    # Use Anthropic instead
+    response = client.chat.completions.create(
+        model="anthropic/claude-3-5-sonnet-20241022",
+        messages=[{"role": "user", "content": "Review this code."}],
+    )
+    ```
+  </Tab>
+  <Tab title="TypeScript (OpenAI SDK)">
+    The gateway is OpenAI-compatible, so you can use the OpenAI Node.js SDK by overriding `baseURL` and `apiKey`.
+
+    ```typescript
+    import OpenAI from "openai";
+    
+    const client = new OpenAI({
+      baseURL: "https://proxy.reclaimllm.com/acme/v1",
+      apiKey: "rclm-gw-your-team-key",
+    });
+    
+    const response = await client.chat.completions.create({
+      model: "openai/gpt-4o-mini",
+      messages: [
+        { role: "user", content: "Summarize this incident report." },
+      ],
+    });
+    
+    console.log(response.choices[0].message.content);
+    ```
+
+    Switch providers by changing the `model` prefix — no other changes required:
+
+    ```typescript
+    // Use Anthropic instead
+    const response = await client.chat.completions.create({
+      model: "anthropic/claude-3-5-sonnet-20241022",
+      messages: [{ role: "user", content: "Review this code." }],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Model naming convention
+
+The gateway uses the [LiteLLM provider prefix](https://docs.litellm.ai/docs/providers) to route requests to the correct upstream provider. Prefix every model name with the provider slug and a forward slash.
+
+| Provider | Example model string |
+| --- | --- |
+| OpenAI | `openai/gpt-4o-mini` |
+| Azure OpenAI | `azure/text-embedding-small` |
+| Anthropic | `anthropic/claude-3-5-sonnet-20241022` |
+| Google Gemini | `gemini/gemini-1.5-pro` |
+
+<Tip>
+  If your gateway key's policy restricts access to specific providers or model patterns, calls to other providers will be rejected with a `403` before reaching the upstream API.
+</Tip>
+
+## What gets logged
+
+Every gateway call creates a proxy session record. These records appear in enterprise reporting and team session views alongside other captured AI activity.
+
+| Field | What's recorded |
+| --- | --- |
+| **Identity** | Org ID, team ID, gateway key metadata, attributed team lead |
+| **Request** | Endpoint, method, model, streaming flag, sanitized request payload metadata |
+| **Response** | Status code, duration, input tokens, output tokens, provider response metadata |
+| **Access** | Visible to enterprise admins and team leads scoped to the relevant org/team |
+
+<Note>
+  Logging failures do not block a successful provider response. If the log write fails, the upstream response is still returned to the caller, and the record is queued locally for retry.
+</Note>
+
+## Team-scoped policy
+
+You can configure different policies for different teams. For example:
+
+- The **backend team** has access to OpenAI and Anthropic.
+- The **data team** is restricted to Gemini and Azure embeddings only.
+- A **prototype service** has access to a single model pattern.
+
+Each gateway key enforces its policy independently. Revoking a key immediately cuts off access for that team without affecting other keys or the upstream provider credentials.
+
+## Current limitations
+
+<Warning>
+  The gateway is a new release. Read these limitations before putting it on a critical production path.
+</Warning>
+
+<AccordionGroup>
+  <Accordion title="Org-level provider credentials only">
+    Provider credentials are configured at the organization level. Team-owned provider credentials and team-specific provider billing separation are not available in this version.
+  </Accordion>
+
+  <Accordion title="Gateway reliability is in your request path">
+    The gateway now sits between your application and the upstream provider. Uptime and retry behavior matter more than for passive capture paths. We recommend evaluating it in a non-critical service before routing production traffic through it.
+  </Accordion>
+
+  <Accordion title="Provider compatibility is still maturing">
+    Provider APIs differ around streaming, token reporting, and response shapes. Most edge cases have been addressed, but streaming behavior and provider-specific response formats may surface issues in production. Share feedback at [enterprise@rclm.ai](mailto:enterprise@rclm.ai).
+  </Accordion>
+
+  <Accordion title="Provider list is expanding">
+    The initial release covers OpenAI, Azure OpenAI, Anthropic, and Gemini. Additional providers will be added based on enterprise demand.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Observability" icon="chart-mixed" href="/enterprise/observability">
+    See how gateway traffic rolls up into org-wide usage analytics.
+  </Card>
+
+  <Card title="Roles & Access" icon="user-shield" href="/enterprise/roles-access">
+    Learn which roles can create and review gateway keys.
+  </Card>
+</CardGroup>

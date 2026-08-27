@@ -1,0 +1,76 @@
+---
+title: "Capture Overview: Four Ways to Record AI Sessions Now"
+sidebarTitle: "Overview"
+description: "ReclaimLLM captures AI sessions via four methods — native hooks, browser extension, local proxy, and enterprise gateway — into one unified history."
+---
+
+ReclaimLLM captures AI interactions wherever they happen: inside coding agents, browser chat interfaces, local API calls, and org-level gateway traffic. No matter which path you use, every session lands in the same normalized record — searchable, browsable, and exportable from a single dashboard. You can start with just one method and layer on the others as your needs grow.
+
+## Four capture methods
+
+<CardGroup cols={2}>
+  <Card title="Native Hooks" icon="webhook" href="/capture/native-hooks">
+    The richest capture path. Hooks into Claude Code, Gemini CLI, and Codex CLI to record messages, tool calls, file diffs, and token usage.
+  </Card>
+  <Card title="Browser Extension" icon="chrome" href="/capture/browser-extension">
+    Capture ChatGPT, Claude.ai, and Gemini conversations in the background — no API keys or code changes required.
+  </Card>
+  <Card title="Local API Proxy" icon="server" href="/capture/api-proxy">
+    A local proxy that intercepts every request and response between your app and LLM providers. Just point an environment variable at it.
+  </Card>
+  <Card title="Enterprise Gateway" icon="building" href="/capture/enterprise-gateway">
+    A hosted, org-managed gateway for governed team traffic. Admins issue scoped keys and review usage centrally.
+  </Card>
+</CardGroup>
+
+## Comparison
+
+| Method | What gets captured | Best for | Plan |
+|---|---|---|---|
+| **Native Hooks** | Messages, tool calls & results, file diffs (before/after), token usage | Claude Code, Gemini CLI, Codex CLI power users | Free (200 sessions) |
+| **Browser Extension** | Conversation turns, provider context | ChatGPT, Claude.ai, Gemini browser users | Free, unlimited |
+| **Local API Proxy** | Requests, responses, model, token counts | Developers calling LLM APIs directly | Free, unlimited |
+| **Enterprise Gateway** | Full request metadata, team/org attribution, token counts | Org-level governed API access | Enterprise |
+
+<Note>
+  The free tier includes **200 hooks-captured sessions**. Browser extension and API proxy sessions are unlimited on all plans.
+</Note>
+
+## The normalized session model
+
+Every capture method — regardless of how rich the source data is — produces the same session shape. That consistency is what lets browser chats, agent traces, local API calls, and enterprise gateway requests live together in one dashboard.
+
+<CardGroup cols={2}>
+  <Card title="Messages" icon="message">
+    Prompts, replies, and conversation turns from every source.
+  </Card>
+  <Card title="Provider context" icon="microchip">
+    Provider name, model, timestamps, token usage, and cost metadata.
+  </Card>
+  <Card title="Tool activity" icon="wrench">
+    Tool calls and their results, when the source supports them (hooks and proxy).
+  </Card>
+  <Card title="File diffs" icon="file-diff">
+    Before-and-after file snapshots for every file an agent created or modified — hooks only.
+  </Card>
+  <Card title="Session metadata" icon="tag">
+    Auto-generated titles, descriptions, and tags that make sessions immediately searchable.
+  </Card>
+  <Card title="Sensitive content flags" icon="shield">
+    Credentials, tokens, and other risky content highlighted before storage.
+  </Card>
+</CardGroup>
+
+<Info>
+  When session encryption is enabled (Paid and Enterprise plans), full session blobs are encrypted at rest. Metadata — titles, tags, token counts, model names — stays unencrypted so search, stats, and summaries remain fast.
+</Info>
+
+## Choosing where to start
+
+The right first step is the one that captures your highest-volume AI usage with the least friction. You can always add more paths later — they don't interfere with each other.
+
+- **You use Claude Code, Gemini CLI, or Codex CLI daily** → Start with [Native Hooks](/capture/native-hooks)
+- **You mostly chat in the browser** → Start with the [Browser Extension](/capture/browser-extension)
+- **You build apps that call LLM APIs** → Start with the [Local API Proxy](/capture/api-proxy)
+- **You manage LLM access for a company** → Start with the [Enterprise Gateway](/capture/enterprise-gateway)
+- **You want the fullest picture** → Use all four paths together

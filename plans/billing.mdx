@@ -1,0 +1,70 @@
+---
+title: "Billing: Manage Personal and Enterprise Subscriptions"
+sidebarTitle: "Billing"
+description: "Review upcoming invoices and billing history in RCLM, then use Stripe Checkout or the Customer Portal to manage payments."
+icon: "credit-card"
+keywords: ["billing", "Stripe", "invoices", "subscriptions", "enterprise seats"]
+---
+
+RCLM shows subscription and invoice information while Stripe handles every payment action. RCLM does not collect or store card or bank account details.
+
+<CardGroup cols={2}>
+  <Card title="Personal billing" icon="user">
+    Open **Settings → Billing** to review billing for your personal subscription.
+  </Card>
+
+  <Card title="Enterprise billing" icon="building">
+    Organization admins can open an organization and select **Billing** to review its subscription.
+  </Card>
+</CardGroup>
+
+## What you can review in RCLM
+
+The billing page is read-only for payment information. It shows:
+
+- Your current plan and Stripe subscription status
+- The next invoice, including line items, prorations, discounts, taxes, credits, total due, and due date
+- Previous invoices with PDF downloads
+- A CSV export of invoice history
+- For enterprise organizations, the current accepted-member seat count and per-seat price
+
+Personal and enterprise subscriptions use separate billing accounts, so changing one does not affect the other.
+
+## Start or manage a subscription
+
+<Steps>
+  <Step title="Open the correct billing page">
+    For a personal subscription, open **Settings → Billing**. For an enterprise subscription, open the organization and select **Billing**.
+  </Step>
+  <Step title="Continue to Stripe">
+    Select **Set up billing in Stripe** when no subscription exists. RCLM opens Stripe Checkout to collect payment details and start the subscription.
+  </Step>
+  <Step title="Manage an existing subscription">
+    Select **Manage in Stripe** to open the Stripe Customer Portal. Payment methods, billing details, and subscription changes are completed there.
+  </Step>
+  <Step title="Return to RCLM">
+    After Stripe finishes processing the change, return to the billing page to review the updated subscription and invoices.
+  </Step>
+</Steps>
+
+<Note>
+  The payment methods and billing fields available in Checkout and the Customer Portal depend on the Stripe configuration for your account.
+</Note>
+
+## Enterprise seat billing
+
+Enterprise subscriptions are billed per accepted organization member. Invited users do not count as billable seats until they accept the invitation.
+
+When the accepted-member count changes, RCLM synchronizes the subscription quantity with Stripe. Any resulting proration appears in the next invoice preview. If Stripe cannot be reached temporarily, the billing page shows that the seat update is pending and retries can be made without blocking organization access.
+
+## Invoices
+
+Use **Download PDF** to retrieve Stripe's invoice document for an individual invoice. Use **Export CSV** to download the invoice history currently available to the billing page.
+
+Stripe sends issued invoices and receipts to the billing contact configured for the Stripe customer.
+
+## Subscription and trial status
+
+Stripe is the source of truth for paid access. An account with an `active`, `trialing`, or `past_due` Stripe subscription is treated as having a current subscription in RCLM and does not receive the expired trial message.
+
+If billing details are temporarily unavailable, retry the page after Stripe connectivity is restored. Enterprise billing is visible only to organization administrators.

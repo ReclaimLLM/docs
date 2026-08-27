@@ -1,0 +1,230 @@
+---
+title: "Cut Token Costs in Agentic Coding Sessions"
+sidebarTitle: "Context Compression"
+description: "Native hooks reduce redundant context with range-aware read caching, search and command-output shaping, result dedupe, test filtering, loop detection, and image lifecycle controls."
+---
+
+Tool results can remain in an agent's context and be sent back to the model on later turns. A file read or long command result can therefore consume context more than once. ReclaimLLM's native hooks reduce that repeated context before it reaches the model, while recording what changed and whether the reduction was enforced or only observed.
+
+## Enabling compression
+
+Fresh hook installations enable range caching, loop detection, and text-output compression by default. Repeated-result dedupe, image lifecycle controls, response brevity, and shadow mode remain opt-in.
+
+```bash
+# Install the default context-reduction mechanisms
+rclm-hooks-install
+
+# Evaluate optional mechanisms without rewriting model-visible results
+pip install 'rclm[images]'
+rclm-hooks-install --dedupe --image-lifecycle --shadow-mode
+
+# Enforce supported mechanisms after reviewing the shadow measurements
+rclm-hooks-install --dedupe --image-lifecycle --no-shadow-mode
+```
+
+Use the `--no-read-cache`, `--no-loop-breaker`, or `--no-compress` forms to disable a default mechanism. Installation choices persist in `~/.reclaimllm/config.json` across reinstalls.
+
+The text-compression thresholds are stored together:
+
+```json
+{
+  "compression": {
+    "enabled": true,
+    "dedupe": true,
+    "test_filter": true,
+    "min_dedupe_chars": 500,
+    "test_filter_max_chars": 8000
+  },
+  "read_cache": true,
+  "loop_breaker": true,
+  "image_lifecycle": true,
+  "image_max_dim": 1280,
+  "shadow_mode": true
+}
+```
+
+<Note>
+  Compression hooks are local configuration, like the `--dlp` flag. Enterprise policy can additionally set individual mechanisms to off, observe, or enforce.
+</Note>
+
+## Compression mechanisms
+
+ReclaimLLM reports each technique separately so the User Stats and Enterprise Tokens pages can show which mechanism produced the reduction.
+
+### Range cache
+
+**Telemetry IDs:** `range_cache` and historical `H1_read_cache` · **Flag:** `--read-cache` · **Measured**
+
+ReclaimLLM tracks the exact line ranges already returned from each file. A fully covered reread becomes a short unchanged reference, while a partially overlapping read returns only unseen lines. File metadata and content hashes prevent stale reuse; writes and edits invalidate affected state.
+
+The parser covers native reads and a conservative set of exact shell reads across supported clients and PowerShell. [See supported commands, invalidation rules, and telemetry details.](/capture/read-cache)
+
+### Search shaping
+
+**Telemetry ID:** `H2_search_shaping` · **Flag:** `--compress` · **Measured**
+
+Long `grep` and `rg` results are grouped into total matches, per-file counts, and representative matching lines. Explicit count, file-only, and context modes pass through because the command already asked for a compact or context-rich shape.
+
+Search shaping intentionally removes repetitive detail. The result tells the agent how much was omitted so it can issue a narrower search when it needs more context.
+
+### Lossless search/path folding
+
+**Telemetry ID:** `lossless_search_path_folding` · **Flag:** `--compress` · **Measured**
+
+Repeated file and directory prefixes are folded out of search results and path listings without dropping result rows. Before a fold is accepted, ReclaimLLM expands it again and verifies that the exact original output is recovered. Ambiguous shapes and oversized inputs pass through unchanged.
+
+This fast, reversible stage can run after command-aware shaping or by itself when a chained command obscures the command family.
+
+### Exec compaction
+
+**Telemetry IDs:** `H3_exec_compaction`, `exec_compaction`, and historical `legacy_compress` · **Flag:** `--compress` · **Measured**
+
+Recognized shell output is reduced with command-aware filters:
+
+- Git status, diff, log, and common action output retain the useful summary and bounded detail.
+- Directory listings group repeated paths and report omitted counts.
+- Generic long output collapses repeated lines and retains useful beginning and ending context.
+- Large browser accessibility snapshots use the same bounded generic compaction.
+- Large read-only Supabase results retain the first and last rows, the untrusted-data safety envelope, and an explicit omitted-row marker. Mutations and unfamiliar result shapes pass through.
+
+Unknown commands, non-zero exits, image-like payloads, malformed structured output, and ambiguous multi-block results fail open and remain unchanged.
+
+### Test output filter
+
+**Telemetry ID:** `test_filter` · **Flag:** `--compress` · **Measured**
+
+Pytest, Jest, Vitest, Go, and Cargo output keeps failures, errors, assertion details, relevant tracebacks, and the final summary while collapsing routine passing-test noise.
+
+If a non-zero run cannot be parsed confidently, ReclaimLLM returns the original output unchanged. Filtered output is bounded by `test_filter_max_chars`.
+
+### Hash dedupe
+
+**Telemetry ID:** `hash_dedupe` · **Flag:** `--dedupe` · **Measured**
+
+A large tool result equivalent to an earlier result in the same session is replaced with a compact reference to the first occurrence. ReclaimLLM normalizes only volatile presentation details such as ANSI formatting, timestamps, durations, repository-absolute paths, and explicitly labeled process identifiers before hashing.
+
+Results below `min_dedupe_chars` and results marked as errors pass through. Dedupe is session-scoped and off by default.
+
+### Loop breaker
+
+**Telemetry ID:** `H4_loop_breaker` · **Flag:** `--loop-breaker` · **Estimated**
+
+Claude Code sessions are checked for consecutive identical calls and repeated failures against the same file or command. ReclaimLLM first adds corrective context; after the pattern is well established, it asks for permission before another retry. It does not silently block the call.
+
+Loop-breaker impact is estimated from the avoided attempt because no completed tool result exists for a true before-and-after measurement.
+
+### Image downscale
+
+**Telemetry ID:** `image_downscale` · **Flag:** `--image-lifecycle` · **Measured**
+
+Oversized screenshots and supported base64 tool-result images are resized and re-encoded before they enter the transcript. Images preserve their aspect ratio, are never enlarged, and default to a maximum dimension of 1280 pixels. The optional `rclm[images]` package is required.
+
+Claude Code can enforce the rewritten image. Codex currently records the measured before-and-after opportunity without applying the MCP image rewrite because its hook contract does not accept that replacement.
+
+### Stale-image eviction opportunity
+
+**Telemetry ID:** `image_eviction` · **Flag:** `--image-lifecycle` · **Estimated only**
+
+When a newer screenshot supersedes an older image for the same tool, page, and viewport, ReclaimLLM estimates the context that could be released. It also models the prompt-cache write cost that eviction could introduce.
+
+This mechanism is measurement-only today. It never removes an image, even outside shadow mode, and appears separately from measured context reduction.
+
+## Execution order and fail-open behavior
+
+For successful text results, the hot path applies mechanisms in this order:
+
+1. DLP redaction, when enabled.
+2. Range cache.
+3. Command-aware and lossless output compaction.
+4. Hash dedupe.
+
+A range-cache hit claims the result so downstream mechanisms do not count the same reduction twice. Command-aware compaction and verified lossless folding can both contribute independently when both shorten the same result. Any parser error or unsupported shape returns the original result.
+
+Image results follow the separate image-lifecycle path.
+
+## Shadow mode and measurement types
+
+`--shadow-mode` runs supported detection logic and records the potential reduction without rewriting model-visible results. Use it to evaluate your own workload before enforcement.
+
+<AccordionGroup>
+  <Accordion title="Measured reduction">
+    Range cache, search shaping, lossless folding, exec compaction, test filtering, hash dedupe, and image downscaling compare an original result with a shorter candidate. Dashboards report the observed before-and-after token estimate, split into enforced and potential counts.
+  </Accordion>
+
+  <Accordion title="Estimated opportunity">
+    Loop breaking and stale-image eviction do not have an observed replacement result. Their figures depend on an avoided-call or cache-cost model and stay separate from measured reduction.
+  </Accordion>
+
+  <Accordion title="Unsupported provider rewrite">
+    A provider may expose enough information to measure a candidate but no reliable hook contract for applying it. ReclaimLLM records the opportunity as potential and leaves the original result unchanged.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  Shadow measurements and Replay are counterfactual context reductions, not realized billing savings. Prompt caching, future turns, retries, and model behavior can change the eventual provider-token impact.
+</Warning>
+
+## Provider boundaries
+
+- **Claude Code:** supports range caching, text compaction, test filtering, hash dedupe, loop detection, and enforced image downscaling.
+- **Codex CLI:** supports text mechanisms; MCP image downscaling is measured but not rewritten today.
+- **Cursor:** supports text reduction where its native hook contract provides a safe rewrite path; unsupported results pass through.
+- **Gemini CLI:** supports range caching and hash dedupe. Text compaction, test filtering, and image downscaling are not enforced today.
+
+## MCP tools for context efficiency
+
+Two MCP tools complement the hook-level compression mechanisms for managing context across sessions:
+
+<CardGroup cols={2}>
+  <Card title="file_brief" icon="file-magnifying-glass">
+    Returns a distilled summary of prior RCLM sessions that touched a given file. Use it for orientation before an edit, instead of re-reading the full file and replaying its entire change history.
+  </Card>
+
+  <Card title="handoff" icon="arrow-right-arrow-left">
+    Packages the current session's state into a document you can paste into a fresh session. Useful once a session has grown large enough that the resend multiplier itself is the problem — a clean session start with prior context is cheaper than continuing a bloated one.
+  </Card>
+</CardGroup>
+
+## Session-start context packs
+
+New Claude Code sessions can be seeded with highlights from recent ReclaimLLM sessions in the same project. The agent begins with compact prior decisions, changed files, and outstanding work instead of reconstructing all of that context through repeated reads.
+
+Response brevity is a related opt-in control:
+
+```bash
+rclm-hooks-install --brevity
+```
+
+Brevity adds an advisory instruction at session start. Its impact is a cohort estimate rather than a measured per-session mechanism, so it is not included in Measured Context Reduction.
+
+## Viewing context reduction
+
+Individual users can review the mechanism breakdown in **User Portal → Stats → Measured Context Reduction**. Enterprise administrators can review organization-wide results in **Enterprise → Tokens → Measured context reduction**.
+
+Each technique has a help tooltip, token-reduction total, and enforced or potential event count. Select a row with linked evidence to inspect contributing sessions.
+
+<Info>
+  These pages need captured session telemetry to populate. New organizations show an empty state until eligible sessions have been processed.
+</Info>
+
+You can independently replay the shipped text mechanisms over captured sessions without waiting for a dashboard rollup. See [Verify token reduction with Replay](/features/mcp-server#verify-token-savings-with-replay).
+
+## Current limitations
+
+<AccordionGroup>
+  <Accordion title="No universal per-call view">
+    Session and organization dashboards aggregate mechanism telemetry. Range-cache file attribution and linked session evidence are available, but not every provider exposes a uniform per-call drill-down.
+  </Accordion>
+
+  <Accordion title="Local shadow mode is one switch">
+    The local `--shadow-mode` flag observes all locally enabled supported mechanisms together. Enterprise policy can assign off, observe, or enforce per mechanism.
+  </Accordion>
+
+  <Accordion title="No automatic flag recommendations">
+    ReclaimLLM does not yet change compression flags automatically based on session patterns. Review shadow telemetry and Replay evidence before enforcement.
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  Command, test-runner, and structured-result filters intentionally accept only recognized shapes. Tool updates can create new edge cases, so unfamiliar or ambiguous output passes through unchanged. Report a consistently verbose unsupported command so a conservative filter can be added.
+</Warning>

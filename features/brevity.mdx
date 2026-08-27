@@ -1,0 +1,103 @@
+---
+title: "Reduce Verbose Model Output With the Brevity Hook"
+sidebarTitle: "Brevity"
+description: "Inject a configurable brevity instruction at session start to cut verbose model output, with cohort-level impact tracking in the Tokens tab — no per-session savings claim."
+---
+
+Output tokens are a small share of a coding session's total volume but a disproportionate share of its cost. The brevity hook injects a short instruction at session start asking the model to skip restated preamble, unrequested summaries, and unnecessary markdown — without touching its reasoning, error analysis, or anything you actually asked for.
+
+<Warning>
+  Brevity is the weakest mechanism in RCLM's compression set, and it's worth setting expectations honestly. It's advisory, not enforced — nothing guarantees the model follows it, and adherence tends to degrade as a session's context fills. It also costs tokens on every request for the life of the session, since the instruction is re-sent each turn. It's off by default for exactly this reason: enable it deliberately, not as a default-on assumption.
+</Warning>
+
+## Enabling brevity
+
+Brevity is independent of every other compression mechanism and off by default:
+
+```bash
+rclm-hooks-install --brevity
+```
+
+This sets `brevity: true` in `~/.reclaimllm/config.json`, alongside your other hook preferences:
+
+```json
+{
+  "brevity": true,
+  "brevity_instruction": "Optional custom instruction text overriding the default"
+}
+```
+
+<Note>
+  Brevity is currently available for **Claude Code only**. Gemini CLI and Codex CLI don't yet expose an equivalent session-start context injection point, so the hook is a no-op for those tools until they do.
+</Note>
+
+## How it works
+
+<Steps>
+  <Step title="Session starts">
+    On Claude Code's `SessionStart` event, RCLM checks whether `brevity` is enabled in your config.
+  </Step>
+  <Step title="Existing project guidance is checked first">
+    RCLM scans the project's `CLAUDE.md` and `AGENTS.md` (if present) for brevity-style language — words like "concise," "terse," "no preamble," or "short answers." If found, injection is skipped for that session. The check is tuned to skip when in doubt: a double brevity instruction wastes tokens restating the same guidance, which is worse than one skipped injection.
+  </Step>
+  <Step title="Instruction is injected">
+    If nothing else is skipping it, RCLM adds its brevity instruction to the session's `additionalContext`, alongside any other `SessionStart` context RCLM provides (like session-start context packs).
+  </Step>
+  <Step title="The default instruction targets specific waste, not vague brevity">
+    No preamble restating the request before acting. No summary of a change when the diff already shows it. No unrequested alternatives or caveats. Minimal markdown on short answers. Explicitly excluded: reasoning, error analysis, and anything you asked for directly — those stay as thorough as they need to be.
+  </Step>
+</Steps>
+
+## The default instruction
+
+This is the exact text RCLM injects when `brevity` is enabled and no `brevity_instruction` override is set (`rclm/hooks/brevity.py`, `DEFAULT_INSTRUCTION`):
+
+```text
+[rclm] Be concise in your responses.
+
+## Skip
+- Preamble that restates the request before acting
+- Summarizing a change when the diff already shows it
+- Unrequested alternatives, caveats, or "next steps" suggestions
+- Pleasantries and filler: "Sure," "I can help," "Hope this helps"
+- Meta-talk: "Let's break this down," "First, I will think about..."
+- Markdown headers or bullet lists on short answers — plain prose is enough
+
+## Keep
+- Reasoning and error analysis, as thorough as they need to be
+- Anything the user explicitly asked for, in the depth they asked for
+- Direct output: start with the core facts or steps, not a lead-in
+```
+
+<Note>
+  Only the run of spaces/tabs is collapsed before injection — newlines are preserved, so this markdown structure (headers, bullet lists) reaches the model intact rather than being flattened to one line.
+</Note>
+
+## Customizing the instruction
+
+The instruction text is fully configurable — set `brevity_instruction` in `~/.reclaimllm/config.json` to override the default. This is local configuration today; organization-wide policy distribution for this setting is on the roadmap, following the same path DLP's settings sync already established.
+
+## Measuring impact
+
+Brevity doesn't have a per-session before/after to compare — there's only the response actually generated, never the long version that wasn't. So its impact isn't reported like the other compression mechanisms.
+
+<CardGroup cols={2}>
+  <Card title="Session detail view" icon="file-lines">
+    If brevity was active for a session, its detail page notes that plainly, separate from the measured "Context reduction" savings for other mechanisms. No token figure is claimed at the session level.
+  </Card>
+
+  <Card title="Enterprise Tokens tab" icon="chart-line">
+    A **Brevity impact (cohort estimate)** table compares average output tokens per turn between sessions with brevity on vs. off, segmented by session category (fix, feature, perf, etc.). This only appears once your org has sessions with brevity both on and off to compare.
+  </Card>
+</CardGroup>
+
+<Warning>
+  Watch turn count alongside the tokens-per-turn comparison. If brevity is working, output tokens per turn drop while turn count stays flat. If turn count rises instead, responses have gotten too terse and people are re-asking — that's a net loss, and it's the main risk with this mechanism.
+</Warning>
+
+## Guardrails
+
+- Off by default, independent of every other compression flag.
+- Never mixed into the same "measured savings" figures as read-cache, search shaping, exec compaction, or the loop breaker — those are real per-session measurements; brevity's is a cohort-level estimate only.
+- Skips injection automatically when project instructions already cover brevity.
+- Any error in the hook injects nothing and lets the session proceed normally — brevity never blocks or disrupts Claude Code startup.

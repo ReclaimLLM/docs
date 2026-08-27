@@ -1,0 +1,41 @@
+---
+title: "API Keys Tab: The Enterprise LLM Gateway"
+sidebarTitle: "API Keys"
+description: "The API Keys tab is where enterprise admins configure provider credentials, discover provider models, and issue team-scoped gateway keys."
+---
+
+Despite the name, the **API Keys** tab (`/enterprise/orgs/{org_id}/api-keys`) doesn't manage generic org API keys — it's the configuration screen for the [Enterprise LLM Gateway](/enterprise/llm-gateway): storing provider credentials, discovering provider models, and issuing team-scoped gateway keys.
+
+## What you'll see
+
+- **Provider Credentials** cards for OpenAI, Azure OpenAI, Anthropic, Gemini, Moonshot, and DeepSeek, each showing whether the provider is configured or disabled.
+- **Models** under each provider, collapsed by default, showing the provider model names available to that org.
+- **Sync models** for configured providers, so admins can refresh the org's model list after a provider releases new models.
+- **Team Gateway Keys** — a creation form (name, team, allowed providers, and optional concrete model allowlists) and a table of existing keys (Name, Team, Providers, Last used, Revoke/Delete).
+- A copy-pasteable curl example for calling the gateway.
+
+## Provider credentials and model discovery
+
+When an admin saves a provider API key, ReclaimLLM calls that provider's list-models API from the backend using the saved credential. Any returned model names that are not already present for the org are inserted into the org's gateway model registry.
+
+The stored model name is the provider's returned model name as-is. This keeps newly released models available without requiring a frontend deployment or hardcoded model list update.
+
+## Syncing models later
+
+Use **Sync models** on a configured provider to refresh the model registry at any time. The sync only adds new model names for that provider and org; existing model rows are left unchanged.
+
+The sync result is collapsed by default. Expand it to inspect the model names returned by the provider API.
+
+## Team gateway keys and model access
+
+Team gateway keys can be scoped to providers and, when needed, specific model names from the org's discovered model list. Leaving a provider's model selection empty allows all enabled models for that provider; selecting models restricts that gateway key to only those model names.
+
+## What you can do
+
+Save, replace, enable, disable, or remove provider credentials; sync provider models; enable, disable, add, or delete org model rows; create a team-scoped gateway key; revoke or delete a key.
+
+## Who sees it
+
+Admin only.
+
+Full setup steps and request examples are covered in the [Enterprise LLM Gateway guide](/enterprise/llm-gateway).

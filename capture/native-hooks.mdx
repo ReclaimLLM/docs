@@ -1,0 +1,239 @@
+---
+title: "Native Hooks: Capture Claude, Gemini, Codex & Cursor Sessions"
+sidebarTitle: "Overview"
+description: "Install rclm-hooks to capture coding agent sessions — messages, tool calls, file diffs, and token usage — from Claude Code, Gemini CLI, Codex CLI, and Cursor."
+---
+
+Native hooks (`rclm-hooks`) are the highest-fidelity capture method ReclaimLLM offers. They plug directly into the lifecycle events of Claude Code, Gemini CLI, Codex CLI, and Cursor, recording everything that happens during a session: every message turn, every tool call and its result, every file the agent created or modified (with before-and-after diffs), and precise token usage. One install command sets everything up invisibly — after that, your sessions appear in the dashboard automatically.
+
+<Note>
+  The free tier includes **200 hooks-captured sessions**. Browser extension and API proxy sessions are unlimited on all plans. [See pricing →](https://reclaimllm.com/pricing)
+</Note>
+
+<Tip>
+  Used one of these tools before installing hooks? [Historical Sync](/capture/historical-sync) backfills sessions that predate your install.
+</Tip>
+
+## Install native hooks
+
+<Steps>
+  <Step title="Install the package">
+    Install the `rclm` Python package from PyPI:
+
+    ```bash
+    pip install rclm
+    ```
+  </Step>
+  <Step title="Run the hook installer">
+    Run `rclm-hooks-install` to register hooks across all supported providers at once:
+
+    ```bash
+    rclm-hooks-install
+    ```
+
+    The installer opens your browser to [reclaimllm.com/settings](https://reclaimllm.com/settings) so you can create an API key without any copy-paste. It then writes your credentials to `~/.reclaimllm/config.json` and registers hooks in each provider's settings file.
+
+    Expected output:
+
+    ```text
+    Opening browser to create your API key…
+    
+    ✓ Saved credentials to ~/.reclaimllm/config.json
+    ✓ Hooks installed in ~/.claude/settings.json
+    ✓ Hooks installed in ~/.gemini/settings.json
+    ✓ Hooks installed in ~/.codex/hooks.json
+    ✓ Hooks installed in ~/.cursor/hooks.json
+    ```
+
+    <Tip>
+      To skip the browser prompt, pass your API key directly: `rclm-hooks-install --api-key=rclm_your_key_here`
+    </Tip>
+  </Step>
+  <Step title="Verify the installation">
+    Start any Claude Code, Gemini CLI, Codex CLI, or Cursor session. The session appears in your dashboard within seconds of it ending. You can also check the local session spool:
+
+    ```bash
+    ls ~/.reclaimllm/sessions/
+    ```
+
+    If session files appear there, hooks are working correctly.
+  </Step>
+</Steps>
+
+## All CLI flags
+
+### Provider selection
+
+Install hooks for all supported providers (the default) or target a single one:
+
+```bash
+# All providers at once (default)
+rclm-hooks-install
+
+# Claude Code only
+rclm-hooks-install --claude
+
+# Gemini CLI only
+rclm-hooks-install --gemini
+
+# Codex CLI only
+rclm-hooks-install --codex
+
+# Cursor only
+rclm-hooks-install --cursor
+```
+
+### Scope
+
+By default, hooks are installed globally (your home directory). To restrict capture to the current project only:
+
+```bash
+rclm-hooks-install --local
+```
+
+A `--local` install writes hook configuration into the current directory rather than `~/.claude/`, `~/.gemini/`, `~/.codex/`, or `~/.cursor/`, so only sessions started from that project folder are captured.
+
+### Upload folder filters
+
+Use `--include-folder` when hooks are installed globally but uploads should be limited to specific project trees:
+
+```bash
+rclm-hooks-install --include-folder=/path/to/project
+
+# Repeat the flag to allow multiple folders
+rclm-hooks-install --include-folder=/work/app --include-folder=/work/infra
+```
+
+This writes the allowlist to `redaction.include_folders` in `~/.reclaimllm/config.json`. When the list is non-empty, sessions from every other folder are skipped locally.
+
+Use `--exclude-folder` to block specific folders when no include allowlist is configured:
+
+```bash
+rclm-hooks-install --exclude-folder=/path/to/private
+```
+
+### MCP integration
+
+MCP server registration is on by default with `rclm-hooks-install`, alongside your hooks. To skip it:
+
+```bash
+rclm-hooks-install --no-with-mcp
+```
+
+MCP registers the ReclaimLLM MCP server with your supported AI coding tools (Claude Desktop, Cursor, Codex), giving them native access to `search_sessions`, `get_session`, and `summarize_session` tools so your assistant can pull prior session context without manual copy-paste. See [MCP Server](/features/mcp-server) for the full tool list.
+
+### Statusline
+
+A Claude Code statusline is also installed by default, showing context usage, rate limits, peak-hour status, model, and git branch. To skip it:
+
+```bash
+rclm-hooks-install --no-statusline
+```
+
+See [Statusline](/features/statusline) for what each part of the line means and how it behaves when you're on an API key instead of a subscription.
+
+### API key
+
+```bash
+# Let the installer open the browser to create a key (default)
+rclm-hooks-install
+
+# Pass an existing key to skip the browser
+rclm-hooks-install --api-key=rclm_your_key_here
+```
+
+### Token-reduction hooks
+
+Read caching and loop detection are enabled by default for new installations. Smart output compression and shadow mode are opt-in:
+
+```bash
+rclm-hooks-install --compress --shadow-mode
+```
+
+Disable a default mechanism explicitly:
+
+```bash
+rclm-hooks-install --no-read-cache --no-loop-breaker
+```
+
+Each mechanism is configured independently. See [Read Cache](/capture/read-cache) for supported native and shell reads, invalidation rules, and measured savings. See [Context Compression](/features/context-compression) for output shaping, dedupe, test filtering, loop detection, and shadow mode.
+
+### Data loss prevention
+
+```bash
+rclm-hooks-install --dlp
+```
+
+Enables local redaction before session uploads, applying your account's configured substitution rules on the machine before any payload is sent. See [Sensitive Data](/security/sensitive-data) for how to configure substitution rules, `include_folders`, and `exclude_folders`. Run `rclm-update` after changing app-managed substitutions to refresh the local cache.
+
+## What gets captured
+
+Every hooks session includes:
+
+| Field | Description |
+| --- | --- |
+| **Messages** | All prompt and response turns in the session |
+| **Tool calls** | Each tool invocation and its full result, paired together |
+| **File diffs** | Before-and-after snapshots for every file the agent created or changed |
+| **Token usage** | Input and output token counts per session, with cost attribution |
+| **Provider context** | Provider name, model identifier, and timestamps |
+
+## File and config locations
+
+| Path | Purpose |
+| --- | --- |
+| `~/.reclaimllm/config.json` | Stores your API key and preferences |
+| `~/.reclaimllm/sessions/` | Local session spool before upload |
+| `~/.claude/settings.json` | Claude Code hook and statusline registration |
+| `~/.gemini/settings.json` | Gemini CLI hook registration |
+| `~/.codex/hooks.json` | Codex CLI hook registration |
+| `~/.cursor/hooks.json` | Cursor hook registration |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Sessions aren't appearing in the dashboard">
+    Check that the session spool directory contains files after you run a session:
+
+    ```bash
+    ls ~/.reclaimllm/sessions/
+    ```
+
+    If the directory is empty, the hooks may not be registered. Re-run `rclm-hooks-install` and confirm the output shows `✓ Hooks installed` for your provider.
+  </Accordion>
+
+  <Accordion title="Checking your config">
+    Inspect the config file to confirm your API key was saved:
+
+    ```bash
+    cat ~/.reclaimllm/config.json
+    ```
+
+    If the file is missing or the key field is empty, re-run the installer with `--api-key=<your_key>`.
+  </Accordion>
+
+  <Accordion title="Installing for only one provider">
+    If you only use one CLI tool, install for that provider specifically to keep hook registration minimal:
+
+    ```bash
+    rclm-hooks-install --claude   # or --gemini, --codex, or --cursor
+    ```
+  </Accordion>
+
+  <Accordion title="Limiting capture to selected folders">
+    If you don't want hooks uploading sessions from every folder on your machine, set an include allowlist during installation:
+
+    ```bash
+    rclm-hooks-install --include-folder=/path/to/your/project
+    ```
+
+    The installer writes this to `redaction.include_folders` in `~/.reclaimllm/config.json`. When `include_folders` is non-empty, sessions from every other folder are skipped locally.
+
+    For project-local hook registration, you can still use `--local` inside the project directory you want to monitor:
+
+    ```bash
+    cd /path/to/your/project
+    rclm-hooks-install --local
+    ```
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,136 @@
+---
+title: "Range-Aware Read Cache for Native Hooks"
+sidebarTitle: "Read Cache"
+description: "Avoid repeated file-read tokens with session-scoped line-range tracking, hash and edit invalidation, advancing pagination, conservative shell parsing, and measured savings."
+icon:
+  name: "file-clock"
+  library: "lucide"
+---
+
+RCLM's range-aware read cache prevents unchanged file content from being sent to the model repeatedly during the same coding session. It tracks the exact line ranges already served, invalidates them when the file changes, and passes through anything it cannot parse confidently.
+
+The cache is session-scoped. It never reuses read state across separate Claude Code, Codex CLI, or Gemini CLI sessions.
+
+## Enable or disable the cache
+
+Read caching is enabled by default for new native-hook installations.
+
+```bash
+rclm-hooks-install
+```
+
+Disable it persistently:
+
+```bash
+rclm-hooks-install --no-read-cache
+```
+
+Re-enable it later:
+
+```bash
+rclm-hooks-install --read-cache
+```
+
+<Note>
+  The setting is stored locally with your hook configuration. There is no web toggle for read caching.
+</Note>
+
+## What happens on a repeated read
+
+RCLM records the file hash and line intervals delivered to the model.
+
+<Steps>
+  <Step title="The model reads a range">
+    RCLM records the requested start and end lines after the tool completes.
+  </Step>
+  <Step title="The model requests the same content again">
+    If the file hash is unchanged and the requested range is fully covered, the full result is replaced with a notice such as:
+
+    ```text
+    [RCLM] Lines 100-200 of src/api/handlers.py unchanged since turn 14.
+    ```
+  </Step>
+  <Step title="A request overlaps only part of an earlier read">
+    RCLM keeps the unseen lines and inserts notices for the ranges already delivered.
+  </Step>
+  <Step title="The file changes">
+    A different content hash clears every saved interval for that file. The next read is served fresh and becomes the new baseline.
+  </Step>
+</Steps>
+
+Write and edit tools invalidate the target immediately. This includes Claude Code Write, Edit, and NotebookEdit operations and the equivalent Gemini write and replace operations.
+
+## Supported read forms
+
+<Tabs>
+  <Tab title="Native tools">
+    - Claude Code `Read`
+    - Gemini CLI `read_file`
+  </Tab>
+  <Tab title="POSIX shell">
+    ```bash
+    sed -n '100,200p' src/app.py
+    sed -n '50p' src/app.py
+    head -50 src/app.py
+    head -n 50 src/app.py
+    tail -n 30 src/app.py
+    cat src/app.py
+    nl src/app.py
+    awk 'NR>=10 && NR<=40' src/app.py
+    nl -ba src/app.py | sed -n '100,200p'
+    ```
+  </Tab>
+  <Tab title="PowerShell">
+    ```powershell
+    Get-Content src\app.ps1
+    Get-Content -Path src\app.ps1
+    Get-Content -LiteralPath src\app.ps1
+    Get-Content -TotalCount 50 src\app.ps1
+    Get-Content -Tail 30 src\app.ps1
+    ```
+  </Tab>
+</Tabs>
+
+Codex CLI reads are recognized through exact shell commands. Gemini CLI supports both `read_file` and `run_shell_command`. Claude Code supports native Read and exact Bash reads.
+
+<Warning>
+  RCLM intentionally ignores commands with redirection, globs, multiple file arguments, or pipelines that transform content. Missing, unreadable, binary, or ambiguous files also pass through unchanged. Serving the wrong lines is more harmful than missing a cache hit.
+</Warning>
+
+## Advancing long native reads
+
+When `--compress` is enabled, unbounded native Claude Code reads are capped at 200 lines. The read cache supplies the next unseen offset, so successive capped reads advance through the file instead of restarting at line 1.
+
+An explicit offset or limit from the model is preserved.
+
+## Shadow mode and savings
+
+Use shadow mode to measure recognized rereads without replacing the tool output:
+
+```bash
+rclm-hooks-install --read-cache --shadow-mode
+```
+
+Range caching measures the completed tool result before and after elision. It records real raw, compressed, and saved token estimates even in shadow mode.
+
+This is different from native Read and Grep shaping performed before tool execution. Those mechanisms do not have a completed result to compare in shadow mode and are not reported as measured savings.
+
+## View the impact
+
+- **User Portal → Stats** shows measured context reduction and the files responsible for the most reread savings.
+- **Enterprise → Tokens** attributes measured savings across project, team, user, and model views.
+- **Session details** show the context-reduction mechanisms recorded for an individual session.
+
+Measured range-cache savings remain separate from estimated mechanisms such as brevity. Shadow-mode opportunities are identified as potential rather than enforced savings.
+
+<Card title="Context compression overview" icon="minimize-2" href="/features/context-compression">
+  Review the other compression controls, including result dedupe, test-output filtering, search shaping, and loop detection.
+</Card>
+
+## Current limits
+
+The cache tracks at most 200 files and 2,000 line spans per session. Least-recently-used files are removed when either limit is reached.
+
+File hashes are computed from the local file contents rather than modification time. This adds local file I/O on recognized reads, but avoids stale cache decisions when timestamps are unreliable.
+
+If you find a common exact read command that passes through, share the command shape. Parser coverage is expanded only when the requested file and line range can be identified without ambiguity.

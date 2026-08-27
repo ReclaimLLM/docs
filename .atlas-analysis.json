@@ -1,0 +1,100 @@
+{
+  "projectType": "saas",
+  "projectName": "ReclaimLLM",
+  "projectDescription": "ReclaimLLM (RCLM) is an AI session capture and observability platform that records, indexes, and governs LLM interactions across every tool, provider, and team.",
+  "theme": "luma",
+  "primaryColor": "#1A1A1A",
+  "lightColor": "#F5F5F0",
+  "darkColor": "#0D0D0D",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "account-setup"
+            ]
+          },
+          {
+            "group": "Capture",
+            "pages": [
+              "capture/overview",
+              "capture/native-hooks",
+              "capture/browser-extension",
+              "capture/api-proxy",
+              "capture/enterprise-gateway"
+            ]
+          },
+          {
+            "group": "Features",
+            "pages": [
+              "features/search-replay",
+              "features/session-sharing",
+              "features/model-switching",
+              "features/context-compression",
+              "features/mcp-server"
+            ]
+          },
+          {
+            "group": "Privacy & Security",
+            "pages": [
+              "security/privacy-controls",
+              "security/session-encryption",
+              "security/sensitive-data",
+              "security/data-residency"
+            ]
+          },
+          {
+            "group": "Enterprise",
+            "pages": [
+              "enterprise/overview",
+              "enterprise/llm-gateway",
+              "enterprise/observability",
+              "enterprise/roles-access"
+            ]
+          },
+          {
+            "group": "Plans & Billing",
+            "pages": [
+              "plans/overview",
+              "plans/faq"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Native hooks for Claude Code, Gemini CLI, and Codex CLI capturing full session data including file diffs",
+    "Local API proxy (rclm-proxy) that captures all LLM API traffic without code changes",
+    "Chrome browser extension capturing ChatGPT, Claude.ai, and Gemini sessions",
+    "Enterprise LLM Gateway with team-scoped keys and provider policy controls",
+    "Hybrid semantic + keyword search across all providers and sessions",
+    "AI-generated session titles, summaries, tags, and categorization",
+    "Encrypted raw session storage with downloadable recovery keys",
+    "MCP server for in-editor session recall (Claude, Cursor, Codex)",
+    "Session sharing via expiring, revocable per-recipient links",
+    "Context export for cross-tool/model handoffs",
+    "Sensitive data detection and local redaction before upload",
+    "Org-wide usage analytics with team and cost attribution",
+    "Session category classification (fix, feat, perf)",
+    "Context compression to reduce token costs in agentic sessions"
+  ],
+  "publicApiSurface": [
+    "pip install rclm",
+    "rclm-hooks-install (--claude | --gemini | --codex | --with-mcp)",
+    "rclm-proxy",
+    "rclm convert-session <session_id> <target_tool>",
+    "rclm-update (--with-mcp)",
+    "POST /api/ingest (X-API-Key or Bearer JWT)",
+    "GET /api/sessions",
+    "MCP tools: search_sessions, search_by_filename, get_session, summarize_session, list_projects",
+    "Enterprise gateway: POST /<org-slug>/v1/chat/completions",
+    "Enterprise gateway: POST /<org-slug>/v1/embeddings",
+    "CLI flag: --compress, --read-cache, --loop-breaker, --dlp, --shadow-mode"
+  ]
+}

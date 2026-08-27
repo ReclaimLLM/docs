@@ -1,0 +1,121 @@
+---
+title: "Local API Proxy: Capture Every LLM API Call Automatically"
+sidebarTitle: "API Proxy"
+description: "Run rclm-proxy locally to intercept and record Anthropic, OpenAI, Azure OpenAI, and Gemini API calls — no code changes, just one environment variable."
+hidden: true
+---
+
+The ReclaimLLM local API proxy (`rclm-proxy`) sits between your application and LLM providers. Every request and response passes through it, gets recorded, and is uploaded to your dashboard asynchronously — without ever blocking your requests. Setup requires no changes to your application code: you set one environment variable pointing at the proxy, and your existing provider API keys stay exactly where they are.
+
+<Warning>
+  The local API proxy is **experimental**. You may encounter rough edges. If you run into issues, please [report them](https://reclaimllm.com) so the team can improve it.
+</Warning>
+
+## Supported providers
+
+- Anthropic
+- OpenAI
+- Azure OpenAI
+- Gemini (via LiteLLM)
+
+## Set up the proxy
+
+<Steps>
+  <Step title="Install the package">
+    Install `rclm` with optional proxy dependencies:
+
+    <CodeGroup>
+
+    ```bash Standard install
+    pip install rclm
+    ```
+
+    ```bash With LiteLLM (full provider support)
+    pip install 'rclm[proxy]'
+    ```
+
+    </CodeGroup>
+
+    The `rclm[proxy]` variant includes LiteLLM, which enables support for all provider backends. Use this if you plan to proxy Gemini or Azure OpenAI traffic.
+  </Step>
+  <Step title="Set your RCLM API key">
+    Export your ReclaimLLM API key as an environment variable:
+
+    ```bash
+    export RECLAIMLLM_API_KEY=rclm_your_key_here
+    ```
+
+    Your existing provider API keys (Anthropic, OpenAI, etc.) stay in place — the proxy forwards them transparently to the upstream provider.
+  </Step>
+  <Step title="Start the proxy">
+    Start the proxy server:
+
+    ```bash
+    rclm-proxy
+    ```
+
+    Expected output:
+
+    ```text
+    ✓ ReclaimLLM proxy listening on :9800
+    ✓ Forwarding to https://api.anthropic.com
+    ```
+
+    The proxy listens on port **9800** by default.
+  </Step>
+  <Step title="Point your application at the proxy">
+    Update your application's base URL environment variable to route traffic through the proxy. Your provider API keys remain unchanged.
+
+    <Tabs>
+      <Tab title="Anthropic">
+        ```bash
+        export ANTHROPIC_BASE_URL=http://localhost:9800
+        ```
+      </Tab>
+      <Tab title="OpenAI">
+        ```bash
+        export OPENAI_BASE_URL=http://localhost:9800
+        ```
+      </Tab>
+      <Tab title="Azure OpenAI">
+        ```bash
+        export AZURE_OPENAI_ENDPOINT=http://localhost:9800
+        ```
+      </Tab>
+      <Tab title="Gemini">
+        ```bash
+        export GEMINI_BASE_URL=http://localhost:9800
+        ```
+      </Tab>
+    </Tabs>
+
+    <Note>
+      Your existing provider API keys stay in place — the proxy forwards them to the upstream provider transparently. You do **not** need to change or share those keys with ReclaimLLM.
+    </Note>
+  </Step>
+</Steps>
+
+## Verify it's working
+
+After starting the proxy and updating your environment variables:
+
+1. Make a request from your application as you normally would.
+2. Open your [RCLM dashboard](https://reclaimllm.com/dashboard) — the session should appear within a few seconds.
+3. Click into the session to inspect the request, response, model, and token counts.
+
+You can also confirm the proxy is running by checking whether port 9800 is active:
+
+```bash
+lsof -i :9800
+```
+
+## How the proxy handles your traffic
+
+- **Async upload** — session data is uploaded to ReclaimLLM in the background after the response is returned. Your requests are never delayed waiting for the upload to complete.
+- **Runs locally** — the proxy process runs on your own machine. Traffic between your app and the proxy never leaves your system until it reaches the upstream provider.
+- **No code changes** — only environment variables change. Your application calls the same SDK methods and passes the same provider API keys.
+- **LiteLLM-powered routing** — when installed with `rclm[proxy]`, the proxy uses LiteLLM to normalize requests across providers so all supported backends work through the same local endpoint.
+
+<Tip>
+  Add the `RECLAIMLLM_API_KEY` and `*_BASE_URL` exports to your shell profile or `.env` file so the proxy configuration persists across sessions without re-exporting manually.
+</Tip>

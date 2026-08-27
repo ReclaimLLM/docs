@@ -1,0 +1,146 @@
+---
+title: "Roles & Access Control for Enterprise Organizations"
+sidebarTitle: "Roles & Access"
+description: "Manage who sees what across your org with three roles — admin, team lead, and developer — plus org-scoped API keys, SSO, and team assignment controls."
+---
+
+ReclaimLLM enterprise uses three roles to control what each person can see and do within your organization. Admins manage the org; team leads see their teams' activity; developers see their own sessions. Admins additionally control org-wide governance — session sharing, retention, and encryption — from the Settings tab.
+
+## The three roles
+
+<CardGroup cols={3}>
+  <Card title="Admin" icon="shield-halved">
+    Full visibility across the org. Manages members, teams, settings, gateway credentials, encryption policy, and retention rules. Can see and (if permitted) open all sessions.
+  </Card>
+
+  <Card title="Team Lead" icon="users-gear">
+    Sees sessions and analytics for developers assigned to their team. Cannot manage org-level settings or view other teams' activity.
+  </Card>
+
+  <Card title="Developer" icon="code">
+    Sees their own captured sessions and any sessions explicitly shared with them. No access to the enterprise portal or other developers' activity.
+  </Card>
+</CardGroup>
+
+## Role permissions reference
+
+| Capability | Admin | Team Lead | Developer |
+| --- | :-: | :-: | :-: |
+| Access enterprise portal | ✅ | ❌ | ❌ |
+| View org-wide usage dashboard | ✅ | ❌ | ❌ |
+| View team usage dashboard | ✅ | ✅ (own team) | ❌ |
+| See all org members' sessions | ✅ | ❌ | ❌ |
+| See assigned team members' sessions | ✅ | ✅ | ❌ |
+| See own sessions | ✅ | ✅ | ✅ |
+| See explicitly shared sessions | ✅ | ✅ | ✅ |
+| Open encrypted session details | ✅ (if decrypt access enabled) | ❌ | ❌ |
+| Invite and remove members | ✅ | ❌ | ❌ |
+| Create and manage teams | ✅ | ❌ | ❌ |
+| Assign team leads | ✅ | ❌ | ❌ |
+| Configure session sharing settings | ✅ | ❌ | ❌ |
+| Configure project name mappings | ✅ | ❌ | ❌ |
+| Configure LLM gateway credentials | ✅ | ❌ | ❌ |
+| Create team gateway keys | ✅ | ❌ | ❌ |
+| Review gateway proxy sessions | ✅ | ✅ (own team) | ❌ |
+| Configure org encryption settings | ✅ | ❌ | ❌ |
+| Configure retention policy | ✅ | ❌ | ❌ |
+| Configure SSO settings | ✅ | ❌ | ❌ |
+
+## Adding members and assigning teams
+
+<Steps>
+  <Step title="Invite a developer">
+    In the enterprise portal, open **Members** and click **Invite member**. Enter the developer's email address and select their role. They receive an email invitation to join the organization.
+  </Step>
+  <Step title="Create teams">
+    Go to **Teams** and click **New team**. Give the team a name that matches how your organization is structured — for example, `backend`, `data`, or `platform`.
+  </Step>
+  <Step title="Assign a team lead">
+    Open the team and click **Assign team lead**. The team lead gains visibility into all sessions attributed to developers on that team from the moment of assignment forward.
+  </Step>
+  <Step title="Add developers to the team">
+    From the team page, add developers by selecting them from your org member list. Once assigned, sessions they capture are attributed to that team in org analytics.
+  </Step>
+  <Step title="Backfill historical sessions (optional)">
+    After assigning a developer to a team, you can trigger a backfill to attribute their previously captured sessions to your org. This ensures analytics reflect their full history, not just sessions captured after joining.
+  </Step>
+</Steps>
+
+<Note>
+  A developer can belong to one team at a time. Reassigning them to a new team updates attribution for future sessions; historical session attribution is not retroactively changed.
+</Note>
+
+## Org-wide governance settings
+
+Beyond roles and team assignment, admins configure org-wide governance from the **Settings** tab: data retention and legal hold, session sharing scope (org-wide vs. team-only), org-wide session encryption and admin decrypt access, and project name normalization. See the [Settings tab reference](/enterprise/dashboard/settings) for the full breakdown of each control.
+
+## SSO (SAML/OIDC)
+
+SSO configuration is available in the enterprise portal under **Settings → SSO**. The following reflects the current state:
+
+<Tabs>
+  <Tab title="What's available now">
+    - Store SAML or OIDC provider configuration for your organization.
+    - Test the SSO connection from the portal.
+    - Allow members to sign in via your identity provider.
+  </Tab>
+  <Tab title="Coming soon">
+    - **Enforced SSO** — Require all org members to authenticate through your identity provider. Password login will be disabled for managed accounts.
+    - **SCIM provisioning** — Automatically provision and deprovision org members when their status changes in your identity provider.
+    - **Role sync** — Map identity provider groups to RCLM roles so role assignment stays in sync with your IdP.
+  </Tab>
+</Tabs>
+
+<Info>
+  If SSO enforcement is critical for your deployment, contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai). We can prioritize configuration support for your identity provider while the enforcement feature is in development.
+</Info>
+
+## Admin controls in the enterprise portal
+
+The enterprise portal collects all org-level admin controls in one place. As an admin, you can access the following from the portal:
+
+<AccordionGroup>
+  <Accordion title="Member management">
+    Invite new members, change existing member roles, and remove members from the org. Role changes take effect immediately.
+  </Accordion>
+
+  <Accordion title="Team management">
+    Create, rename, and delete teams. Assign team leads and add or remove developers from any team.
+  </Accordion>
+
+  <Accordion title="Session sharing">
+    Control whether members can view and search sessions across the whole org, or only within their own team. Sharing is always read-only — members can never edit, delete, or share a session they don't own.
+  </Accordion>
+
+  <Accordion title="Project name mappings">
+    Rename or merge project names org-wide. Org-level mappings take precedence over each member's own personal project naming, everywhere a project name is shown.
+  </Accordion>
+
+  <Accordion title="Encryption settings">
+    Enable or disable org-wide encrypted raw session storage. Configure whether admins and team leads can open encrypted session details for org members.
+  </Accordion>
+
+  <Accordion title="Retention policy">
+    Set configurable retention windows for session data. A background task enforces deletions across session records and blobs on the schedule you define.
+  </Accordion>
+
+  <Accordion title="LLM Gateway">
+    Store provider credentials, create and revoke team gateway keys, and configure provider and model policy per key. See [LLM Gateway](/enterprise/llm-gateway) for full setup instructions.
+  </Accordion>
+
+  <Accordion title="SSO configuration">
+    Store and test your SAML or OIDC provider configuration. Enforced SSO is in development.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="LLM Gateway" icon="arrow-right-arrow-left" href="/enterprise/llm-gateway">
+    Issue team-scoped gateway keys and control provider access.
+  </Card>
+
+  <Card title="Observability" icon="chart-mixed" href="/enterprise/observability">
+    Use role-scoped analytics to monitor usage across teams and developers.
+  </Card>
+</CardGroup>

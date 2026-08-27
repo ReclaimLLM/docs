@@ -1,0 +1,260 @@
+---
+title: "RCLM Signals: Pattern Reference and Calculation Logic"
+sidebarTitle: "Signals"
+description: "Understand what each RCLM Signal means, how it is calculated, what evidence it uses, and how admins should act on it."
+icon: "radar"
+keywords: ["RCLM Signals", "enterprise signals", "patterns", "P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"]
+---
+
+RCLM Signals turn captured AI sessions into investigation leads. A signal is not a verdict by itself; it is a pattern with enough evidence to justify opening the underlying sessions, files, teams, or projects.
+
+Signals are calculated from captured session metadata, tool calls, project attribution, team membership, policy snapshots, and similarity scores. The backend evaluates each pattern over a trailing 7-day period, writes a score for evaluated patterns, and only creates an open signal when that pattern crosses its threshold.
+
+<Note>
+  Thresholds are starting calibration values, not universal truth. Use Signals to find sessions worth reviewing, then confirm the cause before changing policy or judging a developer.
+</Note>
+
+## How to read a signal
+
+Each pattern has four useful parts:
+
+| Field | Meaning |
+| --- | --- |
+| **Pattern code** | The stable identifier, such as `P4` or `P10`. |
+| **Scope** | Where the signal is owned: member, project, team, or org. |
+| **Evidence** | The sessions, files, model groups, or policy snapshots that caused the signal. |
+| **Admin action** | The likely next step if the evidence is real and repeated. |
+
+Most signals link to a session list. The right workflow is: open the signal, inspect examples, decide whether this is a habit issue, project artifact issue, team process issue, or org policy issue.
+
+## Pattern summary
+
+| Code | Signal | Primary scope | What it finds |
+| --- | --- | --- | --- |
+| `P1` | Restart churn | Member | Same project restarted repeatedly instead of continuing from prior context. |
+| `P2` | Groundhog files | Project | Same files are repeatedly read across sessions or contributors. |
+| `P3` | Exploration without landing | Member | Heavy search/read activity with little or no editing. |
+| `P4` | Session idle gaps | Member, with session drill-down | Sessions where the user waited too long after the assistant responded. |
+| `P5` | Session bloat | Member | Sessions continue well past the member's normal completion point. |
+| `P6` | Compression policy drift | Team or org | Compression should be enforced, but active sessions are still off or observe-only. |
+| `P7` | Project onboarding cost | Project | New contributors spend materially more tokens than veterans on similar project work. |
+| `P8` | Cross-team duplicated work | Org | Different teams repeat substantially similar work. |
+| `P9` | Context-weight burn | Member | Sessions carry much more cached context per tool call than the member's own baseline. |
+| `P10` | Model-task mismatch | Member, escalates to team | Premium models are used where matched lighter-model work performs comparably. |
+
+## P1 — Restart churn
+
+**Meaning:** A developer repeatedly starts new sessions on the same project shortly after the previous session ended. This usually means work is being restarted instead of handed off cleanly.
+
+**How it is calculated:** RCLM orders sessions by start time for each user and project. It compares each session's `ended_at` to the next session's `started_at`.
+
+- Gaps under 10 seconds are treated as automatic restarts, such as compaction, crash recovery, or tool relaunch.
+- Gaps from 10 seconds up to 30 minutes are treated as deliberate restart pairs.
+- The signal fires when one project reaches 3 deliberate restart pairs in the weekly period.
+
+**Example:** A developer works on `billing-api`, ends a session, and starts another `billing-api` session 8 minutes later. That happens four times in the week. P1 fires because the project crossed the 3 deliberate-restart threshold.
+
+**Admin action:** Improve handoff behavior or project instructions. If the examples look like legitimate crash/relaunch behavior, fix tooling instead of coaching the user.
+
+## P2 — Groundhog files
+
+**Meaning:** The same file is read again and again across sessions. This usually points to missing durable project context.
+
+**How it is calculated:** RCLM scans normalized tool calls for file reads. It includes native read tools and common shell reads such as `sed`, `rg`, `nl`, `cat`, `head`, and `tail`, then canonicalizes paths so absolute and relative forms map together.
+
+The signal fires when the same canonical file is read in at least 3 sessions for a project.
+
+**Example:** `server/auth.py` is opened in five separate sessions by three contributors. P2 fires for that project and includes the file path plus sample session ids.
+
+**Admin action:** Add durable project context: a `CLAUDE.md` note, project README section, or a `file_brief` workflow that explains why this file matters and when to touch it.
+
+## P3 — Exploration without landing
+
+**Meaning:** A session spends heavily on reading, searching, or shell exploration but produces few or no edits.
+
+**How it is calculated:** RCLM counts exploration tool calls and edit tool calls per session.
+
+- Exploration includes read/search tools plus shell search/read families such as `rg`, `find`, `cat`, and `grep`.
+- Edits include edit/write/apply-patch style tools.
+- A session must have at least 15 exploration calls to be evaluated.
+- The signal fires when the exploration-to-edit ratio is at least 10:1.
+
+**Example:** A user runs 48 reads/searches and makes 2 edits. The ratio is 24:1, so P3 fires and points to the worst session.
+
+**Admin action:** Tighten prompts and entry points. Ask users to name the file, symptom, failing command, or suspected module instead of starting from a broad goal.
+
+## P4 — Session idle gaps
+
+**Meaning:** The assistant responded, then the next user prompt did not arrive until much later. This is a session-finding signal for waiting, review delays, interruptions, or abandoned work.
+
+**How it is calculated:** RCLM reads each session's assistant-to-next-user gap list. A session qualifies when at least one gap is strictly greater than the configured threshold.
+
+- The default threshold is 20 minutes.
+- Enterprise admins can configure the threshold in org settings.
+- P4 counts affected sessions, not teams.
+- There is no minimum number of qualifying gaps; one long wait in a session is enough.
+
+**Example:** The assistant finishes at 10:00. The user sends the next prompt at 10:27. With a 20-minute threshold, that session qualifies. If the same user has two qualifying sessions in the period, P4 reports two waiting sessions for that user.
+
+**Admin action:** Open the linked sessions. If the waits are caused by interruptions, suggest handoffs before stepping away. If they are normal review time, raise the threshold. If many users show the same pattern, define a team handoff convention.
+
+## P5 — Session bloat
+
+**Meaning:** A session keeps going after it has already passed the user's normal completion size, while context input continues growing.
+
+**How it is calculated:** RCLM builds a per-user baseline from previous sessions with turn-level input token data.
+
+- It calculates the user's p75 turn count.
+- It calculates the user's typical completion input-token level.
+- A current session is flagged when its turn count is at least 1.5× the user's p75, input grows monotonically, and the session continues after crossing the typical completion level.
+- At least 3 baseline sessions are required.
+
+**Example:** A user's p75 session length is 20 turns. A current session runs 36 turns, keeps adding input tokens, and crosses the user's typical completion token load at turn 18 but continues for many more turns. P5 fires.
+
+**Admin action:** Set a handoff policy for long sessions. The fix is usually to split the work or create a handoff before the context window becomes expensive and brittle.
+
+## P6 — Compression policy drift
+
+**Meaning:** The organization expects supported compression mechanisms to enforce, but active sessions are still running with those mechanisms off or observe-only.
+
+**How it is calculated:** RCLM inspects the effective hook policy snapshot uploaded with sessions.
+
+A session is counted as drifted when:
+
+- the snapshot says compression enforcement is required;
+- a supported mechanism is enabled;
+- that mechanism's mode is not `enforce`.
+
+A team P6 signal fires when at least 3 sessions in that team show drift. An org-level P6 signal fires when at least half of active teams are affected, or when org-only sessions meet the drift threshold.
+
+**Example:** The org requires read-cache enforcement, but five sessions in the Platform team report `read_cache` as `observe`. P6 fires for that team and shows the drifted mechanisms plus affected sessions.
+
+**Admin action:** Restore the org hook policy, ask affected users to start a new session so policy sync runs, then update stale hook installations if drift continues.
+
+## P7 — Project onboarding cost
+
+**Meaning:** New contributors on a project spend materially more tokens than veteran contributors doing similar work.
+
+**How it is calculated:** RCLM groups sessions by project, contributor, and session category.
+
+- A contributor's first 5 sessions on a project are treated as onboarding sessions.
+- Later sessions are treated as veteran baseline sessions.
+- The comparison is category-matched, such as fix-to-fix or feature-to-feature.
+- A category needs at least 5 veteran sessions before it can be evaluated.
+- The signal fires when onboarding average tokens are at least 2× the veteran baseline.
+
+**Example:** New contributors average 80k tokens on `fix` sessions for a project, while veterans average 32k tokens for comparable `fix` sessions. The ratio is 2.5×, so P7 fires.
+
+**Admin action:** Build a project context pack. Focus on setup, architecture map, common files, local test commands, and known pitfalls.
+
+## P8 — Cross-team duplicated work
+
+**Meaning:** Two teams appear to be doing substantially similar work without reusing or finding the earlier result.
+
+**How it is calculated:** RCLM uses session similarity rows and supporting session metadata.
+
+A pair qualifies only when:
+
+- the final similarity score is at least 0.86;
+- either semantic similarity or file-overlap score is at least 0.50;
+- both sessions belong to different teams;
+- categories match when both sessions have a category.
+
+The org-level signal fires when at least 2 qualifying duplicate pairs exist in the period.
+
+**Example:** Team A and Team B both modify the same payment retry flow in separate sessions. The sessions score 0.90 overall similarity with strong file overlap. A second similar pair appears later that week. P8 fires for the org.
+
+**Admin action:** Make prior work discoverable. Use shared project memory, better session search practices, or team conventions for recording completed investigations.
+
+## P9 — Context-weight burn
+
+**Meaning:** A session carries far more cached context through each tool call than that user's sessions normally do.
+
+**How it is calculated:** RCLM uses provider-reported cache-read tokens and tool-call counts.
+
+- It calculates context weight as `cache_read_tokens / tool_call_count`.
+- It compares current sessions to the member's own baseline.
+- At least 3 baseline sessions are required.
+- The signal fires when the worst current session is at least 2× the user's baseline context weight.
+- Sessions without provider-reported cache usage are excluded.
+
+**Example:** A user's normal context weight is 4k cache-read tokens per tool call. One current session carries 11k per tool call. The ratio is 2.75×, so P9 fires.
+
+**Admin action:** Split heavy sessions, use `handoff`, or delegate broad exploration to a subagent so the main session stops carrying excess context.
+
+## P10 — Model-task mismatch
+
+**Meaning:** A user is repeatedly using a more expensive model where comparable work is usually completed with a lighter model.
+
+**How it is calculated:** RCLM compares sessions within the same user, project, and session category.
+
+A mismatch candidate requires:
+
+- at least 5 sessions on the expensive model for that user/project/category;
+- at least 5 matched sessions on a lighter model;
+- lighter-model median turns no more than 1.20× the expensive model's median turns;
+- lighter-model success rate within 10 percentage points of the expensive model's success rate;
+- lighter-model median tokens no more than 1.25× the expensive model's median tokens.
+
+The signal fires when at least one candidate exists for the user.
+
+**Example:** A user has 8 `fix` sessions on a premium model and 7 comparable `fix` sessions on a mid-tier model in the same project. The mid-tier model uses similar turns, has similar code-change success, and does not use materially more tokens. P10 fires and shows the expensive model, lighter model, and matching sessions.
+
+**Admin action:** Set model-selection guidance. This should not force a downgrade for every task; it identifies repeatable cases where a lighter model appears good enough.
+
+## Scope and escalation
+
+Some signals start at member scope but can become project, team, or org issues when they repeat broadly.
+
+| Pattern | Usually starts as | Often fixed by |
+| --- | --- | --- |
+| `P1`, `P3`, `P4`, `P5`, `P9`, `P10` | Member signal | Habit change, handoff practice, model guidance, or project artifact depending on evidence |
+| `P2`, `P7` | Project signal | Durable project context or onboarding material |
+| `P6` | Team/org signal | Policy sync and hook installation repair |
+| `P8` | Org signal | Shared memory and cross-team discovery process |
+
+<Info>
+  A higher-scope signal does not mean every person in that scope caused the issue. It means the repeated evidence is broad enough that an admin should consider a process, policy, or documentation fix instead of only coaching one user.
+</Info>
+
+## Interpreting counts
+
+Counts mean different things by pattern:
+
+| Pattern | Count usually means |
+| --- | --- |
+| `P1` | Deliberate restart pairs on the worst project. |
+| `P2` | Files crossing the repeated-read threshold. |
+| `P3` | Worst exploration-to-edit ratio for a member. |
+| `P4` | Affected sessions with waits over the configured threshold. |
+| `P5` | Worst session bloat ratio versus the member baseline. |
+| `P6` | Drifted sessions or affected team ratio. |
+| `P7` | Onboarding-token ratio versus veteran baseline. |
+| `P8` | Qualifying duplicate-work session pairs. |
+| `P9` | Context-weight ratio versus the member baseline. |
+| `P10` | Matched expensive-to-lighter model candidates. |
+
+## Practical admin workflow
+
+<Steps>
+  <Step title="Start with the pattern code">
+    Read the signal as a hypothesis. For example, `P4` means "sessions waited over the threshold," not "this team is slow."
+  </Step>
+  <Step title="Open the evidence">
+    Click through to the linked sessions, files, projects, or model comparisons. Confirm whether the examples support the signal.
+  </Step>
+  <Step title="Choose the fix type">
+    Habit issues need coaching or workflow changes. Project issues need durable context. Policy issues need settings or hook-installation repair.
+  </Step>
+  <Step title="Recheck after the next signal run">
+    Signals refresh by scheduled backend jobs and backfills. After changing behavior or policy, compare the next period before deciding whether the fix worked.
+  </Step>
+</Steps>
+
+## Limits to keep in mind
+
+- Signals depend on captured sessions. Missing ingestion means missing evidence.
+- Session timestamps can show waiting, but not the reason for waiting.
+- Provider-reported token/cache data is required for some patterns, especially `P9`.
+- Similarity-based signals such as `P8` are intentionally conservative to avoid false positives.
+- Model guidance from `P10` is comparative, not a guarantee that the lighter model is always safe for future work.

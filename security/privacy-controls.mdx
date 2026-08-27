@@ -1,0 +1,89 @@
+---
+title: "RCLM Privacy Controls: Own, Export, and Delete Your Data"
+sidebarTitle: "Privacy Controls"
+description: "Sessions belong to you: private by default, never used for training, exportable and deletable on demand, with encryption and region controls available."
+---
+
+ReclaimLLM is built on a simple premise: sessions you capture belong to you. That means private by default, no training on your data, and real controls to export, delete, encrypt, and choose where your history lives — not just a policy statement, but enforced defaults and features you can act on today.
+
+## Privacy defaults
+
+Every account starts with the most protective settings. Nothing changes without you choosing it.
+
+<CardGroup cols={2}>
+  <Card title="Private by default" icon="lock">
+    Every captured session is private to your account. Nothing is shared, sold, or visible to anyone else unless you explicitly share it.
+  </Card>
+  <Card title="Never used for training" icon="shield-halved">
+    RCLM does not use your session data to train models — not now, not in the future, not without explicit consent.
+  </Card>
+  <Card title="Export on your terms" icon="file-export">
+    Export your full history in standard formats (JSONL, HuggingFace, and more) at any time. No lock-in.
+  </Card>
+  <Card title="Delete on demand" icon="trash">
+    Delete individual sessions or your entire account and all associated data whenever you want.
+  </Card>
+</CardGroup>
+
+## Control summary
+
+The table below shows the default state of every privacy-relevant setting. None of these require any action — they are active from the moment you create an account.
+
+| Control | Default | Notes |
+|---|---|---|
+| Session visibility | Private | Visible only to you unless shared |
+| Data used for training | Never | No exceptions, no opt-in |
+| Sensitive content detection | Enabled (Paid) | Flags credentials, tokens, PII |
+| Export | Available | JSONL, HuggingFace, and more |
+| Deletion | Available | Per-session or full account |
+| Encrypted raw session storage | Off (opt-in) | Paid and Enterprise |
+| Data residency | Default region | US or EU on Paid; on-prem on Enterprise |
+| Recovery key storage | Not stored | Downloaded once; never emailed |
+
+## Privacy controls by plan
+
+<Accordion title="Free plan">
+  - Sessions private by default
+  - Export full history (JSON)
+  - Delete any session or your account
+  - Global redaction substitutions for hook capture
+  - Manual sensitive content review before sharing
+  - Default region storage
+</Accordion>
+
+<Accordion title="Paid plan">
+  Everything in Free, plus:
+  - Sensitive data detection and auto-redaction via hook rules
+  - Encrypted raw session storage with a one-time recovery key download
+  - Data residency: choose US or EU
+  - Full usage history and trends
+</Accordion>
+
+<Accordion title="Enterprise plan">
+  Everything in Paid, plus:
+  - Org-wide encrypted session storage with admin-controlled decrypt access
+  - DLP scanning and policy enforcement (org-wide rules coming soon)
+  - Configurable data retention and legal hold
+  - On-premises deployment option
+  - Role-based access: admin, team lead, developer
+</Accordion>
+
+## Related pages
+
+Use these pages to go deeper on any specific control:
+
+<CardGroup cols={2}>
+  <Card title="Session Encryption" icon="key" href="/security/session-encryption">
+    Enable encrypted raw session storage on Paid or Enterprise, manage your recovery key, and understand what stays searchable.
+  </Card>
+  <Card title="Sensitive Data Detection" icon="eye" href="/security/sensitive-data">
+    Configure local hook redaction, substitution rules, folder exclusions, and review sessions before sharing.
+  </Card>
+  <Card title="Data Residency" icon="globe" href="/security/data-residency">
+    Choose your storage region (US or EU) on Paid, or deploy on-premises with Enterprise.
+  </Card>
+</CardGroup>
+
+<Note>
+  If you need compliance documentation, a data processing agreement, or have specific regulatory requirements, contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai).
+</Note>

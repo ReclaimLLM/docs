@@ -1,0 +1,114 @@
+---
+title: "Encrypted Session Storage: Recovery Keys and Admin Controls"
+sidebarTitle: "Encryption"
+description: "Enable encrypted raw session storage on Paid or Enterprise, download your one-time recovery key, and control admin decrypt access across your organization."
+---
+
+Session encryption protects the full raw content of your captured sessions — messages, tool calls, file diffs, and the rest of the session payload — at rest. It is available to Paid users as an individual toggle and to Enterprise organizations as an org-wide policy. Metadata, titles, tags, summaries, and stats remain unencrypted so search and analytics keep working without opening full transcripts.
+
+<Note>
+  Encryption is an opt-in feature on Paid and Enterprise plans. Free accounts do not have access to encrypted session storage.
+</Note>
+
+## What encryption protects
+
+Understanding the encryption boundary helps you make informed decisions about what to store and how to configure your account.
+
+| Content | Encrypted? |
+| --- | --- |
+| Full session blob (messages, tool calls, file diffs) | ✅ Yes |
+| Captured terminal and agent output | ✅ Yes |
+| Raw API request and response payloads | ✅ Yes |
+| Session title and description | ❌ No — stays searchable |
+| Tags and category labels | ❌ No — stays searchable |
+| AI-generated summary | ❌ No — stays searchable |
+| Token counts and usage stats | ❌ No — stays searchable |
+| Filters (model, provider, date) | ❌ No — stays searchable |
+
+This split keeps encryption focused on raw session content while leaving derived metadata available for dashboards, stats, and search — so analytics stay fast and useful without forcing every view through a decrypt path.
+
+## Paid users: enable encryption
+
+<Steps>
+  <Step title="Open account settings">
+    Select **Settings** from the top navigation and scroll to **Session Encryption**.
+  </Step>
+  <Step title="Enable encrypted session storage">
+    Toggle on **Encrypted raw session storage**. RCLM generates your recovery key immediately.
+  </Step>
+  <Step title="Download your recovery key">
+    A one-time download prompt appears. **Download the key now and store it in your password manager or secrets vault.** This is the only time RCLM will show you the plaintext key.
+  </Step>
+  <Step title="Confirm and activate">
+    Confirm that you have saved the key. Encryption activates for all sessions going forward.
+  </Step>
+</Steps>
+
+<Warning>
+  RCLM does not email your recovery key and does not store the plaintext value. If you lose the downloaded key, RCLM cannot recover it for you. Store it in the same secure system you use for other sensitive credentials.
+</Warning>
+
+## Recovery key mechanics
+
+When you enable encryption, RCLM generates a recovery key and immediately prompts you to download it. After that moment:
+
+- The plaintext key is not stored anywhere in RCLM's systems.
+- RCLM stores only a hash, the last few characters, and the generation timestamp — enough to confirm a key exists, but not enough to reconstruct it.
+- The recovery key download prompt does not appear again. If you need the key and cannot find it, it is gone.
+
+<Tip>
+  Treat your RCLM recovery key the same way you treat an SSH private key or a secrets manager master password — store one copy in a secure password manager and, if your security policy requires it, a second copy in a separate safe location.
+</Tip>
+
+## Enterprise: org-wide encryption
+
+Enterprise org admins control encryption as an organization-level policy. Individual members do not generate or hold their own recovery keys under this model.
+
+<Steps>
+  <Step title="Open the enterprise portal">
+    Open your organization in the **Enterprise** portal, select **Settings**, and find the encryption controls.
+  </Step>
+  <Step title="Enable org-wide encrypted session storage">
+    Toggle on **Org-wide encrypted session storage**. RCLM generates one org recovery key.
+  </Step>
+  <Step title="Download the org recovery key">
+    Download the org recovery key and store it in your organization's secrets management system. Only one org recovery key exists per organization.
+  </Step>
+  <Step title="Configure decrypt access">
+    Under **Decrypt access policy**, set which roles can open full encrypted session details. You can grant or restrict access for admins and team leads independently.
+  </Step>
+</Steps>
+
+### Enterprise admin decrypt controls
+
+<CardGroup cols={2}>
+  <Card title="Admin access" icon="user-shield">
+    Org admins can be granted or denied decrypt access to encrypted member session details. Configure this under the org's decrypt-access policy.
+  </Card>
+
+  <Card title="Team lead access" icon="users">
+    Team leads can optionally be granted decrypt access scoped to their team's sessions. This keeps team-level review possible without full org-wide access.
+  </Card>
+</CardGroup>
+
+<Info>
+  Enterprise encryption is org-wide, not per-user zero-knowledge encryption. Recovery is handled through a single org-held recovery key, giving your security team central control over the recovery material.
+</Info>
+
+## Frequently asked questions
+
+<Accordion title="Does enabling encryption affect search or analytics?">
+  No. Search, stats, summaries, filters, and dashboard views operate on derived metadata that stays unencrypted. Opening the full detail view of a session requires decrypt access, but browsing your session list, running searches, and viewing usage trends all work without decryption.
+</Accordion>
+
+<Accordion title="What happens to sessions captured before I enabled encryption?">
+  Encryption applies to sessions stored after you enable it. Previously stored sessions are not retroactively encrypted. If you need all sessions encrypted, contact support to discuss migration options.
+</Accordion>
+
+<Accordion title="Can I rotate my recovery key?">
+  Key rotation is on the roadmap. In the current version, one recovery key is generated per user or org. Watch the changelog for updates on rotation, customer-managed keys, and multiple key custodians.
+</Accordion>
+
+<Accordion title="Can I disable encryption after enabling it?">
+  Disabling encryption after it has been active requires care to handle already-encrypted sessions. Contact support before making this change if you have a large session history.
+</Accordion>

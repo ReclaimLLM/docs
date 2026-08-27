@@ -1,0 +1,166 @@
+---
+title: "Configure Sensitive Data Detection and Redaction in RCLM"
+sidebarTitle: "DLP"
+description: "Automatically flag credentials, tokens, and PII, configure local hook redaction rules, scope hook capture to included folders, exclude folders from upload, and review sessions before sharing."
+---
+
+AI sessions frequently contain content that should never leave your machine unreviewed: API keys accidentally pasted into a prompt, database connection strings passed to an agent, or personal information surfaced in a code review. RCLM flags this content automatically on Paid plans and gives every user tools to apply redaction rules before sessions are ever uploaded.
+
+## How automatic flagging works
+
+On Paid and Enterprise plans, RCLM checks eligible session and browser-chat records as part of server-side AI summarization after capture and upload. This is different from local hook redaction, which runs before upload.
+
+For the check, RCLM builds a bounded view of the conversation: up to 80 user turns, with up to 1,000 characters from each user and assistant side of a turn, up to 15 changed-file paths, and aggregate tool names and counts. The summarization model is instructed to identify:
+
+- API keys and plaintext passwords
+- Email addresses and full names
+- Local user and file paths
+- Cloud IAM configuration
+- Other content that may make the session unsafe to show publicly
+
+The model returns a public-safety flag and a map of detected text to the reason it may be sensitive. RCLM stores that result with the session metadata. This is a heuristic AI review, not a deterministic or comprehensive PII scanner: raw tool-result bodies and full file diffs are not included in this check, and false positives or missed sensitive content are possible.
+
+<Warning>
+  Automatic flagging happens after the session reaches RCLM and does not redact the stored transcript. To keep known PII or secrets off RCLM's servers, configure local substitutions or folder capture filters before capture.
+</Warning>
+
+<Note>
+  Automatic sensitive data detection requires a Paid or Enterprise plan. Free users can review sessions manually before sharing and configure global redaction substitutions for hook capture.
+</Note>
+
+### Where to see the outcome
+
+The check result is currently stored as internal session metadata. The web app does not yet show the detected text and reasons, and a sensitive-session marker is not currently available in the session list.
+
+The Share Session dialog contains a generic warning state for sessions marked unsafe to show publicly. However, the current session API does not yet return that flag to the web app, so do not rely on the warning as your only review step. Review the transcript before sharing or exporting.
+
+## Local hook redaction
+
+Local hook redaction runs on your machine, before sessions are uploaded. When a hook captures a session, the uploader applies your configured substitution rules to the serialized payload — so matched strings are replaced before anything leaves your machine.
+
+This is the most effective layer: no sensitive value ever reaches RCLM's servers if your rules cover it.
+
+### How rules are applied
+
+RCLM computes an effective substitution map by combining **remote substitutions** (managed in the app, synced via `rclm-update`) and **local substitutions** (defined directly in your local config file). If the same source string appears in both, the local value takes precedence — giving you machine-specific overrides on top of account-wide defaults.
+
+Substitutions use deterministic longest-first string replacement. This prevents a shorter key from replacing text inside a longer matching key before the longer one can match.
+
+### Config file structure
+
+Your local redaction config lives at `~/.reclaimllm/config.json`:
+
+```json
+{
+  "redaction": {
+    "enabled": true,
+    "remote_substitutions": {},
+    "local_substitutions": {
+      "my-secret-value": "[REDACTED]",
+      "postgres://user:pass@host/db": "[DB_CONNECTION]"
+    },
+    "include_folders": [
+      "/Users/you/work"
+    ],
+    "exclude_folders": [
+      "**/.codex/memories/",
+      "/Users/you/projects/private-client",
+      "/home/you/work/internal-infra"
+    ],
+    "last_sync": "2026-04-27T10:00:00Z"
+  }
+}
+```
+
+### Remote vs. local substitutions
+
+<CardGroup cols={2}>
+  <Card title="Remote substitutions" icon="cloud">
+    Managed under **Global Substitutions** on the **Settings** page. Synced to your machine when you run `rclm-update`. Use these for account-wide secrets, shared team tokens, or any value that should be redacted on every machine where you use RCLM.
+  </Card>
+
+  <Card title="Local substitutions" icon="laptop">
+    Added directly to `~/.reclaimllm/config.json` under `redaction.local_substitutions`. Use these for machine-specific values: local usernames, absolute paths, workstation-only credentials, or private service aliases that should not become account-wide rules.
+  </Card>
+</CardGroup>
+
+### Folder capture filters
+
+Folder filters are stricter than substitutions — instead of replacing sensitive strings, they decide whether the entire session is uploaded.
+
+Use `redaction.include_folders` when you want RCLM to capture only specific project trees. Set it during installation with `rclm-hooks-install --include-folder=/path/to/project`, or edit `~/.reclaimllm/config.json` directly. When this list is non-empty, a session is uploaded only if its working directory or transcript path matches one of the included folders. Sessions from every other folder are skipped locally.
+
+Use `redaction.exclude_folders` for paths that should never upload. Set it during installation with `rclm-hooks-install --exclude-folder=/path/to/private`, or edit the same config file directly. Exclusions apply when `include_folders` is empty. If `include_folders` is set, the include allowlist supersedes `exclude_folders` so matching included projects are captured.
+
+Folder filters accept absolute paths and glob-style folder patterns. RCLM excludes `**/.codex/memories/` by default so local Codex memory files are not uploaded as sessions.
+
+<Warning>
+  Folder filters apply to the machine where they are configured. If you use RCLM on multiple machines, add the same include or exclude entries to each machine's local config file.
+</Warning>
+
+## Keeping redaction rules up to date
+
+<Steps>
+  <Step title="Configure shared substitutions in the app">
+    Open **Settings**, scroll to **Global Substitutions**, and add the rules you want applied on every machine. These become your remote substitutions.
+  </Step>
+  <Step title="Run rclm-update on each machine">
+    After adding, editing, or removing shared substitutions, run the following command on every machine where hooks are installed:
+
+    ```bash
+    rclm-update
+    ```
+
+    This refreshes the local hook redaction cache from the app's current remote substitutions.
+  </Step>
+  <Step title="Add local-only substitutions">
+    Open `~/.reclaimllm/config.json` and add any machine-specific values under `redaction.local_substitutions`. These are never pushed to the app.
+  </Step>
+  <Step title="Add folder capture filters">
+    During installation, pass `--include-folder=/path/to/project` for project allowlists and `--exclude-folder=/path/to/private` for deny-lists. You can also edit `redaction.include_folders` and `redaction.exclude_folders` directly in `~/.reclaimllm/config.json` later.
+  </Step>
+  <Step title="Verify with a test capture">
+    Run a short session in a tool with hooks installed and confirm the redacted values appear as their replacements in the RCLM session detail view.
+  </Step>
+</Steps>
+
+<Tip>
+  Run `rclm-update` after every substitution change in the app. Hooks use a locally cached copy of your remote rules, and the cache does not refresh automatically — only when you run `rclm-update`.
+</Tip>
+
+## Review before sharing
+
+Review the full transcript before creating a share link or export. Automatic flagging is an advisory, post-upload check and does not redact the transcript or block sharing.
+
+A generic warning state exists in the Share Session dialog, but the detector flag is not yet wired through the current session API. Detected text and reasons are not currently shown in the web app, and flagged sessions are not currently marked in the session list.
+
+## Enterprise DLP
+
+Enterprise plans include Data Loss Prevention (DLP) scanning and org-wide policy enforcement.
+
+<CardGroup cols={2}>
+  <Card title="Org-wide DLP rules" icon="building-shield">
+    Admins configure DLP policies that apply across all org members' captured sessions — not just per-user substitutions. Coming soon.
+  </Card>
+
+  <Card title="Sensitive data alerts" icon="bell">
+    Admins receive alerts via Slack, PagerDuty, or webhook when sessions matching DLP rules are captured. Coming soon.
+  </Card>
+</CardGroup>
+
+<Info>
+  Enterprise DLP scanning is partially available now. Org-wide policy enforcement and alert integrations are on the roadmap. Contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to discuss your requirements.
+</Info>
+
+## Plan comparison
+
+| Capability | Free | Paid | Enterprise |
+| --- | --- | --- | --- |
+| Automatic sensitive data detection | — | ✅ | ✅ |
+| Hook redaction (local substitutions) | ✅ | ✅ | ✅ |
+| Remote substitution sync (`rclm-update`) | ✅ | ✅ | ✅ |
+| Folder include/exclude filters | ✅ | ✅ | ✅ |
+| Sensitive content warning before sharing | Manual review | Not yet wired | Not yet wired |
+| Auto-redaction before storage | Manual only | Hook rules | Org-wide policies (soon) |
+| DLP scanning \+ policy enforcement | — | — | Partial now; org enforcement soon |
+| Sensitive data alerts (Slack / webhook) | — | — | Coming soon |

@@ -1,0 +1,47 @@
+---
+title: "Dashboard: Search and Filter Your Sessions"
+sidebarTitle: "Dashboard"
+description: "Browse every captured session, search your history, and narrow results by source, model, date, project, dataset, category, language, code changes, or file path."
+---
+
+The **Dashboard** is the landing page after you sign in. It lists your captured LLM interactions and gives you one place to find work across supported capture sources.
+
+## Search your history
+
+Enter a topic, error, file, or description in the search field. ReclaimLLM searches your session history and returns the most relevant accessible sessions.
+
+<Note>
+  Search availability depends on your plan. See [Plans](/plans/overview) for the current keyword and semantic-search limits.
+</Note>
+
+## Filter sessions
+
+Use any combination of the available filters:
+
+| Filter | What it narrows |
+| --- | --- |
+| **Record type** | CLI sessions, API proxy records, browser chats, or another captured source |
+| **Tags** | AI-generated or manually assigned tags |
+| **Model** | One or more exact captured models |
+| **Model family** | A provider family such as Claude, Gemini, or GPT |
+| **Language** | Languages detected in captured work |
+| **Category** | CLI work categorized as `fix`, `feat`, or `perf` |
+| **Project** | The derived, assigned, or mapped project name |
+| **Dataset** | Sessions that belong to a selected dataset |
+| **Date range** | Sessions captured inside a custom date window |
+| **Code changes** | Sessions with or without recorded code changes |
+| **File path** | CLI sessions that touched a matching file path |
+
+Filters are reflected in the page URL, so you can bookmark a useful view. Changing a filter resets pagination and reloads the matching results.
+
+## Open and organize sessions
+
+Select a result to open its [Session Details](/user-portal/session-details). From the dashboard, you can also select sessions and add them to an existing or new [dataset](/user-portal/datasets).
+
+### Session organization
+
+ReclaimLLM can generate a title, description, tags, language, and a `fix`, `feat`, or `perf` category for CLI sessions. You can refine supported metadata from the session detail page.
+
+## Search from your coding assistant
+
+The ReclaimLLM MCP server can search the same captured history from Claude, Cursor, or Codex. See [MCP Server](/features/mcp-server) for installation and available tools.

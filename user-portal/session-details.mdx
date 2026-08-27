@@ -1,0 +1,95 @@
+---
+title: "Session Details: Inspect, Organize, Share, and Reuse Captured Work"
+sidebarTitle: "Session Details"
+description: "Open a captured session to review its summary, transcript, tool calls, file changes, related sessions, metadata, sharing controls, downloads, and context exports."
+---
+
+Open any Dashboard result to inspect the complete captured record. The controls shown depend on the record type, your plan, and whether you own the session.
+
+## Summary and similar sessions
+
+The panel above the raw session details has two views:
+
+<Tabs>
+  <Tab title="Summary">
+    Review the session summary and structured insights: what happened, highlights, and possible improvements. When available, you can generate, regenerate, or edit the summary.
+  </Tab>
+  <Tab title="Similar">
+    Load or generate related sessions from your accessible history. Results can include match reasons such as shared files, tags, project, model, or semantic similarity.
+  </Tab>
+</Tabs>
+
+<Note>
+  AI-generated summaries and similar-session discovery depend on your plan and on enough session content being available.
+</Note>
+
+## Inspect the captured record
+
+CLI sessions can expose three detailed views:
+
+| View | Contents |
+| --- | --- |
+| **Transcript** | Prompts and assistant responses in chronological order |
+| **Tool Calls** | Captured tool names, inputs, outputs, timing, and status |
+| **File Diffs** | Recorded file changes and a file-level change summary |
+
+Other record types, such as API proxy traffic, use the detail view appropriate to their captured payload.
+
+## Edit metadata and organization
+
+For sessions you own, you can:
+
+- Edit the title and description
+- Add or remove tags
+- Assign or clear a project name
+- Override the CLI category as `fix`, `feat`, or `perf`
+- Add the session to an existing dataset
+- Create a dataset and add the session without leaving the page
+- Configure session-specific substitutions and toggle whether substituted values are shown
+
+Account-level project mappings and substitutions live under [Settings](/user-portal/settings).
+
+## Reuse a session as context
+
+Select **Export as Context** to generate a Markdown continuation document.
+
+<Steps>
+  <Step title="Choose a target">
+    Select Claude Code, Gemini CLI, Codex CLI, or generic Markdown.
+  </Step>
+  <Step title="Choose what to include">
+    Include file diffs when they are useful. The advanced option can force regeneration instead of reusing existing annotations.
+  </Step>
+  <Step title="Generate and reuse">
+    Copy the result or download the generated Markdown file, then use it as the starting context in another assistant.
+  </Step>
+</Steps>
+
+You can also generate the same kind of handoff with `rclm convert-session`.
+
+## Compare a model
+
+For supported Enterprise sessions, **Compare Model** reruns the captured prompt through another enabled gateway model and shows the original output, target output, and a diff.
+
+You must provide a team Gateway API key. The key is used for that comparison request and is not stored. See [Enterprise LLM Gateway](/enterprise/llm-gateway) for provider, model, and key configuration.
+
+## Share access
+
+Select **Share** to create an email-specific, time-limited link. Choose 24 hours, 7 days, or 30 days. The recipient can view the session without an account until the link expires or you revoke it.
+
+- Each recipient gets a separate link and audit record.
+- You can review views and revoke individual links.
+- A sensitive-content warning can appear before sharing.
+- New shares are limited to 50 per user per day.
+
+<Warning>
+  A share link is a bearer credential. Anyone who obtains the active link can open the shared view. Review sensitive content before sending it.
+</Warning>
+
+## Download or delete
+
+**Download JSON** saves the captured session payload to your device. **Delete** permanently removes the session after confirmation.
+
+## Read-only sessions
+
+If an organization role gives you access to another member's session, the page identifies the owner and hides write actions. You can inspect allowed content, but you cannot edit metadata, share, download, organize, or delete that session.

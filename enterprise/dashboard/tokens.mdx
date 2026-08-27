@@ -1,0 +1,32 @@
+---
+title: "Tokens Tab: Consumption and Efficiency by Project, Team, User, or Model"
+sidebarTitle: "Tokens"
+description: "See who or what is consuming tokens, how efficiently, and how each group compares to the org median."
+---
+
+The Tokens tab (`/enterprise/orgs/{org_id}/tokens`) answers "who or what is consuming tokens, and how efficiently."
+
+## What you'll see
+
+- **Tokens by group** — top 10 buckets by total tokens, grouped by **project**, **team**, **user**, or **model**. Each row shows a usage-source badge (`provider` = provider-reported counts, `modeled` = estimated, `mixed`) and a proportional bar.
+- **Efficiency vs Org Median** table — Tokens/Session, Tokens/Line Changed, and Cache-Hit Ratio per group, with an "Org median" row for comparison. Above-median token-per-session values are highlighted.
+
+## What you can do
+
+Switch granularity (day/hour) and group-by (project/team/user/model); filter by date range.
+
+## Measured context reduction
+
+Enterprise administrators also see **Measured context reduction** for the selected date range. It breaks down estimated tokens saved by method, including Read cache, Search shaping, Exec compaction, Loop breaker, Hash dedupe, and Test output filter.
+
+Each row separates enforced reductions from shadow-mode potential. Shadow mode measures an opportunity while leaving the agent output unchanged.
+
+## Who sees it
+
+Token consumption and efficiency are visible to portal roles with access. The measured context-reduction breakdown is administrator-only because it aggregates organization-wide telemetry.
+
+<Note>
+  The org median shown here is computed client-side over the currently displayed buckets, not a backend-computed org-wide figure.
+</Note>
+
+See [Observability → Token usage and efficiency](/enterprise/observability#token-usage-and-efficiency) for what these metrics mean and how to act on them.

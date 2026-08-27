@@ -1,0 +1,155 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "ReclaimLLM",
+  "theme": "luma",
+  "colors": {
+    "primary": "#1A1A1A",
+    "light": "#F5F5F0",
+    "dark": "#0D0D0D"
+  },
+  "favicon": "/favicon.svg",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "account-setup"
+            ]
+          },
+          {
+            "group": "Capture",
+            "pages": [
+              "capture/overview",
+              {
+                "group": "Native Hooks",
+                "pages": [
+                  "capture/native-hooks",
+                  "capture/historical-sync",
+                  "features/context-compression",
+                  "capture/read-cache",
+                  "features/brevity",
+                  "features/signals",
+                  "security/sensitive-data",
+                  "features/mcp-server",
+                  "features/statusline"
+                ]
+              },
+              "capture/browser-extension",
+              "capture/api-proxy",
+              "capture/enterprise-gateway"
+            ]
+          },
+          {
+            "group": "User Portal",
+            "pages": [
+              "user-portal/overview",
+              "user-portal/dashboard",
+              "user-portal/session-details",
+              "user-portal/stats",
+              "user-portal/datasets",
+              "user-portal/settings",
+              "user-portal/feedback"
+            ]
+          },
+          {
+            "group": "Privacy & Security",
+            "pages": [
+              "security/privacy-controls",
+              "security/session-encryption",
+              "security/data-residency"
+            ]
+          },
+          {
+            "group": "Enterprise",
+            "pages": [
+              "enterprise/overview",
+              "enterprise/llm-gateway",
+              "enterprise/observability",
+              "enterprise/signals",
+              "enterprise/roles-access",
+              {
+                "group": "Dashboard Reference",
+                "pages": [
+                  "enterprise/dashboard/overview",
+                  "enterprise/dashboard/usage",
+                  "enterprise/dashboard/tokens",
+                  "enterprise/dashboard/signals",
+                  "enterprise/dashboard/stats",
+                  "enterprise/dashboard/model-analysis",
+                  "enterprise/dashboard/sessions",
+                  "enterprise/dashboard/members",
+                  "enterprise/dashboard/teams",
+                  "enterprise/dashboard/api-keys",
+                  "enterprise/dashboard/settings"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Plans & Billing",
+            "pages": [
+              "plans/overview",
+              "plans/billing",
+              "plans/faq"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Get started free",
+      "href": "https://reclaimllm.com/register"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/features/search-replay",
+      "destination": "/user-portal/dashboard",
+      "permanent": true
+    },
+    {
+      "source": "/features/session-sharing",
+      "destination": "/user-portal/session-details#share-access",
+      "permanent": true
+    },
+    {
+      "source": "/features/model-switching",
+      "destination": "/user-portal/session-details#reuse-a-session-as-context",
+      "permanent": true
+    },
+    {
+      "source": "/features/stats",
+      "destination": "/user-portal/stats",
+      "permanent": true
+    },
+    {
+      "source": "/features/datasets",
+      "destination": "/user-portal/datasets",
+      "permanent": true
+    },
+    {
+      "source": "/features/bulk-export",
+      "destination": "/user-portal/settings#download-all-sessions",
+      "permanent": true
+    },
+    {
+      "source": "/features/project-names",
+      "destination": "/user-portal/settings#project-name-mappings",
+      "permanent": true
+    }
+  ],
+  "footer": {
+    "socials": {
+      "linkedin": "https://www.linkedin.com/company/135107441",
+      "github": "https://github.com/reclaimllm"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+---
+title: "Stats Tab: Per-User and Per-File Activity Breakdown"
+sidebarTitle: "Stats"
+description: "Drill into individual user and file-level activity, plus tool-call analytics — the deepest breakdown in the dashboard."
+---
+
+The Stats tab (`/enterprise/orgs/{org_id}/stats`) is the most granular breakdown in the dashboard — per user, per file, and per tool call.
+
+## What you'll see
+
+- A filter bar shared with [Sessions](/enterprise/dashboard/sessions) (date range, user, team, model).
+- **User Statistics** table — User, Team, Sessions, Tokens (in/out), Files Read, Files Modified, Lines (\+/-). Clicking a user or team opens the [Sessions](/enterprise/dashboard/sessions) tab pre-filtered to that user or team.
+- **Tool Call Analytics** — call volume, tool tokens, avg tokens/call, failure rate, and breakdowns by tool, category, and command family (only shown if the org has tool-call data).
+- **File Usage Statistics** table — File, Project, Sessions, Touches, Lines (\+/-), sortable by any column, searchable by file path, filterable by project, paginated 10 rows/page.
+
+## What you can do
+
+Filter, sort, and search; jump from a user/team row straight into their filtered session list.
+
+## Who sees it
+
+Visible to any role with portal access.

@@ -1,0 +1,34 @@
+---
+title: "Stats: Understand Your Personal AI Usage"
+sidebarTitle: "Stats"
+description: "Analyze your own captured sessions, tokens, response timing, tools, languages, projects, activity, and file usage from the personal Stats page."
+---
+
+The **Stats** page aggregates activity across your captured sessions. It is personal to your account; organization-wide analytics live in the [Enterprise Portal](/enterprise/observability).
+
+## Filter the report
+
+Choose a time range and a record type such as CLI Session, API Proxy, Browser Chat, or All Types. Changing either filter refreshes the report.
+
+The 52-week activity heatmap always shows long-term activity, independent of the selected report range.
+
+## Available sections
+
+- **Overview** — sessions, code-change count, tokens, turns, tool calls, files accessed, lines changed, and average tokens per session
+- **Tool Call Analytics** — normalized tools, categories, command families, token attribution, and failure rate when tool-call data is available
+- **Response Timing** — active time, average response time, slowest turn, and time to first reply when timing data is available
+- **Distributions** — models, lines by model, session types, top tools, and languages
+- **Activity** — a 52-week session heatmap
+- **Daily Activity** — session and token trends for ranges longer than 24 hours
+- **File Usage Statistics** — searchable and sortable file activity with project filtering
+- **Context reduction** — estimated tokens saved by compression method, including enforced reductions and shadow-mode potential
+
+Select a file or project where links are available to return to a filtered Dashboard view.
+
+## Empty and partial states
+
+Some sections appear only when the selected sessions contain the required data. For example, response timing requires captured timing fields, and tool analytics requires normalized tool calls.
+
+<Note>
+  Free accounts have limited history. Paid and Enterprise accounts include full-history trends. See [Plans](/plans/overview) for current limits.
+</Note>

@@ -1,0 +1,59 @@
+---
+title: "Enterprise LLM Gateway: Governed Team LLM API Access"
+sidebarTitle: "Enterprise Gateway"
+description: "Route team LLM API traffic through ReclaimLLM's hosted gateway — org-managed credentials, team-scoped keys, model policy, and full request logging."
+---
+
+The ReclaimLLM Enterprise LLM Gateway is a hosted, governed proxy for team LLM API traffic. Instead of developers holding provider API keys directly, applications point at the gateway and authenticate with a team-scoped gateway key — the gateway resolves that key to your org's provider credentials and model policy, forwards the request, and logs it back to your dashboard with full org/team attribution.
+
+<Warning>
+  The Enterprise LLM Gateway is an **enterprise-only feature**. [Contact the ReclaimLLM team](https://reclaimllm.com/pricing#enterprise) to enable it for your organization.
+</Warning>
+
+## Why use it over the local proxy
+
+The [Local API Proxy](/capture/api-proxy) runs on a developer's own machine using their own provider keys — it's individual capture. The Enterprise Gateway is the org-level equivalent: credentials live centrally, access is scoped per team, and every call is attributed and policy-checked before it reaches the provider.
+
+<CardGroup cols={2}>
+  <Card title="Org-managed credentials" icon="key">
+    Admins store OpenAI, Azure OpenAI, Anthropic, and Gemini credentials once at the org level. Developers never see them.
+  </Card>
+
+  <Card title="Team-scoped keys" icon="users">
+    Each team gets its own gateway key with its own allowed providers and model policy. Revoking a key doesn't affect other teams.
+  </Card>
+
+  <Card title="OpenAI-compatible" icon="plug">
+    Point any OpenAI-compatible SDK at the gateway URL and swap in a gateway key — no other code changes.
+  </Card>
+
+  <Card title="Full attribution" icon="chart-mixed">
+    Every call is logged as a session with org, team, model, tokens, and duration — visible in the same dashboard as hooks, proxy, and extension sessions.
+  </Card>
+</CardGroup>
+
+## How to use it
+
+Once an org admin has issued you a team gateway key, point your app at the gateway host and authenticate with the key as a bearer token — no other client changes needed for an OpenAI-compatible SDK.
+
+```text
+Base URL:  https://proxy.reclaimllm.com/<org-slug>/v1
+Auth:      Authorization: Bearer <gateway-key>
+```
+
+Supported endpoints: `/v1/chat/completions` (streaming and non-streaming), `/v1/responses`, `/v1/embeddings`.
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "openai/gpt-4o-mini", "messages": [{"role": "user", "content": "hello"}]}'
+```
+
+<Note>
+  Credential-related fields in the request body (`api_key`, `api_base`, `headers`, and similar) are always ignored — the gateway only ever forwards using the org's configured provider credentials, so a gateway key can't be used to redirect traffic to a different provider or endpoint.
+</Note>
+
+## Set up the gateway
+
+Configuring provider credentials, creating gateway keys, per-team policy, and full request examples (chat completions, responses, embeddings, Python/TypeScript SDKs) are covered in the [Enterprise LLM Gateway guide](/enterprise/llm-gateway).

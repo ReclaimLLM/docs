@@ -1,0 +1,24 @@
+---
+title: "Teams Tab: Organize Members Into Teams"
+sidebarTitle: "Teams"
+description: "Create teams, assign members, and manage team-scoped membership — admin only."
+---
+
+The Teams tab (`/enterprise/orgs/{org_id}/teams`) is a per-team scoped view over the same membership data as [Members](/enterprise/dashboard/members).
+
+## What you'll see
+
+- A **Create Team** input at the top.
+- One card per team, each with its own members table (Name, Email, Role, Joined, Last session) and any pending team invites.
+
+## What you can do
+
+Create a team; add a member to a team by email (existing org members are added directly, new emails trigger a combined org \+ team invite); remove a member from a team; revoke a pending team invite; change a team member's role.
+
+## Who sees it
+
+Admin only.
+
+<Note>
+  Gateway keys on the [API Keys](/enterprise/dashboard/api-keys) tab must be assigned to a team, so teams need to exist before an admin can scope a gateway key.
+</Note>

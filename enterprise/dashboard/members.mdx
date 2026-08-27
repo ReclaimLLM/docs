@@ -1,0 +1,24 @@
+---
+title: "Members Tab: Invite and Manage Org Membership"
+sidebarTitle: "Members"
+description: "Invite new members, assign roles, and manage pending invites for your organization."
+---
+
+The Members tab (`/enterprise/orgs/{org_id}/members`) is where admins and team leads manage who belongs to the org.
+
+## What you'll see
+
+- An **Add new member** form — email \+ role (admin only; team leads can only invite developers).
+- A built-in **role guide** explaining what Developer, Team Lead, and Admin can each do.
+- A **members table** — Name, Email, Role, Joined, Last session — with an inline role selector and a Remove action per row (you can't change your own role or remove yourself).
+- A **pending invites** table (when any exist) — Email, Role, Expires — with Copy link, Resend, and Cancel actions.
+
+## What you can do
+
+Send an invite, change a member's role, remove a member from the org, and copy/resend/cancel a pending invite.
+
+## Who sees it
+
+Visible to **admin** and **team\_lead** roles. Team leads can only invite new members as Developers; only admins can invite as Team Lead or Admin.
+
+For the full role permission matrix, see [Roles & Access](/enterprise/roles-access).

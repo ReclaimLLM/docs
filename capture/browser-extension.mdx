@@ -1,0 +1,66 @@
+---
+title: "Browser Extension: Capture ChatGPT, Claude & Gemini"
+sidebarTitle: "Browser Extension"
+description: "Install the ReclaimLLM Chrome extension to capture ChatGPT, Claude.ai, and Gemini conversations in the background — no API keys or code changes required."
+hidden: true
+---
+
+The ReclaimLLM browser extension (`rclm-browser-ext`) captures your AI conversations directly from the browser as you have them. It runs silently in the background — there are no extra steps during a conversation, no API keys to configure, and no changes to how you use ChatGPT, Claude.ai, or Gemini. Once you're signed in, sessions sync to your dashboard automatically.
+
+<Warning>
+  The extension is **pending Chrome Web Store review**. Until it's approved and listed, you need to install it manually in developer mode. The process takes under a minute and is outlined in the steps below.
+</Warning>
+
+## Supported sites
+
+- [chatgpt.com](https://chatgpt.com) (ChatGPT)
+- [claude.ai](https://claude.ai)
+- [gemini.google.com](https://gemini.google.com)
+
+## Install the extension
+
+<Steps>
+  <Step title="Download and unzip the extension">
+    Download the extension package from ReclaimLLM:
+
+    [↓ Download reclaimllm-extension.zip](https://reclaimllm.com/reclaimllm-extension.zip)
+
+    After downloading, unzip the file. Keep the extracted folder somewhere you won't accidentally move or delete it — Chrome needs it to stay in place after loading.
+  </Step>
+  <Step title="Open the Chrome extensions page and enable Developer mode">
+    Navigate to `chrome://extensions` in Chrome. In the top-right corner of the page, toggle **Developer mode** on.
+
+    Enabling Developer mode unlocks the **Load unpacked** button, which lets you install extensions that aren't listed in the Chrome Web Store.
+  </Step>
+  <Step title="Load the unpacked extension">
+    Click **Load unpacked** and select the folder you unzipped in step 1.
+
+    The ReclaimLLM icon will appear in your Chrome toolbar once the extension loads successfully.
+  </Step>
+  <Step title="Sign in to your RCLM account">
+    Click the ReclaimLLM icon in your toolbar. Sign in with the same **GitHub** or **Google** account you used to create your RCLM account.
+
+    Capture starts automatically the moment you sign in — open ChatGPT, Claude.ai, or Gemini and start a conversation.
+  </Step>
+</Steps>
+
+## How it works
+
+Once installed and signed in, the extension runs in the background on supported sites. You don't need to interact with it during a conversation. Sessions are synced to your dashboard automatically after each conversation ends.
+
+- **No API keys required** — the extension uses your existing browser accounts for ChatGPT, Claude.ai, and Gemini.
+- **No provider reconfiguration** — it doesn't intercept network traffic or require changes to your accounts.
+- **Sensitive content flagging** — content that may include credentials or tokens is flagged before upload.
+
+<Note>
+  **CLI capture remains the highest-fidelity path.** The browser extension captures conversation turns, but it doesn't have access to tool calls, file diffs, or precise token counts the way [native hooks](/capture/native-hooks) do. Use hooks alongside the extension if you also work with Claude Code, Gemini CLI, or Codex CLI.
+</Note>
+
+## Verify it's working
+
+After installing and signing in:
+
+1. Open [chatgpt.com](https://chatgpt.com), [claude.ai](https://claude.ai), or [gemini.google.com](https://gemini.google.com) and have a short conversation.
+2. Open your [RCLM dashboard](https://reclaimllm.com/dashboard) — the session should appear within a few seconds of the conversation ending.
+
+If the session doesn't appear, confirm the ReclaimLLM icon is visible in your toolbar and that you're signed in (click the icon to check).

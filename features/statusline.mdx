@@ -1,0 +1,77 @@
+---
+title: "Live Context and Rate-Limit Visibility for Claude Code"
+sidebarTitle: "Statusline"
+description: "A statusline installed alongside your Claude Code hooks shows context window usage, rate limits, peak-hour status, model, and git branch — refreshed automatically, no separate tool required."
+---
+
+Claude Code supports a `statusLine` command that runs on every render and prints whatever it returns at the bottom of your terminal. `rclm-hooks-install` registers one for you by default: a single line showing how much context you've used, how close you are to your rate limits, whether you're inside Anthropic's peak-hour window, your active model, current git branch, and lines changed this session.
+
+```text
+ctx ▰▰▰▱▱ 58%  5h 42% (resets 2h15m)  OFF-PEAK  Sonnet 4.5 (main)  +120/-30
+```
+
+Every value comes from the same JSON payload Claude Code already sends the statusline on each render — nothing is fetched over the network, and no extra credentials are required beyond the hooks you already have installed.
+
+## Enabling and disabling
+
+The statusline is on by default with every `rclm-hooks-install` (or `rclm-update`) run against Claude Code. To turn it off:
+
+```bash
+rclm-hooks-install --no-statusline
+```
+
+The opt-out persists across future reinstalls, the same way `--no-compress` does — you don't need to keep passing the flag.
+
+## What each segment shows
+
+<Tabs>
+  <Tab title="Context usage">
+    A bar and percentage showing how much of the current context window is used, colored green under 70%, yellow up to 90%, and red above that.
+  </Tab>
+  <Tab title="Rate limits">
+    Five-hour and weekly usage percentages with a reset countdown. This segment only appears if you're on a Claude.ai Pro/Max subscription — Claude Code doesn't send rate-limit data for API-key billing, so nothing is estimated or guessed in its place.
+  </Tab>
+  <Tab title="Peak / off-peak">
+    A plain clock check against Anthropic's published peak-hour window (weekdays, 5–11am Pacific). This is local time math only — no API call — so it works even if Claude Code hasn't sent a fresh payload recently.
+  </Tab>
+  <Tab title="Model and branch">
+    Your active model, plus the current git branch when the session's working directory is inside a git repository. Branch detection is fast and fails silently outside a repo — it never blocks or breaks the line.
+  </Tab>
+  <Tab title="Lines changed">
+    Additions and removals for the session, when Claude Code reports them.
+  </Tab>
+</Tabs>
+
+Any segment without data simply doesn't render — you'll never see a broken line, and the underlying script always exits cleanly even on malformed input.
+
+## If you already have a custom statusline
+
+Claude Code's `statusLine` setting holds exactly one command. If you had a different statusline configured before running `rclm-hooks-install`, the installer backs it up before replacing it, and restores it automatically if you later run:
+
+```bash
+rclm-hooks-uninstall
+```
+
+<Note>
+  Because Claude Code only supports one `statusLine` command at a time, the rclm statusline and a custom one can't run side by side — installing ours replaces yours (with a backup), and uninstalling restores it.
+</Note>
+
+## Codex CLI
+
+Codex's terminal UI already ships built-in status line items — `context-used`, `context-remaining`, `five-hour-limit`, and `weekly-limit` — toggled from inside Codex with `/statusline`. There's nothing for RCLM to install there; running `rclm-hooks-install --codex` prints a reminder to turn those items on.
+
+## What it doesn't do
+
+<AccordionGroup>
+  <Accordion title="No cost estimate">
+    The statusline doesn't show a dollar figure. Under a subscription plan there's no real per-token bill to display, and no official published pricing table exists to build an accurate estimate against. Rate-limit percentage is the metric that's actually real for subscribers.
+  </Accordion>
+
+  <Accordion title="No themes or animation">
+    One fixed bar style and color scheme — no configurable themes, bar glyphs, or animation modes.
+  </Accordion>
+
+  <Accordion title="No historical or cumulative view">
+    Every value reflects the current session/window snapshot Claude Code sends on that render. There's no running total across sessions or days.
+  </Accordion>
+</AccordionGroup>

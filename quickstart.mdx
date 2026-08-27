@@ -1,0 +1,337 @@
+---
+title: "Quickstart: Install RCLM & Capture Your First Session"
+sidebarTitle: "Quickstart"
+description: "Install RCLM native hooks with two commands, then customize provider scope, folder filters, MCP, DLP, compression, and handoff settings when needed."
+---
+
+The fastest path to your first captured coding-agent session is Native Hooks. Install the package, run the hook installer, and RCLM handles browser login, local credentials, hook registration, MCP setup, redaction sync, and update checks for you.
+
+## Install in two commands
+
+<Steps>
+  <Step title="Install the package">
+    Install the `rclm` Python package from PyPI:
+
+    ```bash
+    pip install rclm
+    ```
+
+    This installs the `rclm` CLI, `rclm-hooks-install`, `rclm-login`, `rclm-update`, hook handlers, and the local MCP server entry point.
+  </Step>
+  <Step title="Run the hook installer">
+    Run the installer once:
+
+    ```bash
+    rclm-hooks-install
+    ```
+
+    The installer opens a browser login flow when credentials are missing, writes credentials and preferences to `~/.reclaimllm/config.json`, registers hooks for supported local tools, installs MCP config by default, syncs remote redaction settings, and runs the update flow so the local package and hook configuration are current.
+
+    <Info>
+      You do not need to run `rclm-login` or `rclm-update` separately for the default install path. `rclm-hooks-install` performs the login flow and runs the update flow automatically.
+    </Info>
+  </Step>
+  <Step title="Capture a session">
+    Start a Claude Code, Gemini CLI, Codex CLI, Cursor, or OpenClaw session. RCLM captures the session in the background and uploads it after the session ends.
+
+    You can check the local spool before upload:
+
+    ```bash
+    ls ~/.reclaimllm/sessions/
+    ```
+  </Step>
+  <Step title="Verify in the dashboard">
+    Open [reclaimllm.com](https://reclaimllm.com). Your session should appear within a few seconds of ending, with messages, tool calls, file diffs, model metadata, and token usage.
+  </Step>
+</Steps>
+
+## What the default installer enables
+
+`rclm-hooks-install` is global by default. It installs hooks into the supported tools it finds and enables the common local helpers that make capture useful without extra setup.
+
+| Area | Default | What it means |
+| --- | --- | --- |
+| Providers | All supported providers | Registers hooks for Claude Code, Gemini CLI, Codex CLI, Cursor, and OpenClaw when applicable |
+| Scope | Global | Sessions from any folder can be captured unless folder filters are configured |
+| Login | Automatic when needed | Opens the browser credential flow and stores credentials in `~/.reclaimllm/config.json` |
+| MCP | On | Registers the ReclaimLLM MCP server for supported local clients |
+| Update flow | On | Runs the same update flow used by `rclm-update` after install |
+| Compression | On | Enables Claude Code input/output shaping that reduces repeated token use |
+| Read cache | On | Repeated reads of unchanged files can be replaced with a short notice or diff |
+| Loop breaker | On | Repeated identical calls or repeated failures get corrective feedback |
+| Statusline | On | Adds the Claude Code statusline when supported |
+| Handoff advisor | On | Suggests compacting and handoff when a Claude session grows large |
+| DLP | Off until enabled | Local DLP can be enabled with `--dlp` and configured through redaction settings |
+| Context pack | Off until enabled | Session-start recall can be enabled with `--context-pack` |
+| Hash dedupe | Off until enabled | Large repeated tool outputs can be deduplicated with `--dedupe` |
+
+## Common install recipes
+
+### Reuse an existing API key
+
+Use this when you already created a key and do not want the browser login flow:
+
+```bash
+rclm-hooks-install --api-key=rclm_your_key_here
+```
+
+To target a non-default backend:
+
+```bash
+rclm-hooks-install --server-url=https://your-rclm-backend.example.com --api-key=rclm_your_key_here
+```
+
+### Install for one provider
+
+Use provider flags when you only want to touch one local tool's config file:
+
+```bash
+rclm-hooks-install --claude
+rclm-hooks-install --gemini
+rclm-hooks-install --codex
+rclm-hooks-install --cursor
+rclm-hooks-install --openclaw
+```
+
+You can combine provider flags:
+
+```bash
+rclm-hooks-install --claude --codex
+```
+
+### Install only for the current project
+
+Use `--local` when the hook registration itself should live in the current project folder instead of your home directory:
+
+```bash
+cd /path/to/project
+rclm-hooks-install --local
+```
+
+This is useful when you want project-scoped hook config checked by folder location. If you want global hooks but only want uploads from selected folders, use `--include-folder` instead.
+
+### Capture only selected folders
+
+Use `--include-folder` when hooks are global but uploads should happen only for specific project trees:
+
+```bash
+rclm-hooks-install --include-folder=/path/to/project
+```
+
+Repeat it to allow multiple folders:
+
+```bash
+rclm-hooks-install --include-folder=/work/app --include-folder=/work/infra
+```
+
+This writes to `redaction.include_folders` in `~/.reclaimllm/config.json`. When `include_folders` is non-empty, sessions from every other folder are skipped locally before upload.
+
+### Exclude private folders
+
+Use `--exclude-folder` when most folders are allowed but specific paths should never upload:
+
+```bash
+rclm-hooks-install --exclude-folder=/path/to/private
+```
+
+Excludes are stored in `redaction.exclude_folders`. `include_folders` takes precedence: if an include allowlist exists, RCLM only uploads included folders and ignores excludes for deciding the allowed set.
+
+Folder filters accept absolute paths and glob-style folder patterns. RCLM excludes `**/.codex/memories/` by default so local Codex memory files are not uploaded as sessions.
+
+## Optional feature flags
+
+### MCP
+
+MCP is installed by default. Disable it only when you do not want local assistants to access ReclaimLLM memory tools:
+
+```bash
+rclm-hooks-install --no-with-mcp
+```
+
+MCP provides tools like `search_sessions`, `get_session`, and `summarize_session` to supported local clients. See [MCP Server](/features/mcp-server) for the tool list.
+
+### Claude statusline
+
+The Claude Code statusline is installed by default. Disable it with:
+
+```bash
+rclm-hooks-install --no-statusline
+```
+
+See [Statusline](/features/statusline) for the statusline fields and behavior.
+
+### Compression, read cache, and loop breaker
+
+These Claude Code helpers are on by default:
+
+```bash
+rclm-hooks-install --compress --read-cache --loop-breaker
+```
+
+Disable any helper explicitly:
+
+```bash
+rclm-hooks-install --no-compress
+rclm-hooks-install --no-read-cache
+rclm-hooks-install --no-loop-breaker
+```
+
+Use shadow mode to measure compression/read-cache/loop-breaker impact without rewriting tool inputs or outputs:
+
+```bash
+rclm-hooks-install --shadow-mode
+```
+
+Enable hash dedupe for repeated large tool outputs:
+
+```bash
+rclm-hooks-install --dedupe
+```
+
+See [Context Compression](/features/context-compression) for how these mechanisms reduce token usage.
+
+### Data loss prevention
+
+Enable local DLP when you want hook inputs and outputs scrubbed before upload or model exposure:
+
+```bash
+rclm-hooks-install --dlp
+```
+
+DLP and redaction settings live under `redaction` in `~/.reclaimllm/config.json`. Remote substitutions managed in the app are synced locally by `rclm-update` and during install. See [Sensitive Data](/security/sensitive-data) for substitution rules and folder filters.
+
+### Context pack
+
+Context pack injects highlights from recent ReclaimLLM sessions in the same project at Claude session start:
+
+```bash
+rclm-hooks-install --context-pack
+```
+
+It is off by default because it adds a backend lookup to session startup. If credentials are missing or the backend is unavailable, it skips silently.
+
+### Handoff advisor
+
+Handoff advisor is on by default. It suggests a focused `/compact` command and the ReclaimLLM `handoff` MCP tool when a Claude session grows large.
+
+Disable it with:
+
+```bash
+rclm-hooks-install --no-handoff-advisor
+```
+
+Default thresholds are `160000` transcript-estimated tokens or `120` tool calls. Customize them in `~/.reclaimllm/config.json`:
+
+```json
+{
+  "handoff_advisor": true,
+  "handoff_advisor_token_threshold": 160000,
+  "handoff_advisor_tool_call_threshold": 120
+}
+```
+
+## Config file reference
+
+The installer writes credentials and local preferences to `~/.reclaimllm/config.json`. A typical configured file looks like this:
+
+```json
+{
+  "server_url": "https://api.reclaimllm.com",
+  "api_key": "rclm_...",
+  "compression": {
+    "enabled": true,
+    "dedupe": false,
+    "test_filter": true,
+    "min_dedupe_chars": 500,
+    "test_filter_max_chars": 8000
+  },
+  "read_cache": true,
+  "loop_breaker": true,
+  "statusline": true,
+  "context_pack": false,
+  "handoff_advisor": true,
+  "handoff_advisor_token_threshold": 160000,
+  "handoff_advisor_tool_call_threshold": 120,
+  "shadow_mode": false,
+  "dlp": false,
+  "redaction": {
+    "enabled": true,
+    "remote_substitutions": {},
+    "local_substitutions": {},
+    "include_folders": [
+      "/Users/you/work"
+    ],
+    "exclude_folders": [
+      "**/.codex/memories/"
+    ]
+  }
+}
+```
+
+You can edit this file directly for local-only preferences. Re-run `rclm-hooks-install` after changing install-time choices, or run `rclm-update` after changing app-managed substitution settings.
+
+## Manual login and update commands
+
+The default install path handles login and update automatically. These commands are still available when you want to run those steps separately:
+
+```bash
+rclm-login
+rclm-update
+```
+
+Use `rclm-login` to refresh local credentials without reinstalling hooks. Use `rclm-update` to check for package updates, sync redaction settings, and refresh hook configuration after upgrades.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Sessions are not appearing in the dashboard">
+    Start by checking whether session files are being spooled locally:
+
+    ```bash
+    ls ~/.reclaimllm/sessions/
+    ```
+
+    If the directory is empty after a completed agent session, re-run `rclm-hooks-install` and check that it reports hook installation for your provider.
+  </Accordion>
+
+  <Accordion title="I only want sessions from one project">
+    Prefer global hooks plus an include allowlist when you use several local tools but only want uploads from selected repos:
+
+    ```bash
+    rclm-hooks-install --include-folder=/path/to/project
+    ```
+
+    Prefer `--local` when you want hook config written only inside the current project directory:
+
+    ```bash
+    cd /path/to/project
+    rclm-hooks-install --local
+    ```
+  </Accordion>
+
+  <Accordion title="I changed substitutions in the app">
+    Run `rclm-update` on each machine where hooks are installed. This refreshes the local remote-substitution cache used before upload.
+  </Accordion>
+
+  <Accordion title="I need to inspect the local config">
+    Open `~/.reclaimllm/config.json` and confirm `server_url`, `api_key`, folder filters, and feature flags are what you expect.
+  </Accordion>
+</AccordionGroup>
+
+## Alternative capture methods
+
+Native Hooks give you the richest local coding-agent data, but two other capture methods work independently:
+
+<CardGroup cols={2}>
+  <Card title="Local API Proxy" icon="server" href="/capture/api-proxy">
+    Sits between your app and LLM providers. Install with `pip install 'rclm[proxy]'`, start with `rclm-proxy`, then set `ANTHROPIC_BASE_URL=http://localhost:9800` or `OPENAI_BASE_URL=http://localhost:9800`. No code changes required.
+  </Card>
+
+  <Card title="Browser Extension" icon="puzzle-piece" href="/capture/browser-extension">
+    Captures ChatGPT, Claude.ai, and Gemini conversations directly in Chrome. Currently in developer mode while awaiting Chrome Web Store review.
+  </Card>
+</CardGroup>
+
+<Note>
+  Browser Extension and Local API Proxy do not require native hooks. All three capture methods produce normalized session records in your dashboard.
+</Note>
