@@ -256,6 +256,10 @@ Gateway policy and naming errors use FastAPI's `{ "detail": "..." }` JSON body.
   Policy checks run before the upstream provider call. A `403` here is gateway policy, not an OpenAI/Azure rejection.
 </Tip>
 
+### Optional request params
+
+The gateway forwards OpenAI-compatible optional fields such as `service_tier` to LiteLLM / the upstream provider. OpenAI and Azure OpenAI accept request-level `service_tier` values including `auto`, `default`, and `priority` (Flex where the deployment supports it). Credential and routing fields (`api_key`, `api_base`, `headers`, and similar) are still stripped and ignored.
+
 ## What gets logged
 
 Every gateway call creates a proxy session record. These records appear in enterprise reporting and team session views alongside other captured AI activity.
