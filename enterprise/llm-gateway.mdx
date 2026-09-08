@@ -21,16 +21,19 @@ Instead of giving every developer direct access to an OpenAI, Anthropic, Gemini,
     Sign in as an org admin and navigate to your organization's **LLM Gateway** page in the enterprise portal.
   </Step>
   <Step title="Store provider credentials">
-    Add credentials for the providers your organization wants to use. The gateway currently supports **OpenAI**, **Azure OpenAI**, **Anthropic**, and **Gemini**. Credentials are stored server-side and never exposed to developers.
+    Add credentials for the providers your organization wants to use. The gateway currently supports **OpenAI**, **Azure OpenAI**, **Anthropic**, **Gemini**, **Moonshot**, and **DeepSeek**. Credentials are stored server-side and never exposed to developers.
   </Step>
   <Step title="Create a team-scoped gateway key">
     Click **New gateway key**, then:
 
     - Select the team that will use this key.
     - Give the key a descriptive name (for example, `backend-team-prod`).
-    - Choose the allowed providers and, optionally, restrict to specific model patterns.
+    - Choose the allowed providers and, optionally, restrict to specific models or model patterns.
 
     Copy the key immediately — it is shown only once.
+  </Step>
+  <Step title="Follow the model naming contract">
+    Requests must send a LiteLLM-prefixed model ID (for example `openai/gpt-5.6-luna`). The org catalog and key allowlist store the **bare** name after the prefix (`gpt-5.6-luna`). See [Model naming contract](#model-naming-contract).
   </Step>
   <Step title="Update your app's base URL and auth header">
     Point your application or SDK at the enterprise gateway URL and swap in the team gateway key as the bearer token. No other code changes are required.
@@ -84,6 +87,20 @@ The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming conv
     ```
 
     Streaming is supported — set `"stream": true` in the request body and read the response as server-sent events, the same as calling the provider directly.
+
+    For Moonshot / Kimi, use the `moonshot/` prefix:
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "moonshot/kimi-k2.6",
+        "messages": [
+          { "role": "user", "content": "Compare FCF of amazon and microsoft?" }
+        ]
+      }'
+    ```
   </Tab>
   <Tab title="Responses">
     The gateway also proxies the Responses API for providers that support it. Same host, auth, and org-slug pattern as chat completions.
@@ -93,13 +110,19 @@ The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming conv
       -H "Authorization: Bearer rclm-gw-your-team-key" \
       -H "Content-Type: application/json" \
       -d '{
-        "model": "openai/gpt-4o-mini",
+        "model": "openai/gpt-5.6-luna",
         "input": "Summarize this incident report."
       }'
     ```
 
     <Note>
-      Responses API support depends on the underlying provider and LiteLLM version behind the gateway. If a provider or runtime doesn't support it yet, the gateway returns a `501`.
+      Responses API support depends on the underlying provider and LiteLLM version behind the gateway. If LiteLLM `aresponses` is unavailable in the runtime, the gateway returns:
+
+      ```json
+      {"detail":"LiteLLM responses API is not available in this runtime"}
+      ```
+
+      with HTTP `501`.
     </Note>
   </Tab>
   <Tab title="Embeddings">
@@ -191,19 +214,46 @@ The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming conv
   </Tab>
 </Tabs>
 
-## Model naming convention
+## Model naming contract
 
-The gateway uses the [LiteLLM provider prefix](https://docs.litellm.ai/docs/providers) to route requests to the correct upstream provider. Prefix every model name with the provider slug and a forward slash.
+The gateway uses the [LiteLLM provider prefix](https://docs.litellm.ai/docs/providers) to route requests. **Requests must be prefixed. Org catalog and key allowlists store the bare name.**
 
-| Provider | Example model string |
-| --- | --- |
-| OpenAI | `openai/gpt-4o-mini` |
-| Azure OpenAI | `azure/text-embedding-small` |
-| Anthropic | `anthropic/claude-3-5-sonnet-20241022` |
-| Google Gemini | `gemini/gemini-1.5-pro` |
+| Surface | Form | Example |
+| --- | --- | --- |
+| Request `model` | Prefixed LiteLLM ID | `openai/gpt-5.6-luna`, `moonshot/kimi-k2.6` |
+| Org model catalog | Bare name after the provider prefix | `gpt-5.6-luna`, `kimi-k2.6` |
+| Key allowlist (`allowed_models`) | Bare name, keyed by provider | `{"openai": ["gpt-5.6-luna"], "moonshot": ["kimi-k2.6"]}` |
+
+Bare `gpt-5.6-luna` is rejected. Use `openai/gpt-5.6-luna`.
+
+Supported request prefixes: `openai/`, `azure/`, `azure_openai/`, `anthropic/`, `gemini/`, `moonshot/`, `deepseek/`. Exception: bare `text-embedding-*` is treated as OpenAI.
+
+| Provider | Request model string | Allowlist / catalog name |
+| --- | --- | --- |
+| OpenAI | `openai/gpt-5.6-luna` | `gpt-5.6-luna` |
+| Azure OpenAI | `azure/text-embedding-3-small` | `text-embedding-3-small` |
+| Anthropic | `anthropic/claude-3-5-sonnet-20241022` | `claude-3-5-sonnet-20241022` |
+| Google Gemini | `gemini/gemini-1.5-pro` | `gemini-1.5-pro` |
+| Moonshot | `moonshot/kimi-k2.6` | `kimi-k2.6` |
+| DeepSeek | `deepseek/deepseek-chat` | `deepseek-chat` |
+
+### Exact error bodies
+
+Gateway policy and naming errors use FastAPI's `{ "detail": "..." }` JSON body.
+
+| Status | `detail` | When |
+| --- | --- | --- |
+| `422` | `Model must include a supported LiteLLM provider prefix` | Request model has no recognized provider prefix (for example bare `gpt-5.6-luna`) |
+| `403` | `Provider is not allowed for this key` | Key's `allowed_providers` does not include the inferred provider |
+| `403` | `Model is not configured for this org` | Bare name is missing from the org gateway model catalog |
+| `403` | `Model is disabled for this org` | Catalog entry exists but is disabled |
+| `403` | `Model is not allowed for this key` | Key allowlist / model-pattern policy rejects the model |
+| `403` | `Organization is not active` | Org is disabled |
+| `403` | `Gateway key is not valid for this org` | Key org slug does not match the URL slug |
+| `501` | `LiteLLM responses API is not available in this runtime` | `/v1/responses` when LiteLLM `aresponses` is missing |
 
 <Tip>
-  If your gateway key's policy restricts access to specific providers or model patterns, calls to other providers will be rejected with a `403` before reaching the upstream API.
+  Policy checks run before the upstream provider call. A `403` here is gateway policy, not an OpenAI/Azure rejection.
 </Tip>
 
 ## What gets logged
@@ -251,7 +301,7 @@ Each gateway key enforces its policy independently. Revoking a key immediately c
   </Accordion>
 
   <Accordion title="Provider list is expanding">
-    The initial release covers OpenAI, Azure OpenAI, Anthropic, and Gemini. Additional providers will be added based on enterprise demand.
+    Supported providers today: OpenAI, Azure OpenAI, Anthropic, Gemini, Moonshot, and DeepSeek. Additional providers will be added based on enterprise demand.
   </Accordion>
 </AccordionGroup>
 

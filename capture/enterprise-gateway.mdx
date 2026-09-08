@@ -47,11 +47,15 @@ Supported endpoints: `/v1/chat/completions` (streaming and non-streaming), `/v1/
 curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
   -H "Authorization: Bearer rclm-gw-your-team-key" \
   -H "Content-Type: application/json" \
-  -d '{"model": "openai/gpt-4o-mini", "messages": [{"role": "user", "content": "hello"}]}'
+  -d '{"model": "openai/gpt-5.6-luna", "messages": [{"role": "user", "content": "hello"}]}'
 ```
 
 <Note>
   Credential-related fields in the request body (`api_key`, `api_base`, `headers`, and similar) are always ignored — the gateway only ever forwards using the org's configured provider credentials, so a gateway key can't be used to redirect traffic to a different provider or endpoint.
+</Note>
+
+<Note>
+  Request models must use a LiteLLM provider prefix (`openai/gpt-5.6-luna`, not bare `gpt-5.6-luna`). Org allowlists store the bare name. Full contract and exact `422` / `403` / `501` bodies: [Model naming contract](/enterprise/llm-gateway#model-naming-contract).
 </Note>
 
 ## Set up the gateway
