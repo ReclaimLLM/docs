@@ -16,24 +16,28 @@ ReclaimLLM captures AI interactions wherever they happen: inside coding agents, 
     Capture ChatGPT, Claude.ai, and Gemini conversations in the background — no API keys or code changes required.
   </Card>
   <Card title="Local API Proxy" icon="server" href="/capture/api-proxy">
-    A local proxy that intercepts every request and response between your app and LLM providers. Just point an environment variable at it.
+    Local `rclm-proxy` on `localhost:9800` that intercepts requests with your own provider keys. Not the hosted Enterprise Gateway.
   </Card>
   <Card title="Enterprise Gateway" icon="building" href="/capture/enterprise-gateway">
-    A hosted, org-managed gateway for governed team traffic. Admins issue scoped keys and review usage centrally.
+    Hosted `proxy.reclaimllm.com/<org-slug>/v1` for governed team traffic. Admins issue scoped `rclm-gw-…` keys and review usage centrally.
   </Card>
 </CardGroup>
 
 ## Comparison
 
-| Method | What gets captured | Best for | Plan |
-|---|---|---|---|
-| **Native Hooks** | Messages, tool calls & results, file diffs (before/after), token usage | Claude Code, Gemini CLI, Codex CLI power users | Free (200 sessions) |
-| **Browser Extension** | Conversation turns, provider context | ChatGPT, Claude.ai, Gemini browser users | Free, unlimited |
-| **Local API Proxy** | Requests, responses, model, token counts | Developers calling LLM APIs directly | Free, unlimited |
-| **Enterprise Gateway** | Full request metadata, team/org attribution, token counts | Org-level governed API access | Enterprise |
+| Method | Host / entrypoint | Auth | What gets captured | Best for | Plan |
+|---|---|---|---|---|---|
+| **Native Hooks** | Local coding agents | Personal RCLM API key | Messages, tool calls & results, file diffs, token usage | Claude Code, Gemini CLI, Codex CLI, Cursor | Free (200 sessions) |
+| **Browser Extension** | Chrome | Signed-in RCLM account | Conversation turns, provider context | ChatGPT, Claude.ai, Gemini browser users | Free, unlimited |
+| **Local API Proxy** | `rclm-proxy` → `http://localhost:9800` | Personal `RECLAIMLLM_API_KEY` + **your** provider keys | Requests, responses, model, token counts | Developers calling LLM APIs directly | Free, unlimited |
+| **Enterprise Gateway** | `https://proxy.reclaimllm.com/<org-slug>/v1` | Team gateway key `rclm-gw-…` | Full request metadata, team/org attribution, token counts | Org-level governed API access | Enterprise |
+
+<Warning>
+  **Local proxy ≠ enterprise gateway.** Do not point SDKs at `proxy.reclaimllm.com` when you mean `rclm-proxy` on localhost, and do not use a personal provider key as if it were a team gateway key. Details: [Local API Proxy](/capture/api-proxy) · [Enterprise Gateway](/capture/enterprise-gateway).
+</Warning>
 
 <Note>
-  The free tier includes **200 hooks-captured sessions**. Browser extension and API proxy sessions are unlimited on all plans.
+  The free tier includes **200 hooks-captured sessions**. Browser extension and **local** API proxy sessions are unlimited on all plans. The hosted Enterprise Gateway is Enterprise-only.
 </Note>
 
 ## The normalized session model

@@ -6,6 +6,10 @@ description: "The API Keys tab is where enterprise admins configure provider cre
 
 Despite the name, the **API Keys** tab (`/enterprise/orgs/{org_id}/api-keys`) doesn't manage generic org API keys — it's the configuration screen for the [Enterprise LLM Gateway](/enterprise/llm-gateway): storing provider credentials, discovering provider models, and issuing team-scoped gateway keys.
 
+<Warning>
+  This tab configures the **hosted** gateway at `https://proxy.reclaimllm.com/<org-slug>/v1`. It is not related to the developer [Local API Proxy](/capture/api-proxy) (`rclm-proxy` on `http://localhost:9800`).
+</Warning>
+
 ## What you'll see
 
 - **Provider Credentials** cards for OpenAI, Azure OpenAI, Anthropic, Gemini, Moonshot, and DeepSeek, each showing whether the provider is configured or disabled.

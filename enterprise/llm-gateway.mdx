@@ -6,6 +6,10 @@ description: "Issue team-scoped gateway keys, restrict provider and model access
 
 The Enterprise LLM Gateway lets your organization route all LLM API traffic through a single, governed endpoint. Admins configure provider credentials once. Teams receive scoped gateway keys — not raw provider secrets. Every call is logged with full org and team attribution, so admins and team leads can inspect usage from the same session and analytics surfaces they already use.
 
+<Warning>
+  **Not `rclm-proxy`.** The Enterprise Gateway is hosted at `https://proxy.reclaimllm.com/<org-slug>/v1` with a team gateway key (`rclm-gw-…`). The [Local API Proxy](/capture/api-proxy) is a separate developer tool (`rclm-proxy` on `http://localhost:9800`) that uses personal provider keys. They are not interchangeable.
+</Warning>
+
 ## How it works
 
 Instead of giving every developer direct access to an OpenAI, Anthropic, Gemini, or Azure OpenAI key, your team points its requests at the ReclaimLLM gateway URL and uses a team gateway key as the bearer token. The gateway validates the key, checks provider and model access against the policy you configured, forwards the request to the correct upstream provider, and logs the result.
@@ -49,7 +53,7 @@ Instead of giving every developer direct access to an OpenAI, Anthropic, Gemini,
 </Steps>
 
 <Note>
-  The gateway runs as a separate hosted service at `proxy.reclaimllm.com`, distinct from the main `reclaimllm.com` app. Always use the `proxy.reclaimllm.com` host for gateway requests.
+  The gateway runs as a separate hosted service at `proxy.reclaimllm.com`, distinct from the main `reclaimllm.com` app **and** from local `rclm-proxy` (`http://localhost:9800`). Always use the `proxy.reclaimllm.com` host for enterprise gateway requests — never substitute localhost.
 </Note>
 
 ## Request examples

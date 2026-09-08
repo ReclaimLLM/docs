@@ -12,6 +12,18 @@ The ReclaimLLM Enterprise LLM Gateway is a hosted, governed proxy for team LLM A
 
 ## Why use it over the local proxy
 
+<Warning>
+  **Do not mix these up.** `rclm-proxy` (`http://localhost:9800`) is the [Local API Proxy](/capture/api-proxy) — personal capture with your own provider keys. The Enterprise Gateway is hosted at `https://proxy.reclaimllm.com/<org-slug>/v1` and authenticates with a team gateway key (`rclm-gw-…`). Setting `OPENAI_BASE_URL=http://localhost:9800` does **not** use the enterprise gateway.
+</Warning>
+
+| | Local API Proxy | Enterprise LLM Gateway |
+| --- | --- | --- |
+| Host | `http://localhost:9800` (`rclm-proxy`) | `https://proxy.reclaimllm.com/<org-slug>/v1` |
+| Auth | Personal `RECLAIMLLM_API_KEY` + your provider keys | `Authorization: Bearer rclm-gw-…` |
+| Provider credentials | On the developer machine | Org-managed, never exposed to developers |
+| Policy | None (passthrough capture) | Team-scoped providers / models |
+| Plan | Free / Paid / Enterprise | Enterprise only |
+
 The [Local API Proxy](/capture/api-proxy) runs on a developer's own machine using their own provider keys — it's individual capture. The Enterprise Gateway is the org-level equivalent: credentials live centrally, access is scoped per team, and every call is attributed and policy-checked before it reaches the provider.
 
 <CardGroup cols={2}>

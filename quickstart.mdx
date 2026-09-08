@@ -320,18 +320,26 @@ Use `rclm-login` to refresh local credentials without reinstalling hooks. Use `r
 
 ## Alternative capture methods
 
-Native Hooks give you the richest local coding-agent data, but two other capture methods work independently:
+Native Hooks give you the richest local coding-agent data, but other capture methods work independently:
 
 <CardGroup cols={2}>
   <Card title="Local API Proxy" icon="server" href="/capture/api-proxy">
-    Sits between your app and LLM providers. Install with `pip install 'rclm[proxy]'`, start with `rclm-proxy`, then set `ANTHROPIC_BASE_URL=http://localhost:9800` or `OPENAI_BASE_URL=http://localhost:9800`. No code changes required.
+    Developer machine only: `pip install 'rclm[proxy]'`, run `rclm-proxy`, then `OPENAI_BASE_URL=http://localhost:9800` (or Anthropic/Azure/Gemini equivalents). Uses **your** provider keys. Not the hosted enterprise gateway.
   </Card>
 
   <Card title="Browser Extension" icon="puzzle-piece" href="/capture/browser-extension">
     Captures ChatGPT, Claude.ai, and Gemini conversations directly in Chrome. Currently in developer mode while awaiting Chrome Web Store review.
   </Card>
+
+  <Card title="Enterprise Gateway" icon="building" href="/capture/enterprise-gateway">
+    Hosted org proxy at `https://proxy.reclaimllm.com/<org-slug>/v1` with team keys (`rclm-gw-…`). Enterprise-only — do not confuse with `rclm-proxy` on localhost.
+  </Card>
 </CardGroup>
 
+<Warning>
+  **Local proxy ≠ enterprise gateway.** `rclm-proxy` / `localhost:9800` is personal capture. `proxy.reclaimllm.com` is the governed enterprise path. See [Capture overview](/capture/overview).
+</Warning>
+
 <Note>
-  Browser Extension and Local API Proxy do not require native hooks. All three capture methods produce normalized session records in your dashboard.
+  Browser Extension and Local API Proxy do not require native hooks. Capture methods produce normalized session records in your dashboard.
 </Note>

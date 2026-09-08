@@ -8,6 +8,18 @@ hidden: true
 The ReclaimLLM local API proxy (`rclm-proxy`) sits between your application and LLM providers. Every request and response passes through it, gets recorded, and is uploaded to your dashboard asynchronously — without ever blocking your requests. Setup requires no changes to your application code: you set one environment variable pointing at the proxy, and your existing provider API keys stay exactly where they are.
 
 <Warning>
+  **This is not the Enterprise LLM Gateway.** The local proxy is `rclm-proxy` on `http://localhost:9800`, uses **your** provider API keys, and is for individual capture. The hosted gateway is `https://proxy.reclaimllm.com/<org-slug>/v1`, uses a team gateway key (`rclm-gw-…`), and is enterprise-only. Do not point SDKs at `proxy.reclaimllm.com` when you mean `rclm-proxy`, or the reverse. See [Enterprise Gateway](/capture/enterprise-gateway).
+</Warning>
+
+| | Local API Proxy | Enterprise LLM Gateway |
+| --- | --- | --- |
+| Host | `http://localhost:9800` (`rclm-proxy`) | `https://proxy.reclaimllm.com/<org-slug>/v1` |
+| Auth | Your personal `RECLAIMLLM_API_KEY` for upload; provider keys stay local | Team gateway key `Authorization: Bearer rclm-gw-…` |
+| Provider credentials | Developer’s own OpenAI/Anthropic/etc. keys | Org-managed credentials (developers never see them) |
+| Plan | Free / Paid / Enterprise | Enterprise only |
+| Docs | This page | [Enterprise Gateway](/capture/enterprise-gateway) · [LLM Gateway guide](/enterprise/llm-gateway) |
+
+<Warning>
   The local API proxy is **experimental**. You may encounter rough edges. If you run into issues, please [report them](https://reclaimllm.com) so the team can improve it.
 </Warning>
 

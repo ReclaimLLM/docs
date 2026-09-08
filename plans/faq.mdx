@@ -63,12 +63,13 @@ Whether you're deciding between plans or figuring out how a specific feature wor
 
   - **Hooks session** — one continuous agent run captured via Claude Code or Gemini CLI native hooks
   - **Browser session** — one conversation captured via the browser extension (ChatGPT, Claude.ai, Gemini)
-  - **Proxy session** — one request record captured via the local API proxy or enterprise gateway
+  - **Proxy session** — one request record captured via the **local** API proxy (`rclm-proxy` on localhost)
+  - **Gateway session** — one request record captured via the hosted **Enterprise LLM Gateway** (`proxy.reclaimllm.com`)
 
-  Proxy and gateway sessions store request metadata, model, duration, and token counts when available. Full conversation transcripts are stored for hooks and browser sessions.
+  Local proxy and enterprise gateway sessions both store request metadata, model, duration, and token counts when available. Full conversation transcripts are stored for hooks and browser sessions.
 
   <Info>
-    The 200-session limit on the Free plan applies only to **hooks-captured sessions**. Proxy and browser sessions are unlimited on all plans.
+    The 200-session limit on the Free plan applies only to **hooks-captured sessions**. Local proxy and browser sessions are unlimited on all plans. The hosted Enterprise Gateway is Enterprise-only.
   </Info>
 </Accordion>
 
