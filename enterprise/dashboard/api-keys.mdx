@@ -16,7 +16,69 @@ Despite the name, the **API Keys** tab (`/enterprise/orgs/{org_id}/api-keys`) do
 - **Models** under each provider, collapsed by default, showing the provider model names available to that org.
 - **Sync models** for configured providers, so admins can refresh the org's model list after a provider releases new models.
 - **Team Gateway Keys** — a creation form (name, team, allowed providers, and optional concrete model allowlists) and a table of existing keys (Name, Team, Providers, Last used, Revoke/Delete).
-- A copy-pasteable curl example for calling the gateway.
+- A copy-pasteable curl example for calling the gateway (OpenAI, Moonshot, Azure OpenAI chat, and Azure embeddings).
+
+## Proxy request examples (curl)
+
+These match the **Use this proxy with curl** panel on the LLM Gateway page. Replace `acme` with your org slug and use your team gateway key.
+
+### OpenAI chat
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "openai/gpt-5.6-luna",
+    "messages": [
+      { "role": "user", "content": "Write a short release note." }
+    ]
+  }'
+```
+
+### Moonshot chat
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "moonshot/kimi-k2.6",
+    "messages": [
+      { "role": "user", "content": "Compare FCF of amazon and microsoft?" }
+    ]
+  }'
+```
+
+### Azure OpenAI chat
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "azure/gpt-4o-mini",
+    "messages": [
+      { "role": "user", "content": "Summarize this incident report." }
+    ]
+  }'
+```
+
+### Embeddings (Azure OpenAI)
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/embeddings \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "azure/text-embedding-3-small",
+    "input": ["Searchable context from an LLM session."]
+  }'
+```
+
+<Note>
+  Request models must be LiteLLM-prefixed. Org catalog and key allowlists store the bare name. See the [model naming contract](/enterprise/llm-gateway#model-naming-contract).
+</Note>
 
 ## Provider credentials and model discovery
 

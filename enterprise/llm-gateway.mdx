@@ -58,42 +58,27 @@ Instead of giving every developer direct access to an OpenAI, Anthropic, Gemini,
 
 ## Request examples
 
-The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming convention](https://docs.litellm.ai/docs/providers) — prefix the model name with the provider — so the gateway can route the request to the correct upstream provider.
+The gateway exposes an OpenAI-compatible API on `https://proxy.reclaimllm.com/<org-slug>/v1`. Use the [LiteLLM model naming convention](https://docs.litellm.ai/docs/providers) — prefix the model name with the provider — so the gateway can route the request. These curls match the copy-paste sample on the org **LLM Gateway / API Keys** page.
+
+Replace `acme` with your org slug and `rclm-gw-your-team-key` with your team gateway key.
 
 <Tabs>
-  <Tab title="Chat completions">
-    Replace `acme` with your org slug and use your team's gateway key as the bearer token.
-
+  <Tab title="OpenAI">
     ```bash
     curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
       -H "Authorization: Bearer rclm-gw-your-team-key" \
       -H "Content-Type: application/json" \
       -d '{
-        "model": "openai/gpt-4o-mini",
+        "model": "openai/gpt-5.6-luna",
         "messages": [
-          { "role": "user", "content": "Summarize this incident report." }
+          { "role": "user", "content": "Write a short release note." }
         ]
       }'
     ```
 
-    For Anthropic, use the `anthropic/` prefix:
-
-    ```bash
-    curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
-      -H "Authorization: Bearer rclm-gw-your-team-key" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "model": "anthropic/claude-3-5-sonnet-20241022",
-        "messages": [
-          { "role": "user", "content": "Review this pull request description." }
-        ]
-      }'
-    ```
-
-    Streaming is supported — set `"stream": true` in the request body and read the response as server-sent events, the same as calling the provider directly.
-
-    For Moonshot / Kimi, use the `moonshot/` prefix:
-
+    Streaming is supported — set `"stream": true` in the request body and read the response as server-sent events.
+  </Tab>
+  <Tab title="Moonshot">
     ```bash
     curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
       -H "Authorization: Bearer rclm-gw-your-team-key" \
@@ -103,6 +88,50 @@ The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming conv
         "messages": [
           { "role": "user", "content": "Compare FCF of amazon and microsoft?" }
         ]
+      }'
+    ```
+  </Tab>
+  <Tab title="Azure OpenAI">
+    Chat completions through the Azure OpenAI org credential:
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "azure/gpt-4o-mini",
+        "messages": [
+          { "role": "user", "content": "Summarize this incident report." }
+        ]
+      }'
+    ```
+
+    Use the deployment / model name your org catalog stores as the bare name after `azure/`.
+  </Tab>
+  <Tab title="Embeddings">
+    Embedding traffic uses the same team gateway key and org policy as chat.
+
+    Azure OpenAI embeddings:
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/embeddings \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "azure/text-embedding-3-small",
+        "input": ["Searchable context from an LLM session."]
+      }'
+    ```
+
+    OpenAI embeddings:
+
+    ```bash
+    curl https://proxy.reclaimllm.com/acme/v1/embeddings \
+      -H "Authorization: Bearer rclm-gw-your-team-key" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "model": "openai/text-embedding-3-small",
+        "input": ["Session context for semantic retrieval."]
       }'
     ```
   </Tab>
@@ -129,59 +158,40 @@ The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming conv
       with HTTP `501`.
     </Note>
   </Tab>
-  <Tab title="Embeddings">
-    Embedding traffic uses the same team gateway key, so retrieval and search pipelines follow the same org policy as your chat traffic.
-
-    ```bash
-    curl https://proxy.reclaimllm.com/acme/v1/embeddings \
-      -H "Authorization: Bearer rclm-gw-your-team-key" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "model": "azure/text-embedding-small",
-        "input": ["Searchable context from an LLM session."]
-      }'
-    ```
-
-    Use the `openai/` prefix for OpenAI embedding models:
-
-    ```bash
-    curl https://proxy.reclaimllm.com/acme/v1/embeddings \
-      -H "Authorization: Bearer rclm-gw-your-team-key" \
-      -H "Content-Type: application/json" \
-      -d '{
-        "model": "openai/text-embedding-3-small",
-        "input": ["Session context for semantic retrieval."]
-      }'
-    ```
-  </Tab>
   <Tab title="Python (OpenAI SDK)">
     The gateway is OpenAI-compatible, so you can use the OpenAI Python SDK by overriding `base_url` and `api_key`.
 
     ```python
     from openai import OpenAI
-    
+
     client = OpenAI(
         base_url="https://proxy.reclaimllm.com/acme/v1",
         api_key="rclm-gw-your-team-key",
     )
-    
+
     response = client.chat.completions.create(
-        model="openai/gpt-4o-mini",
+        model="openai/gpt-5.6-luna",
         messages=[
-            {"role": "user", "content": "Summarize this incident report."}
+            {"role": "user", "content": "Write a short release note."}
         ],
     )
-    
+
     print(response.choices[0].message.content)
     ```
 
     Switch providers by changing the `model` prefix — no other changes required:
 
     ```python
-    # Use Anthropic instead
+    # Moonshot
     response = client.chat.completions.create(
-        model="anthropic/claude-3-5-sonnet-20241022",
-        messages=[{"role": "user", "content": "Review this code."}],
+        model="moonshot/kimi-k2.6",
+        messages=[{"role": "user", "content": "Compare FCF of amazon and microsoft?"}],
+    )
+
+    # Azure OpenAI
+    response = client.chat.completions.create(
+        model="azure/gpt-4o-mini",
+        messages=[{"role": "user", "content": "Summarize this incident report."}],
     )
     ```
   </Tab>
@@ -190,29 +200,35 @@ The gateway exposes an OpenAI-compatible API. Use the [LiteLLM model naming conv
 
     ```typescript
     import OpenAI from "openai";
-    
+
     const client = new OpenAI({
       baseURL: "https://proxy.reclaimllm.com/acme/v1",
       apiKey: "rclm-gw-your-team-key",
     });
-    
+
     const response = await client.chat.completions.create({
-      model: "openai/gpt-4o-mini",
+      model: "openai/gpt-5.6-luna",
       messages: [
-        { role: "user", content: "Summarize this incident report." },
+        { role: "user", content: "Write a short release note." },
       ],
     });
-    
+
     console.log(response.choices[0].message.content);
     ```
 
     Switch providers by changing the `model` prefix — no other changes required:
 
     ```typescript
-    // Use Anthropic instead
-    const response = await client.chat.completions.create({
-      model: "anthropic/claude-3-5-sonnet-20241022",
-      messages: [{ role: "user", content: "Review this code." }],
+    // Moonshot
+    await client.chat.completions.create({
+      model: "moonshot/kimi-k2.6",
+      messages: [{ role: "user", content: "Compare FCF of amazon and microsoft?" }],
+    });
+
+    // Azure OpenAI
+    await client.chat.completions.create({
+      model: "azure/gpt-4o-mini",
+      messages: [{ role: "user", content: "Summarize this incident report." }],
     });
     ```
   </Tab>

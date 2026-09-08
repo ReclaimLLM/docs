@@ -55,11 +55,58 @@ Auth:      Authorization: Bearer <gateway-key>
 
 Supported endpoints: `/v1/chat/completions` (streaming and non-streaming), `/v1/responses`, `/v1/embeddings`.
 
+### OpenAI
+
 ```bash
 curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
   -H "Authorization: Bearer rclm-gw-your-team-key" \
   -H "Content-Type: application/json" \
-  -d '{"model": "openai/gpt-5.6-luna", "messages": [{"role": "user", "content": "hello"}]}'
+  -d '{
+    "model": "openai/gpt-5.6-luna",
+    "messages": [
+      { "role": "user", "content": "Write a short release note." }
+    ]
+  }'
+```
+
+### Moonshot
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "moonshot/kimi-k2.6",
+    "messages": [
+      { "role": "user", "content": "Compare FCF of amazon and microsoft?" }
+    ]
+  }'
+```
+
+### Azure OpenAI
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "azure/gpt-4o-mini",
+    "messages": [
+      { "role": "user", "content": "Summarize this incident report." }
+    ]
+  }'
+```
+
+### Embeddings
+
+```bash
+curl https://proxy.reclaimllm.com/acme/v1/embeddings \
+  -H "Authorization: Bearer rclm-gw-your-team-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "azure/text-embedding-3-small",
+    "input": ["Searchable context from an LLM session."]
+  }'
 ```
 
 <Note>
@@ -67,7 +114,7 @@ curl https://proxy.reclaimllm.com/acme/v1/chat/completions \
 </Note>
 
 <Note>
-  Request models must use a LiteLLM provider prefix (`openai/gpt-5.6-luna`, not bare `gpt-5.6-luna`). Org allowlists store the bare name. Full contract and exact `422` / `403` / `501` bodies: [Model naming contract](/enterprise/llm-gateway#model-naming-contract).
+  Request models must use a LiteLLM provider prefix (`openai/gpt-5.6-luna`, not bare `gpt-5.6-luna`). Org allowlists store the bare name. Full contract, more providers, and SDK examples: [Enterprise LLM Gateway guide](/enterprise/llm-gateway#request-examples).
 </Note>
 
 ## Set up the gateway
