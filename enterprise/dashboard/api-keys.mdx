@@ -18,7 +18,7 @@ Despite the name, the **API Keys** tab (`/enterprise/orgs/{org_id}/api-keys`) do
 
 When an admin saves a provider API key, ReclaimLLM calls that provider's list-models API from the backend using the saved credential. Any returned model names that are not already present for the org are inserted into the org's gateway model registry.
 
-The stored model name is the provider's returned model name as-is. This keeps newly released models available without requiring a frontend deployment or hardcoded model list update.
+The stored model name is the provider's returned model name **as-is (bare, no LiteLLM prefix)**. Clients must still call the gateway with a prefixed request model (for example catalog `gpt-5.6-luna` → request `openai/gpt-5.6-luna`). See the [model naming contract](/enterprise/llm-gateway#model-naming-contract).
 
 ## Syncing models later
 
