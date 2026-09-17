@@ -111,6 +111,7 @@ tracer = trace.get_tracer("support-api")
 
 with tracer.start_as_current_span("support-conversation") as span:
     span.set_attribute("session.id", "support-case-123")
+    span.set_attribute("reclaimllm.tags", ["customer-support", "production"])
     response = client.responses.create(
         model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
         input="Reply with one short test message.",
@@ -163,6 +164,7 @@ tracer = trace.get_tracer("support-api")
 
 with tracer.start_as_current_span("support-conversation") as span:
     span.set_attribute("session.id", "support-case-123")
+    span.set_attribute("reclaimllm.tags", ["customer-support", "production"])
     message = client.messages.create(
         model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
         max_tokens=100,
@@ -196,6 +198,16 @@ with tracer.start_as_current_span("customer-workflow") as span:
     span.set_attribute("session.id", "customer-42-case-108")
     # Make one or more instrumented LLM calls here.
 ```
+
+## Add searchable session tags
+
+Set `reclaimllm.tags` on a span or resource to attach your application metadata to the ReclaimLLM session. Use a string array when adding multiple tags; one string is also accepted.
+
+```python
+span.set_attribute("reclaimllm.tags", ["customer-support", "production"])
+```
+
+ReclaimLLM trims empty values, removes duplicates, and merges tags from every span and late export in the session. Tags are descriptive only: they cannot change the user, organization, team, or data region selected by the ReclaimLLM API key.
 
 ## Production Collector configuration
 
