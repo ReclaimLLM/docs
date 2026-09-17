@@ -1,0 +1,263 @@
+---
+title: "OpenTelemetry: Capture Existing LLM API Calls"
+sidebarTitle: "OpenTelemetry"
+description: "Export OpenAI, Anthropic, Azure OpenAI, Gemini, Vertex AI, Bedrock, and other LLM traces to ReclaimLLM over OTLP/HTTP."
+icon: "wave-pulse"
+---
+
+Use OpenTelemetry when your application already calls an LLM provider directly and you want ReclaimLLM observability without routing provider traffic through a proxy. Your application continues to call OpenAI, Anthropic, or another provider. An instrumentor emits traces to ReclaimLLM in parallel, so provider latency and credentials stay outside the ReclaimLLM request path.
+
+```text
+Your application ──→ OpenAI / Anthropic / another provider
+        │
+        └── OTLP/HTTP traces ──→ https://api.reclaimllm.com/v1/traces
+```
+
+<Info>
+  ReclaimLLM does not need or store your provider API key. The ReclaimLLM API key authenticates only the telemetry export.
+</Info>
+
+## When to use OpenTelemetry
+
+| Capture method | Provider traffic | Best for |
+| --- | --- | --- |
+| **OpenTelemetry** | Goes directly to the provider | Existing applications that can add an instrumentor |
+| [Local API Proxy](/capture/api-proxy) | Goes through `rclm-proxy` on your machine | Local capture without application instrumentation |
+| [Enterprise Gateway](/capture/enterprise-gateway) | Goes through ReclaimLLM's hosted gateway | Centrally governed provider credentials and model policy |
+
+OpenTelemetry capture supports OpenAI, Azure OpenAI, Anthropic, Gemini, Vertex AI, Bedrock, OpenInference-compatible frameworks, and valid generic OTLP traces from other providers.
+
+## Before you begin
+
+You need:
+
+- A ReclaimLLM personal API key from [**Settings → API Keys**](https://reclaimllm.com/settings#api_key)
+- The provider API key your application already uses
+- Python 3.9 or later for the examples below
+- A non-sensitive test prompt
+
+### Attribute telemetry to another organization
+
+The ReclaimLLM API key determines the user, organization, team, and data region. An `org_id`, `team_id`, resource attribute, or span attribute cannot override that identity.
+
+<Steps>
+  <Step title="Create a dedicated integration identity">
+    Invite a dedicated user to the target organization. Use a separate identity for each application when you need separate attribution.
+  </Step>
+  <Step title="Assign one team">
+    Add the integration user to one team. This keeps team attribution predictable.
+  </Step>
+  <Step title="Create the API key">
+    Sign in as the integration user. Open [**Settings → API Keys**](https://reclaimllm.com/settings#api_key) and create a personal API key.
+  </Step>
+  <Step title="Configure the exporter">
+    Set that key as `RECLAIMLLM_API_KEY` in the application or Collector that exports traces.
+  </Step>
+</Steps>
+
+<Warning>
+  Do not reuse a key owned by a user in another organization. Do not add an organization ID to telemetry. ReclaimLLM intentionally derives ownership from the authenticated key.
+</Warning>
+
+## Configure the exporter
+
+Set the OTLP/HTTP endpoint and ReclaimLLM authentication header:
+
+```bash
+export RECLAIMLLM_API_KEY=rclm_your_key_here
+export OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://api.reclaimllm.com/v1/traces
+export OTEL_EXPORTER_OTLP_HEADERS="X-API-Key=${RECLAIMLLM_API_KEY}"
+```
+
+The endpoint also accepts `Authorization: Bearer <reclaimllm-api-key>` when your exporter cannot set `X-API-Key`.
+
+The examples use [OpenInference](https://github.com/Arize-ai/openinference) instrumentors because they emit provider-neutral LLM attributes that ReclaimLLM normalizes. The endpoint also accepts current and legacy OpenTelemetry GenAI semantic conventions.
+
+## OpenAI example
+
+Install the OpenAI client, OpenTelemetry exporter, and OpenInference instrumentor:
+
+```bash
+pip install openai opentelemetry-sdk opentelemetry-exporter-otlp-proto-http openinference-instrumentation-openai
+export OPENAI_API_KEY=your_openai_key
+export OPENINFERENCE_HIDE_INPUTS=false
+export OPENINFERENCE_HIDE_OUTPUTS=false
+```
+
+Create `openai_example.py`:
+
+```python
+import os
+
+from openai import OpenAI
+from openinference.instrumentation.openai import OpenAIInstrumentor
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+
+provider = TracerProvider(
+    resource=Resource.create({"service.name": "support-api"})
+)
+trace.set_tracer_provider(provider)
+provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+OpenAIInstrumentor().instrument(tracer_provider=provider)
+
+client = OpenAI()
+tracer = trace.get_tracer("support-api")
+
+with tracer.start_as_current_span("support-conversation") as span:
+    span.set_attribute("session.id", "support-case-123")
+    response = client.responses.create(
+        model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
+        input="Reply with one short test message.",
+    )
+    print(response.output_text)
+
+provider.force_flush()
+```
+
+Run the example:
+
+```bash
+python openai_example.py
+```
+
+## Anthropic Claude example
+
+Install the Anthropic client, OpenTelemetry exporter, and OpenInference instrumentor:
+
+```bash
+pip install anthropic opentelemetry-sdk opentelemetry-exporter-otlp-proto-http openinference-instrumentation-anthropic
+export ANTHROPIC_API_KEY=your_anthropic_key
+export OPENINFERENCE_HIDE_INPUTS=false
+export OPENINFERENCE_HIDE_OUTPUTS=false
+```
+
+Create `anthropic_example.py`:
+
+```python
+import os
+
+from anthropic import Anthropic
+from openinference.instrumentation.anthropic import AnthropicInstrumentor
+from opentelemetry import trace
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
+
+provider = TracerProvider(
+    resource=Resource.create({"service.name": "support-api"})
+)
+trace.set_tracer_provider(provider)
+provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
+AnthropicInstrumentor().instrument(tracer_provider=provider)
+
+client = Anthropic()
+tracer = trace.get_tracer("support-api")
+
+with tracer.start_as_current_span("support-conversation") as span:
+    span.set_attribute("session.id", "support-case-123")
+    message = client.messages.create(
+        model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        max_tokens=100,
+        messages=[
+            {"role": "user", "content": "Reply with one short test message."}
+        ],
+    )
+    print(message.content[0].text)
+
+provider.force_flush()
+```
+
+Run the example:
+
+```bash
+python anthropic_example.py
+```
+
+## Group calls into sessions
+
+ReclaimLLM groups spans using this precedence:
+
+1. `session.id`
+2. `gen_ai.conversation.id`
+3. OpenTelemetry trace ID
+
+Set a stable `session.id` on the parent workflow span to merge multiple LLM calls into one ReclaimLLM session. External identifiers are preserved for diagnostics. Internal session IDs are scoped to the authenticated ReclaimLLM user, so two organizations can safely use the same external identifier.
+
+```python
+with tracer.start_as_current_span("customer-workflow") as span:
+    span.set_attribute("session.id", "customer-42-case-108")
+    # Make one or more instrumented LLM calls here.
+```
+
+## Production Collector configuration
+
+For production workloads, send application traces to a customer-managed OpenTelemetry Collector. Configure an `otlphttp` exporter with `https://api.reclaimllm.com` as its endpoint and supply the ReclaimLLM API key through the `X-API-Key` header from your secret manager.
+
+Enable the Collector batch processor, retry-on-failure behavior, and a bounded sending queue. The `otlphttp` exporter appends `/v1/traces` to its endpoint. Keep filtering or redaction processors before the ReclaimLLM exporter when content must be removed inside your network.
+
+## What ReclaimLLM captures
+
+ReclaimLLM retains fields emitted by your instrumentor, including:
+
+- System instructions, prompts, responses, and multimodal references
+- Tool definitions, calls, arguments, results, and errors
+- Provider, requested and response models, finish reasons, and status
+- Input, output, cache-read, and cache-creation token usage
+- Trace IDs, span IDs, parent relationships, timestamps, events, links, resource attributes, and instrumentation scope
+- Unknown span attributes in a bounded canonical representation
+
+<Warning>
+  Full input and output capture can include sensitive data. Use non-sensitive prompts while testing. Configure instrumentor privacy settings or Collector filtering before production if content must not leave your network.
+</Warning>
+
+ReclaimLLM can capture only the content your instrumentor emits. If messages or tool bodies are missing, check the instrumentor's content-capture settings first.
+
+## Verify the integration
+
+<Steps>
+  <Step title="Send one test request">
+    Run an example with a stable `session.id` and a non-sensitive prompt.
+  </Step>
+  <Step title="Inspect the session">
+    Open the [ReclaimLLM dashboard](https://reclaimllm.com/dashboard). Confirm the integration user, organization, team, provider, model, prompt, response, token usage, and trace ID.
+  </Step>
+  <Step title="Test idempotency">
+    Export the same span again. The session's span count, messages, and token totals should not increase.
+  </Step>
+  <Step title="Test session merging">
+    Send a later call with the same `session.id`. It should merge into the existing session in telemetry timestamp order.
+  </Step>
+</Steps>
+
+## Endpoint behavior
+
+| Result | Response |
+| --- | --- |
+| Valid export | `200` with an OTLP response matching the request encoding |
+| Some spans rejected | `200` with OTLP `partial_success` |
+| Invalid payload | `400` |
+| Oversized payload | `413` |
+| Unsupported content type or encoding | `415` |
+| Rate or concurrency limit | `429` with `Retry-After` |
+| Temporary persistence failure | `503` with `Retry-After` |
+
+The endpoint accepts `application/x-protobuf` and OTLP JSON. It supports `identity` and `gzip` content encodings. Configure retries for `429` and `503` responses.
+
+## Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| `401` response | Confirm `RECLAIMLLM_API_KEY` is a current personal API key and the exporter sends `X-API-Key` or Bearer authentication. |
+| Session appears in the wrong organization | Create the key while signed in as the dedicated user belonging to the intended organization. Telemetry attributes cannot change ownership. |
+| Prompt or response is missing | Enable content capture in the instrumentor and confirm privacy environment variables are not hiding inputs or outputs. |
+| Calls create separate sessions | Set the same `session.id` or `gen_ai.conversation.id` across the related trace spans. |
+| Duplicate token totals | Confirm the instrumentor exports stable trace and span IDs when retrying the same span. |
+| Exporter retries continuously | Check response status, `Retry-After`, body limits, Collector logs, and the `X-Request-Id` response header. |

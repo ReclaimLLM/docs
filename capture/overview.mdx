@@ -1,12 +1,12 @@
 ---
-title: "Capture Overview: Four Ways to Record AI Sessions Now"
+title: "Capture Overview: Five Ways to Record AI Sessions Now"
 sidebarTitle: "Overview"
-description: "ReclaimLLM captures AI sessions via four methods — native hooks, browser extension, local proxy, and enterprise gateway — into one unified history."
+description: "ReclaimLLM captures AI sessions via native hooks, browser extension, OpenTelemetry, local proxy, and enterprise gateway into one unified history."
 ---
 
 ReclaimLLM captures AI interactions wherever they happen: inside coding agents, browser chat interfaces, local API calls, and org-level gateway traffic. No matter which path you use, every session lands in the same normalized record — searchable, browsable, and exportable from a single dashboard. You can start with just one method and layer on the others as your needs grow.
 
-## Four capture methods
+## Five capture methods
 
 <CardGroup cols={2}>
   <Card title="Native Hooks" icon="webhook" href="/capture/native-hooks">
@@ -14,6 +14,9 @@ ReclaimLLM captures AI interactions wherever they happen: inside coding agents, 
   </Card>
   <Card title="Browser Extension" icon="chrome" href="/capture/browser-extension">
     Capture ChatGPT, Claude.ai, and Gemini conversations in the background — no API keys or code changes required.
+  </Card>
+  <Card title="OpenTelemetry" icon="wave-pulse" href="/capture/opentelemetry">
+    Export traces from existing OpenAI, Anthropic, Gemini, Bedrock, and other LLM API integrations without proxying provider traffic.
   </Card>
   <Card title="Local API Proxy" icon="server" href="/capture/api-proxy">
     Local `rclm-proxy` on `localhost:9800` that intercepts requests with your own provider keys. Not the hosted Enterprise Gateway.
@@ -29,6 +32,7 @@ ReclaimLLM captures AI interactions wherever they happen: inside coding agents, 
 |---|---|---|---|---|---|
 | **Native Hooks** | Local coding agents | Personal RCLM API key | Messages, tool calls & results, file diffs, token usage | Claude Code, Gemini CLI, Codex CLI, Cursor | Free (200 sessions) |
 | **Browser Extension** | Chrome | Signed-in RCLM account | Conversation turns, provider context | ChatGPT, Claude.ai, Gemini browser users | Free, unlimited |
+| **OpenTelemetry** | `https://api.reclaimllm.com/v1/traces` | Personal RCLM API key | Emitted prompts, responses, tools, models, spans, and token usage | Existing instrumented LLM applications | Enterprise |
 | **Local API Proxy** | `rclm-proxy` → `http://localhost:9800` | Personal `RECLAIMLLM_API_KEY` + **your** provider keys | Requests, responses, model, token counts | Developers calling LLM APIs directly | Free, unlimited |
 | **Enterprise Gateway** | `https://proxy.reclaimllm.com/<org-slug>/v1` | Team gateway key `rclm-gw-…` | Full request metadata, team/org attribution, token counts | Org-level governed API access | Enterprise |
 
@@ -37,7 +41,7 @@ ReclaimLLM captures AI interactions wherever they happen: inside coding agents, 
 </Warning>
 
 <Note>
-  The free tier includes **200 hooks-captured sessions**. Browser extension and **local** API proxy sessions are unlimited on all plans. The hosted Enterprise Gateway is Enterprise-only.
+  The free tier includes **200 hooks-captured sessions**. Browser extension and **local** API proxy sessions are unlimited on all plans. OpenTelemetry ingestion and the hosted Enterprise Gateway are Enterprise-only.
 </Note>
 
 ## The normalized session model
@@ -52,7 +56,7 @@ Every capture method — regardless of how rich the source data is — produces 
     Provider name, model, timestamps, token usage, and cost metadata.
   </Card>
   <Card title="Tool activity" icon="wrench">
-    Tool calls and their results, when the source supports them (hooks and proxy).
+    Tool calls and their results, when the source supports them (hooks, proxy, and instrumented OTLP traces).
   </Card>
   <Card title="File diffs" icon="file-diff">
     Before-and-after file snapshots for every file an agent created or modified — hooks only.
@@ -75,6 +79,7 @@ The right first step is the one that captures your highest-volume AI usage with 
 
 - **You use Claude Code, Gemini CLI, or Codex CLI daily** → Start with [Native Hooks](/capture/native-hooks)
 - **You mostly chat in the browser** → Start with the [Browser Extension](/capture/browser-extension)
+- **Your application already calls LLM provider APIs** → Start with [OpenTelemetry](/capture/opentelemetry)
 - **You build apps that call LLM APIs** → Start with the [Local API Proxy](/capture/api-proxy)
 - **You manage LLM access for a company** → Start with the [Enterprise Gateway](/capture/enterprise-gateway)
-- **You want the fullest picture** → Use all four paths together
+- **You want the fullest picture** → Use all five paths together
