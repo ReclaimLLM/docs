@@ -5,7 +5,7 @@ description: "Export OpenAI, Anthropic, Azure OpenAI, Gemini, Vertex AI, Bedrock
 icon: "wave-pulse"
 ---
 
-Use OpenTelemetry when your application already calls an LLM provider directly and you want ReclaimLLM observability without routing provider traffic through a proxy. Your application continues to call OpenAI, Anthropic, or another provider. An instrumentor emits traces to ReclaimLLM in parallel.
+Use OpenTelemetry when your application already calls an LLM provider directly and you want ReclaimLLM observability without routing provider traffic through a proxy. Your application continues to call OpenAI, Anthropic, or another provider. An instrumentor emits traces to ReclaimLLM in parallel, so provider latency and credentials stay outside the ReclaimLLM request path.
 
 ```text
 Your application ──→ OpenAI / Anthropic / another provider
