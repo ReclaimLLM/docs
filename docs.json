@@ -152,5 +152,8 @@
       "linkedin": "https://www.linkedin.com/company/135107441",
       "github": "https://github.com/reclaimllm"
     }
+  },
+  "seo": {
+    "indexing": "all"
   }
 }
