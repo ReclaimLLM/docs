@@ -155,5 +155,6 @@
   },
   "seo": {
     "indexing": "all"
-  }
+  },
+  "description": "Capture, search, and reuse your AI interactions across ChatGPT, Claude, and Gemini. Full data ownership, DLP protection, and enterprise observability for LLM workflows."
 }
