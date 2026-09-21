@@ -22,6 +22,7 @@ Your application ──→ OpenAI / Anthropic / another provider
 | Capture method | Provider traffic | Best for |
 | --- | --- | --- |
 | **OpenTelemetry** | Goes directly to the provider | Existing applications that can add an instrumentor |
+| [Native coding-agent capture](/quickstart) | Goes directly from the agent to its provider | Claude Code, Codex CLI, Cursor, Antigravity, Gemini CLI, and OpenClaw sessions |
 | [Local API Proxy](/capture/api-proxy) | Goes through `rclm-proxy` on your machine | Local capture without application instrumentation |
 | [Enterprise Gateway](/capture/enterprise-gateway) | Goes through ReclaimLLM's hosted gateway | Centrally governed provider credentials and model policy |
 
