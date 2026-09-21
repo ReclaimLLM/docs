@@ -27,6 +27,37 @@ Your application ──→ OpenAI / Anthropic / another provider
 
 OpenTelemetry capture supports OpenAI, Azure OpenAI, Anthropic, Gemini, Vertex AI, Bedrock, OpenInference-compatible frameworks, and valid generic OTLP traces from other providers.
 
+## OpenTelemetry vs. native coding-agent capture
+
+Use OpenTelemetry when your application owns the LLM API call. Use native capture when the useful session data comes from a coding client's proprietary hooks or local transcripts.
+
+Claude Code, Codex CLI, Cursor, Antigravity, Gemini CLI, and OpenClaw are coding clients rather than model providers. Their native integrations can retain details that generic telemetry may not expose, including file changes, terminal results, repository context, permission decisions, resume and stop events, and client-specific usage counters.
+
+```bash
+pip install rclm
+rclm-hooks-install
+```
+
+The default installer configures Claude Code, Codex CLI, Cursor, Antigravity, and Gemini CLI. OpenClaw is opt-in:
+
+```bash
+rclm-hooks-install --openclaw
+```
+
+Both capture paths normalize into the same ReclaimLLM session, message, tool-call, usage, search, and governance model. Their provenance remains separate:
+
+- `capture_source` identifies `opentelemetry` or `native_agent`.
+- `agent_client` identifies the host coding client, such as `cursor` or `claude_code`.
+- The model provider identifies the company serving the model.
+
+For example, Cursor using a Claude model remains a Cursor session with Anthropic as its model provider.
+
+<Warning>
+  If the same activity is exported through OpenTelemetry and captured by a native adapter, it may appear as two sessions. ReclaimLLM does not merge records based on repository, timestamps, model, or similar content. Use one capture path per activity unless both sources share an explicit correlation contract.
+</Warning>
+
+See the [quickstart](/quickstart) for native installation and [historical sync](/capture/historical-sync) for importing earlier coding-agent transcripts.
+
 ## Before you begin
 
 You need:
