@@ -1,7 +1,7 @@
 ---
 title: "Cut Token Costs in Agentic Coding Sessions"
 sidebarTitle: "Context Compression"
-description: "Native hooks reduce redundant context with range-aware read caching, search and command-output shaping, result dedupe, test filtering, loop detection, and image lifecycle controls."
+description: "Native hooks reduce repeated context with range caching, stateful deltas, edit receipts, provider-aware shaping, exact local recall, dedupe, and image controls."
 ---
 
 Tool results can remain in an agent's context and be sent back to the model on later turns. A file read or long command result can therefore consume context more than once. ReclaimLLM's native hooks reduce that repeated context before it reaches the model, while recording what changed and whether the reduction was enforced or only observed.
@@ -57,7 +57,7 @@ ReclaimLLM reports each technique separately so the User Stats and Enterprise To
 
 ReclaimLLM tracks the exact line ranges already returned from each file. A fully covered reread becomes a short unchanged reference, while a partially overlapping read returns only unseen lines. File metadata and content hashes prevent stale reuse; writes and edits invalidate affected state.
 
-The parser covers native reads and a conservative set of exact shell reads across supported clients and PowerShell. [See supported commands, invalidation rules, and telemetry details.](/capture/read-cache)
+The parser covers native reads and a conservative set of exact shell reads across supported clients and PowerShell. Antigravity `view_file` calls are also capped to 200 lines before execution when the requested range is missing or larger than the cap. [See supported commands, invalidation rules, and telemetry details.](/capture/read-cache)
 
 ### Search shaping
 
@@ -88,6 +88,52 @@ Recognized shell output is reduced with command-aware filters:
 - Large read-only Supabase results retain the first and last rows, the untrusted-data safety envelope, and an explicit omitted-row marker. Mutations and unfamiliar result shapes pass through.
 
 Unknown commands, non-zero exits, image-like payloads, malformed structured output, and ambiguous multi-block results fail open and remain unchanged.
+
+### Provider output canonicalization
+
+**Telemetry IDs:** `provider_output_shaping` and `provider_canonicalization` · **Flag:** `--compress` · **Measured**
+
+Recognized provider wrappers can add timestamps, execution headers, repeated path prefixes, and read-window explanations around otherwise useful output. ReclaimLLM removes only known boilerplate from Codex `exec` envelopes and Antigravity-style view, search, and listing results.
+
+The transform keeps provider wire formats intact and changes only an unambiguous text field. Unknown wrappers and structured results containing multiple independent text blocks pass through unchanged.
+
+### Stateful result delta
+
+**Telemetry ID:** `stateful_delta` · **Flag:** `--compress` · **Measured**
+
+Repeated commands, searches, and directory listings against the same semantic target are compared with the preceding result. When at least 60% of the new result overlaps and a delta is smaller, the model receives the additions, removals, unchanged-line count, and a digest of the exact captured result.
+
+Failed commands are never converted into deltas. State is session-scoped and bounded to 128 targets, 256,000 characters per result, and 8,000,000 characters total. Claude Code, Codex CLI, and Gemini CLI use this stage when their result-rewrite contract supports enforcement.
+
+### Edit receipts
+
+**Telemetry ID:** `edit_receipt` · **Flag:** `--compress` · **Measured**
+
+Recognized successful edit tools can return an entire diff after the agent already supplied that edit. ReclaimLLM replaces a matching echoed diff with a receipt containing the target, hunk count, added and removed line counts, new-line ranges, and a SHA-256 digest.
+
+Failures, malformed diffs, and target mismatches remain unchanged. Antigravity edit receipts can currently be evaluated in Replay, but Antigravity does not expose a post-result rewrite field for live enforcement.
+
+### Recallable compact results
+
+**Telemetry:** attributed to the transform that shortened the result · **Flag:** existing `--compress` enforcement
+
+Before adding a recall handle to an enforced compact result, ReclaimLLM stores the exact secret-safe text as a content-addressed local artifact. Storage uses owner-only permissions and is bounded to 32 artifacts, 32 MiB per session, and 8 MiB per artifact.
+
+A stub is added only when persistence succeeds and the stub still leaves the result smaller. Retrieve an exact, end-exclusive character range with:
+
+```bash
+rclm recall-result <session-id> <rclm://artifact/sha256/digest> --start 0 --end 4000
+```
+
+Recall artifacts stay on the machine that produced the session. They are not synchronized between devices or uploaded as part of the model hot path.
+
+### Typed task ledger
+
+**Telemetry:** no independent savings claim
+
+Supported hooks also maintain bounded structured task state: explicit goals, constraints, decisions, file operations, test outcomes, errors, next actions, and associated recall handles. The ledger is derived from recognized plan fields and tool events rather than another model call.
+
+The ledger does not rewrite model-visible output or report token savings by itself. It preserves auditable task state alongside more aggressive result reduction and can support later recovery and handoff workflows.
 
 ### Test output filter
 
@@ -135,10 +181,11 @@ For successful text results, the hot path applies mechanisms in this order:
 
 1. DLP redaction, when enabled.
 2. Range cache.
-3. Command-aware and lossless output compaction.
+3. Stateful result delta.
+4. Provider or command compaction, edit receipts, and verified lossless folding.
 4. Hash dedupe.
 
-A range-cache hit claims the result so downstream mechanisms do not count the same reduction twice. Command-aware compaction and verified lossless folding can both contribute independently when both shorten the same result. Any parser error or unsupported shape returns the original result.
+A mechanism that claims a result prevents later lossy mechanisms from reshaping or double-counting it. Command-aware compaction and verified lossless folding can still contribute independently when both shorten the same recognized result. Any parser error or unsupported shape returns the original result.
 
 Image results follow the separate image-lifecycle path.
 
@@ -148,7 +195,7 @@ Image results follow the separate image-lifecycle path.
 
 <AccordionGroup>
   <Accordion title="Measured reduction">
-    Range cache, search shaping, lossless folding, exec compaction, test filtering, hash dedupe, and image downscaling compare an original result with a shorter candidate. Dashboards report the observed before-and-after token estimate, split into enforced and potential counts.
+    Range cache, search shaping, lossless folding, exec compaction, provider canonicalization, stateful deltas, edit receipts, test filtering, hash dedupe, and image downscaling compare an original result with a shorter candidate. Dashboards report the observed before-and-after token estimate, split into enforced and potential counts.
   </Accordion>
 
   <Accordion title="Estimated opportunity">
@@ -166,10 +213,11 @@ Image results follow the separate image-lifecycle path.
 
 ## Provider boundaries
 
-- **Claude Code:** supports range caching, text compaction, test filtering, hash dedupe, loop detection, and enforced image downscaling.
-- **Codex CLI:** supports text mechanisms; MCP image downscaling is measured but not rewritten today.
-- **Cursor:** supports text reduction where its native hook contract provides a safe rewrite path; unsupported results pass through.
-- **Gemini CLI:** supports range caching and hash dedupe. Text compaction, test filtering, and image downscaling are not enforced today.
+- **Claude Code:** uses the ordered text pipeline, including range caching, stateful deltas, recognized result compaction, edit receipts where eligible, test filtering, hash dedupe, and loop detection. Supported images can be downscaled.
+- **Codex CLI:** uses the ordered text pipeline and now preserves both standard and custom tool-call output blocks during capture. MCP image downscaling remains measured but is not rewritten today.
+- **Gemini CLI:** uses range caching, stateful deltas, recognized text compaction, test filtering, and hash dedupe through its native hook contract.
+- **Cursor:** preserves explicit empty and falsy captured results and uses text reduction only where its hook contract provides a safe rewrite path. Results absent from historical transcripts cannot be reconstructed.
+- **Antigravity:** caps `view_file` before execution and routes supported commands through command compression. Its post-tool hook must return an empty object, so result-side canonicalization, deltas, and receipts are capture/Replay-only.
 
 ## MCP tools for context efficiency
 
@@ -201,13 +249,30 @@ Brevity adds an advisory instruction at session start. Its impact is a cohort es
 
 Individual users can review the mechanism breakdown in **User Portal → Stats → Measured Context Reduction**. Enterprise administrators can review organization-wide results in **Enterprise → Tokens → Measured context reduction**.
 
-Each technique has a help tooltip, token-reduction total, and enforced or potential event count. Select a row with linked evidence to inspect contributing sessions.
+Each technique has a help tooltip, token-reduction total, and enforced or potential event count. Look for `stateful_delta`, `edit_receipt`, `provider_output_shaping`, and `provider_canonicalization` to isolate the new result-reduction stages. Select a row with linked evidence to inspect contributing sessions.
 
 <Info>
   These pages need captured session telemetry to populate. New organizations show an empty state until eligible sessions have been processed.
 </Info>
 
-You can independently replay the shipped text mechanisms over captured sessions without waiting for a dashboard rollup. See [Verify token reduction with Replay](/features/mcp-server#verify-token-savings-with-replay).
+To evaluate the mechanisms on your own workload:
+
+1. Install with `--shadow-mode` to record eligible reductions without changing model-visible text.
+2. Run representative sessions, then compare potential and enforced totals in the User or Enterprise dashboard.
+3. Use the ReclaimLLM MCP `replay_session`, `replay_corpus`, or `replay_compare` tools to run the shipped deterministic transforms over captured sessions.
+4. Compare each mechanism with the combined configuration. In Replay, `shell_compaction` includes provider canonicalization and eligible edit receipts, while `stateful_delta` is selectable separately.
+5. Check live task success, retries, turns, and follow-up reads before treating lower result tokens as an end-to-end improvement.
+
+For example, ask an agent connected to the ReclaimLLM MCP:
+
+```text
+Compare range_cache, shell_compaction, stateful_delta, hash_dedupe,
+and the combined configuration across my recent eligible sessions.
+```
+
+The implementation corpus of 50 recent sessions showed 39.35% immediate text tool-result reduction in combined Replay, or 41.49% when modeling the 200-line Antigravity pre-tool cap. A separate recallable-context model estimated 15.11% fewer repeated tool-step context tokens. These are workload-specific replay figures, not provider billing or output-token measurements.
+
+See [Verify token reduction with Replay](/features/mcp-server#verify-token-savings-with-replay) for eligibility rules and interpretation.
 
 ## Current limitations
 
@@ -222,6 +287,14 @@ You can independently replay the shipped text mechanisms over captured sessions 
 
   <Accordion title="No automatic flag recommendations">
     ReclaimLLM does not yet change compression flags automatically based on session patterns. Review shadow telemetry and Replay evidence before enforcement.
+  </Accordion>
+
+  <Accordion title="Recall is local">
+    Exact recall handles resolve only on the machine that stored the artifact. They do not currently provide cross-device or hosted recovery, and a handle is added only after durable local storage succeeds.
+  </Accordion>
+
+  <Accordion title="Provider enforcement differs">
+    Antigravity result-side transforms are Replay-only under its current post-tool contract. Cursor cannot recover outputs omitted from historical transcripts, and Codex image replacement remains measurement-only.
   </Accordion>
 </AccordionGroup>
 

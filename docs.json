@@ -152,5 +152,9 @@
       "linkedin": "https://www.linkedin.com/company/135107441",
       "github": "https://github.com/reclaimllm"
     }
-  }
+  },
+  "seo": {
+    "indexing": "all"
+  },
+  "description": "Capture, search, and reuse your AI interactions across ChatGPT, Claude, and Gemini. Full data ownership, DLP protection, and enterprise observability for LLM workflows."
 }
