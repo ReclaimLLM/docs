@@ -1,0 +1,259 @@
+---
+title: "Anomaly Detectors: Reference and Calculation Logic"
+sidebarTitle: "Anomalies"
+description: "Understand what each RCLM anomaly detector checks, how it fires, what evidence it records, and how administrators should act on its findings."
+icon: "shield-halved"
+keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006"]
+---
+
+RCLM anomaly detectors run nightly over completed session data and produce deterministic findings for administrator review. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
+
+A finding is an investigation lead with bounded evidence. Administrators decide whether it is significant, dismiss it as expected behavior, or resolve it after remediation.
+
+<Note>
+  Detectors require sufficient captured session history before they can produce eligible evaluations. A finding list that remains empty does not mean collection is broken — it may mean the org does not yet have enough history for a given detector to fire.
+</Note>
+
+## How anomaly detection works
+
+Each detector runs once per completed daily window, per organization. For each subject it evaluates (a member, a session, or an operation), the detector produces one of:
+
+| Outcome | Meaning |
+| --- | --- |
+| **Eligible / fired** | Evidence crossed all required thresholds. A finding is created or its occurrence count is incremented. |
+| **Eligible / did not fire** | The detector ran successfully and the subject was within normal range. |
+| **Insufficient data** | Not enough history or coverage to produce a defensible result. No finding. |
+
+When a finding fires repeatedly, it updates the same open finding record rather than creating duplicates. Administrators can **acknowledge**, **resolve**, or **dismiss** each finding through the Signals tab.
+
+## Detector summary
+
+| Code | Detector | Subject | Cadence | What triggers it |
+| --- | --- | --- | --- | --- |
+| `AD-001` | Usage baseline deviation | Member | Daily | Session or token volume materially above the member's own recent baseline |
+| `AD-002` | New technology fingerprint | Member | Daily | First-seen combination of tools, ecosystems, or project activity |
+| `AD-003` | Runaway or looping session | Session | Daily | Repeated failures, identical retries, or stuck-workflow behavior |
+| `AD-004` | Sensitive file access | Member | Daily | Sessions that read, wrote, or referenced `.env`, `.envrc`, credential, or private-key files — via direct tool access, shell commands, or agent-written scripts |
+| `AD-005` | Proxy operation volume spike | Operation | Daily | A proxy operation's daily volume materially above its own baseline |
+| `AD-006` | New proxy operation | Operation | Daily | A proxy operation title seen for the first time in recent org history |
+
+---
+
+## AD-001 — Usage baseline deviation
+
+**What it checks:** Whether a member's completed session or token volume on a given day is materially above their own recent history.
+
+**How it is calculated:** RCLM looks at the previous 14 completed UTC days for that member, requires at least 7 active baseline days, and builds a guarded exponentially weighted baseline. A finding requires all three of the following to align:
+
+- A strong statistical deviation (z-score above threshold)
+- A meaningful ratio above the member's own baseline
+- An absolute increase floor (5 sessions or 100k tokens, depending on the variant)
+
+Token scoring also checks whether the current and historical provider-reported coverage are comparable. If coverage shifts too much, the evaluation is marked as insufficient data rather than producing a misleading result.
+
+**Severity:** Warning.
+
+**Evidence includes:** Current value, absolute delta above baseline, baseline days, and a bounded list of linked session IDs.
+
+**Evidence never includes:** Prompts, file contents, or secrets.
+
+**Interpretation guardrail:** This compares each member with themselves, not with an organization-wide usage threshold. Missing or inconsistent provider-reported usage does not produce a finding.
+
+**Typical next steps:** Confirm whether the increase matches planned work, a sprint, or an expected role change. Open the linked sessions to determine whether the volume is legitimate before taking any action.
+
+---
+
+## AD-002 — New technology fingerprint
+
+**What it checks:** Whether a session contains a first-seen combination of dependencies, imports, manifests, tools, providers, or project activity for that member, compared against their prior 90-day history.
+
+**How it is calculated:** RCLM builds a fingerprint from each session's file extensions, package manifests, conservatively parsed dependencies and imports, command families, tools, models, providers, agent clients, and project roots. A single new item is not enough — the detector requires a meaningful combination, such as:
+
+- A first-seen package ecosystem together with a related first-seen dependency.
+- A new project root combined with a new command family.
+
+At least 10 prior fingerprinted sessions are required before the detector is eligible.
+
+**Severity:** Warning.
+
+**Evidence includes:** The first-seen component categories, component coverage, and the triggering session ID.
+
+**Evidence never includes:** Raw import paths, full dependency lists, or file contents.
+
+**Interpretation guardrail:** First-seen activity means the technology is new to this member in RCLM's view — not that it is unauthorized. Legitimate new projects, role changes, and technology experiments all produce this finding.
+
+**Typical next steps:** Check whether the combination matches a known new project or role. If it does not match any expected work, inspect the linked session for context before escalating.
+
+---
+
+## AD-003 — Runaway or looping session
+
+**What it checks:** Whether a session shows signs of being stuck — through repeated identical failures, failed build or test loops, abnormal tool-call volume, or abnormal duration.
+
+**How it is calculated:** The detector applies deterministic sub-signals:
+
+| Sub-signal | What it looks for |
+| --- | --- |
+| Exact retry loop | Consecutive error or timeout calls with the same tool and identical input hash |
+| Operation error cluster | Repeated failing operations against the same command family and path |
+| Failed build/test loop | Build or test failures repeating without an intervening edit |
+| Tool-call volume spike | Tool-call count materially above the member's historical session baseline |
+| Duration spike | Session duration materially above the member's historical baseline |
+| Failure rate spike | High ratio of failed calls with enough absolute failures to be meaningful |
+
+Severity escalates by rule:
+
+- **Warning** — one sub-signal crossed.
+- **High** — two independent sub-signals, or a sustained failed build/test loop.
+- Token volume alone never produces a critical result.
+
+**Evidence includes:** The session ID, sub-signal categories that fired, normalized hashes, call counts, and duration statistics.
+
+**Evidence never includes:** Raw tool inputs, command output, file contents, or prompt text.
+
+**Interpretation guardrail:** A runaway finding indicates possible operational waste or a stuck workflow. It is not evidence of malicious behavior. Relative checks (volume, duration) need enough member history; exact retry loops can fire without a history baseline.
+
+**Typical next steps:** Open the evidence session and review the tool-call sequence. Determine whether an agent configuration, failing command, or external dependency needs intervention.
+
+---
+
+## AD-004 — Sensitive file access
+
+**What it checks:** Whether sessions in the window read, wrote, or referenced `.env`-class files, credential files, or private-key files — including cases where the AI agent wrote a script or temporary file that reads or modifies those files.
+
+**How it is calculated:** RCLM scans three distinct surfaces per session:
+
+### Surface 1 — Direct tool access
+
+Each tool call's file paths are checked against sensitive-file patterns:
+
+- `.env`, `.env.*`, `*.env`, `.envrc`
+- `*.pem`, `*_rsa`, `*id_rsa`, `*.p12`
+- `*credentials*.json`, `*service-account*.json`
+
+Checked via `primary_file_path` and `file_paths[]` on native read and write tool calls. RCLM also records whether hook DLP was active (`was_redacted`), so evidence distinguishes covered accesses from DLP gaps.
+
+### Surface 2 — Shell command access
+
+File paths extracted from shell commands (the same extraction used by the P2 Groundhog Files signal):
+
+- `cat .env.production`, `head .envrc`, `tail .env.local`
+- `sed -n 'p' dev.env`, `rg "SECRET" .env`
+
+This covers the most common real-world leak path: a shell read of an env file that the native Read tool never saw.
+
+### Surface 3 — Code and script mentions
+
+The agent writes a Python, Bash, or other script that opens, loads, or references a sensitive file — including temporary scripts written to disk and immediately executed. Examples:
+
+```python
+# Written by the agent as a temp file, then executed
+from dotenv import load_dotenv
+load_dotenv(".env.production")
+```
+
+```python
+with open(".env", "r") as f:
+    secrets = f.read()
+```
+
+```bash
+# Bash temp script written by the agent
+source .env && echo $DATABASE_URL
+```
+
+RCLM scans the text content of tool outputs and written files for references to sensitive-file patterns — file path literals, `load_dotenv()` calls, `source .env`-style shell expressions, and similar constructs. A mention in agent-written code is recorded as a distinct access type (`code_mention`) separate from a direct tool read or shell command.
+
+This surface matters because hook DLP operates on tool inputs and outputs at the boundary. A model that writes a script referencing an env file as a string does not pass the secret through a hook — the script itself becomes the exfiltration vector when it is later executed. AD-004 surfaces this so the admin can decide whether that script was actually run and whether the execution context had DLP coverage.
+
+**Severity tiers:**
+
+- **Warning** — one or more sessions with a sensitive file read or `code_mention`.
+- **High** — at least one session wrote to a sensitive file path, or the code mention involves a write operation (`open(".env", "w")`, overwriting via `dotenv_values`).
+- **Critical** — multiple sessions have env-file activity and at least one had no DLP coverage, indicating a gap where secrets or the script referencing them may have reached an external model provider.
+
+**Evidence includes:** Session count, total matching tool calls and mentions, per-session access types (`read`, `write`, `shell_read`, `code_mention`), matched file pattern categories, DLP coverage count per session, and session IDs.
+
+**Evidence never includes:** Actual file paths, file contents, secret values, script source code, or redacted placeholder text.
+
+**Interpretation guardrail:** Accessing or referencing env files is a normal part of debugging and configuration work. A `code_mention` finding means the agent wrote code that references a sensitive file — not that the secret was extracted. Whether secrets were exposed depends on whether the script was executed and whether hook DLP covered the execution context.
+
+**Typical next steps:**
+
+1. Check the access type in evidence. A `code_mention` warrants a different response than a direct `read` with `was_redacted: false`.
+2. For `code_mention`, open the linked session and review the script the agent wrote. Determine whether it was executed and whether that execution happened within a DLP-covered hook boundary.
+3. For direct reads or shell reads with a DLP gap (`was_redacted: false`), determine whether secrets were transmitted to an external provider.
+4. If the session used Gemini, Antigravity, or a capture-only integration — clients that do not support pre-execution input redirection — treat any sensitive file activity as a potential gap regardless of `was_redacted`.
+
+<Info>
+  Hook DLP default behavior: `rclm-hooks-install` enables DLP on fresh installs. Users who opted out with `--no-dlp` or installed before the default changed may have sessions with no DLP coverage. AD-004 Critical findings are the primary signal for this gap.
+</Info>
+
+---
+
+## AD-005 — Proxy operation volume spike
+
+**What it checks:** Whether a canonical proxy operation's daily session volume is materially above the organization's own recent daily history for that operation.
+
+**How it is calculated:** RCLM groups proxy sessions by their canonical operation title. For the latest completed day, it compares that operation's session count against its own active-day history (up to 90 days, requiring at least 7 active baseline days). A finding requires all three of:
+
+- A strong statistical deviation (z-score above threshold)
+- A meaningful ratio above the operation's own baseline
+- An absolute increase floor (5 sessions)
+
+Incomplete operation labels, capped source data, or insufficient history produce an insufficient-data result rather than a finding.
+
+**Severity:** Warning.
+
+**Evidence includes:** The canonical operation title, current and baseline statistics, thresholds, and a bounded list of session IDs.
+
+**Evidence never includes:** Request bodies, prompt content, URL parameters, or provider credentials.
+
+**Interpretation guardrail:** A volume spike indicates unusual activity for that specific operation — not malicious use. The detector compares the operation with its own baseline, not with an org-wide threshold. Legitimate workload increases produce this finding.
+
+**Typical next steps:** Confirm whether the volume increase matches expected work, a new integration, or an automation change. Inspect the linked proxy sessions for unexpected callers, inputs, or patterns if the increase is not explained.
+
+---
+
+## AD-006 — New proxy operation
+
+**What it checks:** Whether a canonical proxy operation title appears for the first time in the organization's recent proxy session history.
+
+**How it is calculated:** RCLM compares the canonical operation titles seen in the latest completed day against the preceding 90 days of labeled proxy activity. At least 10 prior labeled proxy sessions are required before a title is treated as genuinely new. A new hash mapped to an existing canonical title is not treated as a new operation.
+
+**Severity:** Warning.
+
+**Evidence includes:** The canonical operation title, first-seen date, and linked session IDs.
+
+**Evidence never includes:** Request bodies, prompt content, or credentials.
+
+**Interpretation guardrail:** A first-seen operation title is not inherently unsafe. New integrations, API migrations, and approved workflow changes all produce this finding.
+
+**Typical next steps:** Verify that the new operation belongs to an approved integration or workflow. If the title is unrecognized, inspect the linked proxy sessions to identify the caller before deciding whether to escalate.
+
+---
+
+## Evidence design
+
+All detectors follow the same evidence boundary: findings store compact, allowlisted metadata — identifiers, normalized hashes, counts, categories, statistics, and thresholds. They never store raw prompts, tool inputs, tool results, file contents, secrets, complete shell commands, or personal absolute paths.
+
+This means anomaly detection does not create a second sensitive-data problem while providing enough structured information to investigate each finding.
+
+## Finding lifecycle
+
+Each open finding has a single lifecycle record per detector, subject, and anomaly target. Repeated detections update the last-seen time and occurrence count rather than creating duplicate entries.
+
+| Status | When to use |
+| --- | --- |
+| **New** | Finding has not been reviewed. |
+| **Acknowledged** | Under active review. |
+| **Resolved** | Related work or remediation is complete. |
+| **Dismissed** | Expected behavior or confirmed false positive. |
+
+Resolved and dismissed findings are closed. Missing data or a detector error cannot silently resolve an open finding.
+
+## Who sees findings
+
+Anomaly findings, evaluations, and status actions are administrator-only. The backend enforces organization boundaries on all finding reads and status changes.
+
+For the Signals matrix and workflow pattern context, see [RCLM Signals](/enterprise/signals). To investigate linked sessions directly, use [Sessions](/enterprise/dashboard/sessions).

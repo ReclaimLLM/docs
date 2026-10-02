@@ -1,9 +1,9 @@
 ---
 title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
-description: "Find recurring AI-work patterns by team and project, inspect linked sessions, and review deterministic anomalies for unusual usage, new technology, and runaway sessions."
+description: "Find recurring AI-work patterns by team and project, inspect linked sessions, and review deterministic anomalies for unusual usage, new technology, runaway sessions, sensitive file access, and proxy activity."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly", "sensitive file access", "DLP", "proxy operation spike", "env file", "AI cybersecurity"]
 ---
 
 The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them.
@@ -87,6 +87,57 @@ Each finding shows its detector code, severity, status, subject, latest occurren
 | **AD-001** | Usage baseline deviation | Daily session or token volume materially above that member's own rolling history. | It compares each member with themselves, not with an organization-wide threshold. Missing or inconsistent coverage does not fire a finding. |
 | **AD-002** | New technology fingerprint | A first-seen combination of dependencies, imports, manifests, tools, or project activity. | Novelty is not an access or policy violation. Confirm a legitimate new project or role change before escalating. |
 | **AD-003** | Runaway or looping session | Repeated failures, identical retries, failed build/test loops, unusually high tool-call volume, abnormal duration, or related stuck-workflow behavior. | The finding indicates possible operational waste, not malicious behavior. Relative checks need history; exact retry loops can fire without a baseline. |
+| **AD-004** | Sensitive file access | Sessions where an AI agent read or wrote `.env`, `.envrc`, credential, or private-key files — via native read tools or shell commands. | Accessing env files is not inherently prohibited. The finding indicates the session touched sensitive file paths; whether secrets reached the model depends on whether hook DLP was active for that session. |
+| **AD-005** | Proxy operation volume spike | A proxy operation's daily session volume is materially above the organization's own recent history for that operation. | A spike indicates unusual volume, not malicious use. Requires sufficient historical activity to establish a baseline before it can fire. |
+| **AD-006** | New proxy operation | A canonical proxy operation title appears for the first time in the organization's recorded history. | First-seen is not inherently unsafe. Verify that the new operation belongs to an approved integration or workflow before escalating. |
+
+#### AD-001 — Usage baseline deviation
+
+Daily session or token activity is materially above that member's own rolling history. The detector compares each person with themselves over the previous 14 completed days using a guarded exponentially weighted baseline. A finding requires three conditions to align: a strong statistical deviation, a meaningful ratio above the member's own baseline, and an absolute increase floor. Missing or inconsistent provider-reported coverage blocks the finding rather than producing a misleading result.
+
+**Typical next steps:** Confirm whether the increase matches planned work or an expected shift in role. Open the linked sessions to determine whether the volume is legitimate before deciding on any action.
+
+#### AD-002 — New technology fingerprint
+
+A session contains a first-seen combination of dependencies, imports, manifests, tools, or project activity relative to that member's prior 90-day history. A single new extension or provider is not enough; the detector requires a meaningful combination, such as a new package ecosystem together with a first-seen dependency, or a new project root with a new command family.
+
+**Typical next steps:** Check whether the technology belongs to a legitimate new project or role change. First-seen activity is not evidence of a policy violation.
+
+#### AD-003 — Runaway or looping session
+
+A session shows repeated failures, identical retries, or activity far above the member's normal session behavior. Deterministic sub-signals include: consecutive identical-input errors on the same tool, repeated failing operations on the same file, build or test failures without an intervening edit, abnormal tool-call volume, and abnormal duration. Severity escalates when two independent sub-signals fire together.
+
+**Typical next steps:** Open the evidence session and determine whether an agent configuration, failing command, or workflow needs intervention. The finding indicates operational waste or a stuck workflow, not malicious behavior.
+
+#### AD-004 — Sensitive file access
+
+Sessions where an AI agent read, wrote, or referenced `.env`, `.env.*`, `*.env`, `.envrc`, certificate, or private-key files. Detection covers three surfaces:
+
+- **Direct tool access** — native Read and Write tool calls where `primary_file_path` or `file_paths[]` match a sensitive-file pattern.
+- **Shell command access** — paths extracted from `cat`, `head`, `tail`, `sed`, and `rg` commands, covering the most common real-world leak path.
+- **Code and script mentions** — text in agent-written files or tool outputs that references sensitive files: `load_dotenv(".env.production")`, `open(".env", "r")`, `source .env && ...`, or similar constructs. This surface catches the case where the model writes a temporary Python or Bash script that reads or modifies an env file — a vector that never passes through a tool-call hook boundary and is therefore outside the standard hook DLP guarantee.
+
+Evidence records the access type (`read`, `write`, `shell_read`, `code_mention`) and whether hook DLP was active per tool call — never the actual file content or secret values.
+
+Severity tiers:
+
+- **Warning** — one or more sessions with a sensitive file read or `code_mention`.
+- **High** — at least one session wrote to a sensitive file path or the code mention involves a write operation.
+- **Critical** — multiple sessions have env-file activity and at least one had no DLP coverage, indicating a gap where secrets or a script referencing them may have reached an external model provider.
+
+**Typical next steps:** Check the access type in evidence. For `code_mention`, open the linked session and determine whether the script was executed and whether that execution had DLP coverage. For direct or shell reads with `was_redacted: false`, determine whether secrets were transmitted to an external provider.
+
+#### AD-005 — Proxy operation volume spike
+
+A canonical proxy operation's daily session volume is materially above the organization's own recent daily history for that operation. The detector requires sufficient active-day history before it can fire, and compares the operation with its own baseline rather than with a global threshold. Evidence contains the operation title, bounded statistics, and a limited number of session identifiers — not request bodies, prompts, or provider credentials.
+
+**Typical next steps:** Confirm whether the operation's increase is expected, then inspect the linked sessions for unexpected callers or inputs.
+
+#### AD-006 — New proxy operation
+
+A canonical proxy operation title appears for the first time in the organization's recent history, compared against the preceding 90 days of labeled activity. A sufficient baseline of prior labeled sessions is required before a title is treated as genuinely new.
+
+**Typical next steps:** Verify that the new operation belongs to an approved integration or workflow. First-seen title novelty is an invitation to verify, not evidence of a policy violation.
 
 ### Finding status workflow
 

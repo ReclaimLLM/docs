@@ -72,6 +72,7 @@
               "enterprise/llm-gateway",
               "enterprise/observability",
               "enterprise/signals",
+              "enterprise/anomalies",
               "enterprise/roles-access",
               {
                 "group": "Dashboard Reference",
