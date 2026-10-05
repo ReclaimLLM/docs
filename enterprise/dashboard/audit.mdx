@@ -1,0 +1,24 @@
+---
+title: "Audit Tab: Security and Compliance Ledger"
+sidebarTitle: "Audit"
+description: "Review privileged actions, policy changes, membership updates, and export tamper-evident audit logs."
+---
+
+The Audit tab (`/enterprise/orgs/{org_id}/audit-log`) provides an immutable security ledger recording privileged actions and sensitive operations across your organization.
+
+## What you'll see
+
+- **Security ledger** — a chronological event log tracking every admin and system event with timestamp, actor, action, target, category, and outcome.
+- **Event filters** — filter by date range, category (organization, identity, team, policy, security, credential, billing, sensitive_access), outcome (succeeded, pending, partial, failed), actor ID, and target type.
+- **Detailed metadata** — expand any event to inspect request metadata, actor IP, affected resource IDs, and parameter payloads.
+- **Export CSV** — export current filtered audit records for external compliance reporting or SIEM ingestion.
+
+## What you can do
+
+- Search and inspect security events across teams and members.
+- Investigate policy modifications, membership updates, and API key creations/revocations.
+- Export audit log records as CSV for legal hold or security compliance reviews.
+
+## Who sees it
+
+Admin only. Records are retained for 365 days.
