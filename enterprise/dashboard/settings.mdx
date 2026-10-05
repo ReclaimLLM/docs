@@ -32,6 +32,12 @@ Rename or merge project names org-wide. These org-level names take precedence ov
 
 A sub-page under Settings for configuring single sign-on: choose OIDC or SAML, paste provider config as JSON, and enable SSO for the org. See [Roles & Access → SSO](/enterprise/roles-access#sso-saml-oidc) for what's available now versus coming soon.
 
+## Signals & alert policy
+
+- **Session idle gap threshold** — sets the inactivity gap (default: 20 minutes) used by pattern P4 before a wait event is counted.
+- **Enforce supported compression** — switches installed hooks from observe-only to compression enforcement on their next session start.
+- **Email alerts & cadence** — configures delivery frequencies (immediate P0, daily anomaly digest, weekly signals digest), minimum severity threshold, included detectors, and recipient inboxes. See [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
+
 ## Who sees it
 
 Admin only, including the SSO sub-page.
