@@ -3,7 +3,7 @@ title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
 description: "Find recurring AI-work patterns by team and project, inspect linked sessions, and review deterministic anomalies for unusual usage, new technology, runaway sessions, sensitive file access, and proxy activity."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly", "sensitive file access", "DLP", "proxy operation spike", "env file", "AI cybersecurity"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly", "sensitive file access", "DLP", "proxy operation spike", "env file", "AI cybersecurity", "email alerts", "alert cadence", "security digests"]
 ---
 
 The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them.
@@ -145,6 +145,36 @@ A canonical proxy operation title appears for the first time in the organization
 - **Resolve** it when the relevant work or remediation is complete.
 - **Dismiss** it when the finding is expected behavior or a false positive.
 - Resolved and dismissed findings are closed and cannot transition to another status.
+
+## Email alerts & notification cadence
+
+Administrators can configure automated email notifications for developer workflow signals and deterministic security anomalies.
+
+Click **Configure Email Alerts & Cadence** in the top-right header of the Signals tab to open the configuration modal directly on the page, or navigate to Organization **Settings** (`/enterprise/orgs/{org_id}/settings`) under **Email Alerts & Cadence**.
+
+### Delivery cadences
+
+| Alert type | Default cadence | Supported options | Trigger conditions |
+| --- | --- | --- | --- |
+| **Security Alerts (P0)** | Immediate (Real-time) | Immediate, Daily morning digest, Off | Critical findings or sensitive file access (**AD-004** direct tool, shell, or script mentions without DLP). Dispatched immediately upon detection. |
+| **Anomaly Digest** | Daily (08:00 UTC) | Daily, Weekly (Monday 08:00 UTC), Off | Consolidated summary of deterministic findings across rolling 24-hour windows. |
+| **Signals Digest** | Weekly (Monday 08:00 UTC) | Weekly, Daily, Off | Aggregated engineering efficiency patterns and coaching recommendations (**P1–P10**). |
+
+### Configuration options
+
+- **Minimum severity threshold** — filter out lower-severity warnings from email dispatch (`Warning, High & Critical (All)`, `High & Critical only`, or `Critical only`). Findings below the selected threshold remain visible in the dashboard and audit log but do not generate emails.
+- **Included anomaly detectors** — toggle individual detectors (**AD-001** through **AD-006**) to match your team's current focus. For example, if engineering teams are actively exploring new frameworks, you can temporarily exclude **AD-002 (New technology fingerprint)** while keeping **AD-004 (Sensitive file access)** active.
+- **Included workflow signals** — toggle individual signal codes (**P1** through **P10**) to tailor the weekly digest.
+- **Recipient inboxes** — provide a comma-separated list of target email addresses (e.g., `security@company.com, leads@company.com`). If left blank, notifications default to all organization administrators.
+- **Excluded projects / sandboxes** — specify comma-separated project names or path prefixes (e.g., `scratch, test-sandbox, playground`) to suppress alerts from experimental or throwaway environments.
+
+### Testing email delivery
+
+You can test mailbox reception and email rendering without waiting for scheduled batches:
+
+1. Click **Configure Email Alerts & Cadence** in the Signals header.
+2. Under **Test Email Delivery**, select **Test P0 Alert** (to preview an immediate sensitive file alert) or **Test Daily Digest** (to preview a rolling 24-hour anomaly report).
+3. The server dispatches a sample email to the first configured recipient inbox (or your current admin account if none is specified).
 
 ## Who sees it
 
