@@ -87,6 +87,7 @@
                   "enterprise/dashboard/members",
                   "enterprise/dashboard/teams",
                   "enterprise/dashboard/api-keys",
+                  "enterprise/dashboard/audit",
                   "enterprise/dashboard/settings"
                 ]
               }
