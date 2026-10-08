@@ -1,10 +1,10 @@
 ---
 title: "Historical Sync: Backfill Sessions Captured Before Hooks Were Installed"
 sidebarTitle: "Historical Sync"
-description: "Run rclm-sync to discover and upload Claude Code, Gemini CLI, Codex CLI, and Cursor sessions that predate your hooks install."
+description: "Run rclm-sync to discover and upload Claude Code, Gemini CLI, Codex CLI, Cursor, and GitHub Copilot sessions that predate your hooks install."
 ---
 
-Native hooks only capture sessions that happen after you install them. If you used Claude Code, Gemini CLI, Codex CLI, or Cursor before running `rclm-hooks-install`, those earlier sessions are still sitting in each tool's local transcript files — `rclm-sync` finds them and uploads them into your RCLM history.
+Native hooks only capture sessions that happen after you install them. If you used Claude Code, Gemini CLI, Codex CLI, Cursor, or GitHub Copilot CLI before running `rclm-hooks-install`, those earlier sessions are still sitting in each tool's local transcript files — `rclm-sync` finds them and uploads them into your RCLM history.
 
 <Note>
   Historical sync is a one-time (or repeatable) backfill, not a replacement for hooks. Install hooks first so new sessions are captured going forward, then run `rclm-sync` to bring in everything that happened before.
@@ -31,6 +31,7 @@ By default `rclm-sync` scans every supported provider, shows how many sessions i
 | Gemini CLI | `--gemini` | `~/.gemini/tmp/**/chats/*.json` |
 | Codex CLI | `--codex` | `~/.codex/sessions/**/*.jsonl` |
 | Cursor | `--cursor` | `~/.cursor/projects/*/agent-transcripts/*/*.jsonl` |
+| GitHub Copilot | `--copilot` | `~/.copilot/session-state/**/events.jsonl` |
 
 ## CLI flags
 
@@ -41,7 +42,8 @@ Omit provider flags to scan everything (the default), or combine flags to scan a
 ```bash
 rclm-sync --claude              # Claude Code only
 rclm-sync --gemini --codex      # Gemini + Codex
-rclm-sync --cursor               # Cursor only
+rclm-sync --cursor              # Cursor only
+rclm-sync --copilot             # GitHub Copilot only
 ```
 
 ### Skip the confirmation prompt

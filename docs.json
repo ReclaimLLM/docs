@@ -29,6 +29,7 @@
                 "group": "Native Hooks",
                 "pages": [
                   "capture/native-hooks",
+                  "capture/copilot",
                   "capture/historical-sync",
                   "features/context-compression",
                   "capture/read-cache",

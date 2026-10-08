@@ -1,10 +1,10 @@
 ---
 title: "Use the ReclaimLLM MCP Server in Your Coding Assistant"
 sidebarTitle: "MCP Server"
-description: "Install the RCLM MCP server to search, summarize, hand off, and transfer captured coding sessions from Claude, Cursor, and Codex."
+description: "Install the RCLM MCP server to search, summarize, hand off, and transfer captured coding sessions from Claude, Cursor, Codex, and GitHub Copilot."
 ---
 
-The ReclaimLLM MCP server bridges automated session capture and active recall. Once installed, AI coding assistants like Claude Code, Cursor, and Codex can search captured work, inspect file history, reuse compact session context, or load a complete captured session without leaving the current workflow.
+The ReclaimLLM MCP server bridges automated session capture and active recall. Once installed, AI coding assistants like Claude Code, Cursor, Codex, and GitHub Copilot in VS Code can search captured work, inspect file history, reuse compact session context, or load a complete captured session without leaving the current workflow.
 
 ReclaimLLM keeps retrieval proportional to the task: search returns small highlights first, summaries are generated only when requested, and complete session artifacts are transferred only after an explicit request.
 
@@ -83,6 +83,7 @@ ReclaimLLM keeps retrieval proportional to the task: search returns small highli
 | Claude Code / Claude Desktop | ✓ Auto-configured |
 | Cursor | ✓ Auto-configured |
 | Codex | ✓ Auto-configured |
+| GitHub Copilot / VS Code | ✓ Auto-configured (`~/.copilot/mcp-config.json` globally, `.vscode/mcp.json` locally) |
 | Gemini CLI | Via existing MCP installer path |
 
 ## Available MCP tools

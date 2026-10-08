@@ -10,7 +10,7 @@ ReclaimLLM captures AI interactions wherever they happen: inside coding agents, 
 
 <CardGroup cols={2}>
   <Card title="Native Hooks" icon="webhook" href="/capture/native-hooks">
-    The richest capture path. Hooks into Claude Code, Gemini CLI, and Codex CLI to record messages, tool calls, file diffs, and token usage.
+    The richest capture path. Hooks into Claude Code, Gemini CLI, Codex CLI, Cursor, and GitHub Copilot to record messages, tool calls, file diffs, and token usage.
   </Card>
   <Card title="Browser Extension" icon="chrome" href="/capture/browser-extension">
     Capture ChatGPT, Claude.ai, and Gemini conversations in the background — no API keys or code changes required.
@@ -30,7 +30,7 @@ ReclaimLLM captures AI interactions wherever they happen: inside coding agents, 
 
 | Method | Host / entrypoint | Auth | What gets captured | Best for | Plan |
 |---|---|---|---|---|---|
-| **Native Hooks** | Local coding agents | Personal RCLM API key | Messages, tool calls & results, file diffs, token usage | Claude Code, Gemini CLI, Codex CLI, Cursor | Free (200 sessions) |
+| **Native Hooks** | Local coding agents | Personal RCLM API key | Messages, tool calls & results, file diffs, token usage | Claude Code, Gemini CLI, Codex CLI, Cursor, GitHub Copilot | Free (200 sessions) |
 | **Browser Extension** | Chrome | Signed-in RCLM account | Conversation turns, provider context | ChatGPT, Claude.ai, Gemini browser users | Free, unlimited |
 | **OpenTelemetry** | `https://api.reclaimllm.com/v1/traces` | Personal RCLM API key | Emitted prompts, responses, tools, models, spans, and token usage | Existing instrumented LLM applications | Enterprise |
 | **Local API Proxy** | `rclm-proxy` → `http://localhost:9800` | Personal `RECLAIMLLM_API_KEY` + **your** provider keys | Requests, responses, model, token counts | Developers calling LLM APIs directly | Free, unlimited |
@@ -77,7 +77,7 @@ Every capture method — regardless of how rich the source data is — produces 
 
 The right first step is the one that captures your highest-volume AI usage with the least friction. You can always add more paths later — they don't interfere with each other.
 
-- **You use Claude Code, Gemini CLI, or Codex CLI daily** → Start with [Native Hooks](/capture/native-hooks)
+- **You use Claude Code, Gemini CLI, Codex CLI, Cursor, or GitHub Copilot daily** → Start with [Native Hooks](/capture/native-hooks)
 - **You mostly chat in the browser** → Start with the [Browser Extension](/capture/browser-extension)
 - **Your application already calls LLM provider APIs** → Start with [OpenTelemetry](/capture/opentelemetry)
 - **You build apps that call LLM APIs** → Start with the [Local API Proxy](/capture/api-proxy)

@@ -32,7 +32,7 @@ The fastest path to your first captured coding-agent session is Native Hooks. In
     </Info>
   </Step>
   <Step title="Capture a session">
-    Start a Claude Code, Gemini CLI, Codex CLI, Cursor, or OpenClaw session. RCLM captures the session in the background and uploads it after the session ends.
+    Start a Claude Code, Gemini CLI, Codex CLI, Cursor, GitHub Copilot, or OpenClaw session. RCLM captures the session in the background and uploads it after the session ends.
 
     You can check the local spool before upload:
 
@@ -51,7 +51,7 @@ The fastest path to your first captured coding-agent session is Native Hooks. In
 
 | Area | Default | What it means |
 | --- | --- | --- |
-| Providers | All supported providers | Registers hooks for Claude Code, Gemini CLI, Codex CLI, Cursor, and OpenClaw when applicable |
+| Providers | All supported providers | Registers hooks for Claude Code, Gemini CLI, Codex CLI, Cursor, GitHub Copilot (VS Code), and OpenClaw when applicable |
 | Scope | Global | Sessions from any folder can be captured unless folder filters are configured |
 | Login | Automatic when needed | Opens the browser credential flow and stores credentials in `~/.reclaimllm/config.json` |
 | MCP | On | Registers the ReclaimLLM MCP server for supported local clients |
@@ -90,6 +90,7 @@ rclm-hooks-install --claude
 rclm-hooks-install --gemini
 rclm-hooks-install --codex
 rclm-hooks-install --cursor
+rclm-hooks-install --copilot    # or --vscode
 rclm-hooks-install --openclaw
 ```
 
