@@ -1,10 +1,14 @@
 ---
-title: "Native Hooks: Capture Claude, Gemini, Codex & Cursor Sessions"
+title: "Native Hooks: Capture Claude, Gemini, Codex, Cursor & Copilot Sessions"
 sidebarTitle: "Overview"
-description: "Install rclm-hooks to capture coding agent sessions — messages, tool calls, file diffs, and token usage — from Claude Code, Gemini CLI, Codex CLI, and Cursor."
+description: "Install rclm-hooks to capture coding agent sessions — messages, tool calls, file diffs, and token usage — from Claude Code, Gemini CLI, Codex CLI, Cursor, and GitHub Copilot."
 ---
 
-Native hooks (`rclm-hooks`) are the highest-fidelity capture method ReclaimLLM offers. They plug directly into the lifecycle events of Claude Code, Gemini CLI, Codex CLI, and Cursor, recording everything that happens during a session: every message turn, every tool call and its result, every file the agent created or modified (with before-and-after diffs), and precise token usage. One install command sets everything up invisibly — after that, your sessions appear in the dashboard automatically.
+Native hooks (`rclm-hooks`) are the highest-fidelity capture method ReclaimLLM offers. They plug directly into the lifecycle events of Claude Code, Gemini CLI, Codex CLI, Cursor, and GitHub Copilot (VS Code), recording everything that happens during a session: every message turn, every tool call and its result, every file the agent created or modified (with before-and-after diffs), and precise token usage. One install command sets everything up invisibly — after that, your sessions appear in the dashboard automatically.
+
+<Tip>
+  Using GitHub Copilot in VS Code? See the dedicated [GitHub Copilot Guide](/capture/copilot) for agent mode hooks, MCP configuration, and workspace trust details.
+</Tip>
 
 <Note>
   The free tier includes **200 hooks-captured sessions**. Browser extension and **local** API proxy (`rclm-proxy`) sessions are unlimited on all plans. The hosted Enterprise Gateway is Enterprise-only. [See pricing →](https://reclaimllm.com/pricing)
@@ -43,6 +47,7 @@ Native hooks (`rclm-hooks`) are the highest-fidelity capture method ReclaimLLM o
     ✓ Hooks installed in ~/.gemini/settings.json
     ✓ Hooks installed in ~/.codex/hooks.json
     ✓ Hooks installed in ~/.cursor/hooks.json
+    ✓ Hooks installed in ~/.copilot/hooks/rclm.json
     ```
 
     <Tip>
@@ -50,7 +55,7 @@ Native hooks (`rclm-hooks`) are the highest-fidelity capture method ReclaimLLM o
     </Tip>
   </Step>
   <Step title="Verify the installation">
-    Start any Claude Code, Gemini CLI, Codex CLI, or Cursor session. The session appears in your dashboard within seconds of it ending. You can also check the local session spool:
+    Start any Claude Code, Gemini CLI, Codex CLI, Cursor, or GitHub Copilot session. The session appears in your dashboard within seconds of it ending. You can also check the local session spool:
 
     ```bash
     ls ~/.reclaimllm/sessions/
@@ -81,6 +86,11 @@ rclm-hooks-install --codex
 
 # Cursor only
 rclm-hooks-install --cursor
+
+# GitHub Copilot (VS Code) only
+rclm-hooks-install --copilot
+# or alias:
+rclm-hooks-install --vscode
 ```
 
 ### Scope
@@ -91,7 +101,7 @@ By default, hooks are installed globally (your home directory). To restrict capt
 rclm-hooks-install --local
 ```
 
-A `--local` install writes hook configuration into the current directory rather than `~/.claude/`, `~/.gemini/`, `~/.codex/`, or `~/.cursor/`, so only sessions started from that project folder are captured.
+A `--local` install writes hook configuration into the current directory rather than `~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.cursor/`, or `~/.copilot/` (e.g. `.github/hooks/rclm.json` for Copilot), so only sessions started from that project folder are captured.
 
 ### Upload folder filters
 
@@ -188,6 +198,10 @@ Every hooks session includes:
 | `~/.gemini/settings.json` | Gemini CLI hook registration |
 | `~/.codex/hooks.json` | Codex CLI hook registration |
 | `~/.cursor/hooks.json` | Cursor hook registration |
+| `~/.copilot/hooks/rclm.json` | GitHub Copilot global hook registration |
+| `.github/hooks/rclm.json` | GitHub Copilot workspace-local hook registration |
+| `~/.copilot/mcp-config.json` | GitHub Copilot global MCP server configuration |
+| `.vscode/mcp.json` | VS Code workspace MCP server configuration |
 
 ## Troubleshooting
 
@@ -216,7 +230,7 @@ Every hooks session includes:
     If you only use one CLI tool, install for that provider specifically to keep hook registration minimal:
 
     ```bash
-    rclm-hooks-install --claude   # or --gemini, --codex, or --cursor
+    rclm-hooks-install --claude   # or --gemini, --codex, --cursor, or --copilot
     ```
   </Accordion>
 

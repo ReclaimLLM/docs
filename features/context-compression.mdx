@@ -218,6 +218,7 @@ Image results follow the separate image-lifecycle path.
 - **Gemini CLI:** uses range caching, stateful deltas, recognized text compaction, test filtering, and hash dedupe through its native hook contract.
 - **Cursor:** preserves explicit empty and falsy captured results and uses text reduction only where its hook contract provides a safe rewrite path. Results absent from historical transcripts cannot be reconstructed.
 - **Antigravity:** caps `view_file` before execution and routes supported commands through command compression. Its post-tool hook must return an empty object, so result-side canonicalization, deltas, and receipts are capture/Replay-only.
+- **GitHub Copilot:** hooks into VS Code agent events (`PreToolUse` and `PostToolUse`) to apply local DLP redaction and context compression transforms. Image downscaling is currently unsupported and passes through unchanged.
 
 ## MCP tools for context efficiency
 

@@ -1,0 +1,205 @@
+---
+title: "GitHub Copilot: Capture VS Code Agent Sessions & MCP Setup"
+sidebarTitle: "GitHub Copilot"
+description: "Capture GitHub Copilot agent sessions in VS Code — messages, tool calls, file diffs, and context compression — with native agent hooks and MCP integration."
+icon: "github"
+keywords: ["github-copilot", "copilot", "vscode", "agent-hooks", "mcp", "session-capture"]
+---
+
+ReclaimLLM integrates natively with **GitHub Copilot in Visual Studio Code** using the official [VS Code Agent Hooks](https://code.visualstudio.com/learn/customizations/5-hooks) specification. When running Copilot in Agent mode, ReclaimLLM captures the full lifecycle of your sessions — prompts, responses, tool executions, file modifications with diffs, and token analytics — directly to your ReclaimLLM dashboard.
+
+In addition to session capture, the installer configures the ReclaimLLM Model Context Protocol (MCP) server so Copilot can search past sessions, pull prior context, and summarize historical work.
+
+<Note>
+  GitHub Copilot hook capture requires VS Code with agent hooks support (such as VS Code Insiders or the latest VS Code release with Copilot Chat agent mode) and **Workspace Trust** enabled for your repository.
+</Note>
+
+## Quick start
+
+<Steps>
+  <Step title="Install or update rclm">
+    Install the latest `rclm` package from PyPI:
+
+    ```bash
+    pip install --upgrade rclm
+    ```
+  </Step>
+  <Step title="Run the hook installer">
+    Run `rclm-hooks-install` to register hooks and MCP across all supported providers (including GitHub Copilot):
+
+    ```bash
+    rclm-hooks-install
+    ```
+
+    To install only for GitHub Copilot / VS Code:
+
+    ```bash
+    rclm-hooks-install --copilot
+    # or using the --vscode alias:
+    rclm-hooks-install --vscode
+    ```
+
+    The installer writes hook definitions and registers the ReclaimLLM MCP server automatically:
+
+    ```text
+    ✓ Saved credentials to ~/.reclaimllm/config.json
+    ✓ Hooks installed in ~/.copilot/hooks/rclm.json
+    ✓ rclm MCP server installed into ~/.copilot/mcp-config.json
+    ```
+  </Step>
+  <Step title="Verify in VS Code">
+    Open VS Code in your workspace, open Copilot Chat, and run an agent prompt (e.g. `@workspace` or agent mode). When the session completes, ReclaimLLM finalizes the session record and uploads it to your dashboard.
+  </Step>
+</Steps>
+
+## Hook configuration & scopes
+
+ReclaimLLM supports both **global** (user-wide) and **workspace-local** configuration:
+
+| Scope | Hook path | MCP config path | Install command |
+| --- | --- | --- | --- |
+| **Global (default)** | `~/.copilot/hooks/rclm.json` | `~/.copilot/mcp-config.json` | `rclm-hooks-install --copilot` |
+| **Workspace (local)** | `.github/hooks/rclm.json` | `.vscode/mcp.json` | `rclm-hooks-install --local --copilot` |
+
+### Global installation
+By default, hooks are placed in `~/.copilot/hooks/rclm.json`. Any VS Code window with Workspace Trust enabled will execute the hook commands across all projects.
+
+### Workspace-local installation
+When using `--local`, ReclaimLLM writes the hook definitions to `.github/hooks/rclm.json` and the MCP server configuration to `.vscode/mcp.json`. This keeps hooks scoped strictly to the current repository and allows committing the hook configuration to source control for team consistency.
+
+```bash
+cd /path/to/my-repo
+rclm-hooks-install --local --copilot
+```
+
+## Supported lifecycle events
+
+The `rclm-copilot-hooks` binary hooks into the VS Code agent lifecycle:
+
+| Lifecycle event | What ReclaimLLM does |
+| --- | --- |
+| `SessionStart` | Initializes the session, records workspace directory and model identifier, and prepares context policies. |
+| `UserPromptSubmit` | Records the user prompt turn in the conversation stream. |
+| `PreToolUse` | Intercepts tool calls before execution; applies local DLP redaction rules (such as `.env` masking) and context compression. |
+| `PostToolUse` | Records tool execution results, captures modified file diffs, and tracks token consumption. |
+| `Stop` | Computes session-level analytics, assembles the normalized `HookSessionRecord`, and uploads it to ReclaimLLM. |
+| `SubagentStart` / `SubagentStop` | Captures delegated subagent lifecycles and boundaries. |
+| `PreCompact` | Captures compaction checkpoints before context window reduction. |
+
+<Tip>
+  All hook executions run fail-open and exit with code `0`. If any local operation fails, it will never disrupt or terminate your Copilot agent session.
+</Tip>
+
+## Model Context Protocol (MCP) integration
+
+When you run `rclm-hooks-install`, MCP server registration is enabled by default. This exposes ReclaimLLM's memory tools directly to GitHub Copilot:
+
+- `search_sessions`: Semantic and keyword search across past agent sessions.
+- `search_by_filename`: Find prior sessions that modified a specific file.
+- `summarize_session`: Generate a compact context summary of a past task.
+- `get_session`: Retrieve session details and dashboard links.
+- `file_brief`: Get a quick history of recent edits to a file.
+- `handoff`: Create a continuation package for long sessions.
+
+### MCP configuration structure
+
+For global installations, ReclaimLLM updates `~/.copilot/mcp-config.json`:
+
+```json
+{
+  "mcpServers": {
+    "reclaimllm": {
+      "command": "rclm-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+For workspace-local installations, ReclaimLLM updates `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "reclaimllm": {
+      "command": "rclm-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+To skip MCP installation when registering hooks, pass `--no-with-mcp`:
+
+```bash
+rclm-hooks-install --copilot --no-with-mcp
+```
+
+## Historical session sync
+
+If you previously used GitHub Copilot CLI or had existing agent session state, backfill your previous sessions into ReclaimLLM using `rclm-sync`:
+
+```bash
+# Backfill Copilot sessions only
+rclm-sync --copilot
+
+# Backfill all supported providers without prompt
+rclm-sync --yes
+```
+
+Historical sync scans `~/.copilot/session-state/**/events.jsonl`, parses conversation turns, tool calls, and model metadata, and uploads them to your ReclaimLLM account.
+
+## Uninstalling hooks
+
+To remove ReclaimLLM hooks from GitHub Copilot without affecting other tools:
+
+```bash
+# Global uninstall
+rclm-hooks-uninstall --copilot
+
+# Workspace-local uninstall
+rclm-hooks-uninstall --local --copilot
+```
+
+This cleans up the ReclaimLLM hook entries and removes the hook configuration file if no other hooks remain.
+
+## Verification & troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Workspace Trust requirement">
+    VS Code restricts agent hooks and MCP servers to trusted workspaces for security. If hooks are not triggering:
+    1. Check the bottom status bar or run **Workspaces: Manage Workspace Trust** from the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`).
+    2. Ensure the current folder is marked as **Trusted**.
+  </Accordion>
+
+  <Accordion title="Inspect the Copilot Chat Hooks output channel">
+    VS Code logs all hook invocations to an internal output channel:
+    1. Open the **Output** panel in VS Code (`Cmd+Shift+U` / `Ctrl+Shift+U`).
+    2. In the dropdown selector on the right, select **GitHub Copilot Chat Hooks**.
+    3. You will see logs of `SessionStart`, `UserPromptSubmit`, and tool hook invocations as Copilot runs.
+  </Accordion>
+
+  <Accordion title="Verify hook registration in VS Code">
+    Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) and run:
+    ```text
+    Chat: Configure Hooks
+    ```
+    or type `/hooks` directly in Copilot Chat. Ensure the ReclaimLLM hook file (`~/.copilot/hooks/rclm.json` or `.github/hooks/rclm.json`) is listed and active.
+  </Accordion>
+
+  <Accordion title="Check local session spool">
+    Before upload, completed sessions are spooled locally. You can inspect spooled records with:
+
+    ```bash
+    ls -l ~/.reclaimllm/sessions/
+    ```
+
+    If files appear here after closing a session, hooks are capturing successfully.
+  </Accordion>
+
+  <Accordion title="Reload VS Code after MCP installation">
+    If Copilot does not recognize ReclaimLLM MCP tools immediately after running the installer, reload the VS Code window:
+    1. Open the Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`).
+    2. Run **Developer: Reload Window**.
+  </Accordion>
+</AccordionGroup>
