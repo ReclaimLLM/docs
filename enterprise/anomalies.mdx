@@ -31,8 +31,8 @@ When a finding fires repeatedly, it updates the same open finding record rather 
 | Code | Detector | Subject | Cadence | What triggers it |
 | --- | --- | --- | --- | --- |
 | `AD-001` | Usage baseline deviation | Member | Daily | Session or token volume materially above the member's own recent baseline |
-| `AD-002` | New technology fingerprint | Member | Daily | First-seen combination of tools, ecosystems, or project activity |
-| `AD-003` | Runaway or looping session | Session | Daily | Repeated failures, identical retries, or stuck-workflow behavior |
+| `AD-002` | New technology fingerprint | Member | Daily, hourly | First-seen combination of tools, ecosystems, or project activity |
+| `AD-003` | Runaway or looping session | Session | Daily, hourly | Repeated failures, identical retries, or stuck-workflow behavior |
 | `AD-004` | Sensitive file access | Member | Daily | Sessions that read, wrote, or referenced `.env`, `.envrc`, credential, or private-key files — via direct tool access, shell commands, or agent-written scripts |
 | `AD-005` | Proxy operation volume spike | Operation | Daily | A proxy operation's daily volume materially above its own baseline |
 | `AD-006` | New proxy operation | Operation | Daily | A proxy operation title seen for the first time in recent org history |
@@ -346,8 +346,14 @@ Each open finding has a single lifecycle record per detector, subject, and anoma
 
 Resolved and dismissed findings are closed. Missing data or a detector error cannot silently resolve an open finding.
 
+## Email alerts for anomalies
+
+After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers AD-004 Critical (or High with write access) and AD-003 High/Critical. Digests run at 08:00 recipient-local time.
+
+Email payloads stay inside the same privacy boundary as finding evidence: categorical labels and counts only — never titles, paths, commands, or prompts. Configure routing and personal preferences from [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
+
 ## Who sees findings
 
-Anomaly findings, evaluations, and status actions are administrator-only. The backend enforces organization boundaries on all finding reads and status changes.
+Anomaly findings, evaluations, and status actions are administrator-only. The backend enforces organization boundaries on all finding reads and status changes. Personal email preferences on the Signals tab are available to every org member.
 
 For the Signals matrix and workflow pattern context, see [RCLM Signals](/enterprise/signals). To investigate linked sessions directly, use [Sessions](/enterprise/dashboard/sessions).
