@@ -3,10 +3,10 @@ title: "Anomaly Detectors: Reference and Calculation Logic"
 sidebarTitle: "Anomalies"
 description: "Understand what each RCLM anomaly detector checks, how it fires, what evidence it records, and how administrators should act on its findings."
 icon: "shield-halved"
-keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006"]
+keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "coverage", "hook tamper"]
 ---
 
-RCLM anomaly detectors run nightly over completed session data and produce deterministic findings for administrator review. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
+RCLM anomaly detectors produce deterministic findings for administrator review. Most session-based detectors run on a daily cadence over completed session data. Coverage detectors (**AD-010**, **AD-011**, **AD-013b**) also fire from device check-ins. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
 
 A finding is an investigation lead with bounded evidence. Administrators decide whether it is significant, dismiss it as expected behavior, or resolve it after remediation.
 
@@ -36,6 +36,14 @@ When a finding fires repeatedly, it updates the same open finding record rather 
 | `AD-004` | Sensitive file access | Member | Daily | Sessions that read, wrote, or referenced `.env`, `.envrc`, credential, or private-key files — via direct tool access, shell commands, or agent-written scripts |
 | `AD-005` | Proxy operation volume spike | Operation | Daily | A proxy operation's daily volume materially above its own baseline |
 | `AD-006` | New proxy operation | Operation | Daily | A proxy operation title seen for the first time in recent org history |
+| `AD-010` | Hooks tampered or missing | Device | Event | Client leaves `installed`, policy signature invalid, or uninstall ping |
+| `AD-011` | DLP disabled | Device | Event | DLP off without an active exception (higher if org requires DLP) |
+| `AD-012` | Device silent | Device | Daily | Formerly active device stops checking in with corroborating activity |
+| `AD-013a` | Gateway without hooks | User | Daily | Gateway usage without hook sessions |
+| `AD-013b` | Direct provider routing | Device | Event | Routing class `direct` for a required provider |
+| `AD-013c` | Provider usage unreconciled | Org usage | Daily | Enterprise: provider admin usage vs gateway tokens diverge |
+
+Coverage concepts and the admin UI are documented in [Coverage Alerts](/enterprise/coverage) and the [Coverage tab](/enterprise/dashboard/coverage).
 
 ---
 
@@ -230,6 +238,92 @@ Incomplete operation labels, capped source data, or insufficient history produce
 **Interpretation guardrail:** A first-seen operation title is not inherently unsafe. New integrations, API migrations, and approved workflow changes all produce this finding.
 
 **Typical next steps:** Verify that the new operation belongs to an approved integration or workflow. If the title is unrecognized, inspect the linked proxy sessions to identify the caller before deciding whether to escalate.
+
+---
+
+## AD-010 — Hooks tampered or missing
+
+**What it checks:** Whether a coding agent's ReclaimLLM hooks leave a healthy `installed` state after the device's first baseline observation.
+
+**How it is calculated:** Device check-ins upsert per-client status. A finding fires when status moves from `installed` to `missing`, `partial`, `disabled`, or `modified`; when `policy_signature_valid` is false; or when the client sends `event: uninstall`. Transitions within 30 minutes of an `rclm` version change are held (upgrade/reinstall grace). The first observation of a client is baseline only — it does not fire AD-010.
+
+**Severity:** High if the user had sessions on that client in the last 14 days; otherwise warning-lane medium.
+
+**Evidence includes:** Client name, from/to status, device id, and timing metadata.
+
+**Evidence never includes:** Hook file contents, hostnames in cleartext, or secrets.
+
+**Interpretation guardrail:** Local-only installs count as healthy when cwd-local hooks are present. Alternate config directories and unmanaged clients can look missing without malice.
+
+**Typical next steps:** Ask the developer to run `rclm-hooks-install --repair`, or confirm an intentional uninstall / alternate HOME. Findings resolve when the client returns to `installed`.
+
+---
+
+## AD-011 — DLP disabled
+
+**What it checks:** Whether env-file DLP is off on a device without an active exception, or whether a developer attempted `--no-dlp` while the org requires DLP.
+
+**How it is calculated:** Check-ins report resolved `dlp.enabled`, local setting, and whether org `dlp_required` applies. Session policy snapshots can also surface DLP-off for users without a recent check-in. Active DLP exceptions suppress the finding until expiry.
+
+**Severity:** High when DLP is required and still disabled (implies override/tamper); otherwise medium. Attempted opt-out while required may be informational.
+
+**Evidence includes:** DLP flags, exception id when present, device id.
+
+**Interpretation guardrail:** Local `--no-dlp` is allowed until an admin turns on **Require DLP**. Grant time-boxed exceptions for legitimate cases.
+
+**Typical next steps:** Enable Require DLP in [Coverage settings](/enterprise/dashboard/coverage#coverage-settings), grant an exception, or ask the developer to reinstall without `--no-dlp`.
+
+---
+
+## AD-012 — Device silent
+
+**What it checks:** Whether a formerly active durable device stops reporting while the user still appears active elsewhere.
+
+**How it is calculated:** Baseline requires enough recent active days (session or check-in). Silence means no sessions, check-ins, or bootstrap `last_seen_at` for the configured business-day threshold. Medium severity requires corroboration (gateway proxy records, activity on another device, or web login). Without corroboration the finding stays informational and is not emailed. Ephemeral devices and retired devices are suppressed.
+
+**Severity:** Warning-lane medium with corroboration; info without.
+
+**Interpretation guardrail:** Laptops off for PTO are expected. Retire unused devices. Silence alone does not prove tamper.
+
+**Typical next steps:** Confirm the machine is offline or retired, or ask for `rclm-hooks-install --repair` / `rclm-heartbeat`.
+
+---
+
+## AD-013a — Gateway without hooks
+
+**What it checks:** Whether a user generates gateway (proxy) traffic without corresponding hook-captured sessions.
+
+**How it is calculated:** Daily comparison of `record_type=proxy` volume vs hook `session` records in the evaluation window. Inactive when the org has no gateway configuration.
+
+**Severity:** Warning-lane medium.
+
+**Typical next steps:** Confirm the developer still has hooks installed, or that traffic is expected from a non-hook path. See [LLM Gateway](/enterprise/llm-gateway).
+
+---
+
+## AD-013b — Direct provider routing
+
+**What it checks:** Whether check-in routing classification reports `direct` for a provider the org marked as required to use the gateway.
+
+**How it is calculated:** SessionStart routing probe classifies env/base-URL posture into `gateway` / `direct` / `unknown` without sending URLs or keys. Only `direct` for configured `gateway_required_providers` fires. `unknown` never counts as bypass.
+
+**Severity:** Warning-lane medium.
+
+**Typical next steps:** Point the agent at the org gateway hosts, or adjust required providers if the agent cannot use the gateway (for example some IDE-hosted models).
+
+---
+
+## AD-013c — Provider usage unreconciled (Enterprise)
+
+**What it checks:** Whether provider admin usage reports diverge from gateway-attributed tokens for the same day.
+
+**How it is calculated:** A background job decrypts Enterprise reconciliation credentials, fetches provider usage (best-effort), and compares against gateway ingest. Designed with a lag for provider API delay. Flag usage on keys outside org credentials or provider tokens substantially above gateway totals.
+
+**Severity:** High when reconciliation fires.
+
+**Interpretation guardrail:** Personal provider accounts and non-gateway paths are invisible to this check. Treat results as investigation leads, not perfect metering.
+
+**Typical next steps:** Rotate unexpected keys, confirm gateway enrollment, or disable reconciliation if credentials are stale.
 
 ---
 

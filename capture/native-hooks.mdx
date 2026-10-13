@@ -103,6 +103,23 @@ rclm-hooks-install --local
 
 A `--local` install writes hook configuration into the current directory rather than `~/.claude/`, `~/.gemini/`, `~/.codex/`, `~/.cursor/`, or `~/.copilot/` (e.g. `.github/hooks/rclm.json` for Copilot), so only sessions started from that project folder are captured.
 
+### Coverage check-in and repair
+
+Enterprise Coverage enrolls the machine on check-in (session start, repair, or heartbeat). Useful flags:
+
+```bash
+# Reinstall hooks and force a coverage check-in
+rclm-hooks-install --repair
+
+# Install the OS heartbeat timer (also auto-installed when the org requires heartbeat)
+rclm-hooks-install --heartbeat
+
+# Opt out of env-file DLP locally (org Require DLP can override at runtime)
+rclm-hooks-install --no-dlp
+```
+
+Admins monitor fleet posture on the [Coverage tab](/enterprise/dashboard/coverage). Concepts: [Coverage Alerts](/enterprise/coverage).
+
 ### Upload folder filters
 
 Use `--include-folder` when hooks are installed globally but uploads should be limited to specific project trees:

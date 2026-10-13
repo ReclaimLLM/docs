@@ -90,6 +90,10 @@ Each finding shows its detector code, severity, status, subject, latest occurren
 | **AD-004** | Sensitive file access | Sessions where an AI agent read or wrote `.env`, `.envrc`, credential, or private-key files — via native read tools or shell commands. | Accessing env files is not inherently prohibited. The finding indicates the session touched sensitive file paths; whether secrets reached the model depends on whether hook DLP was active for that session. |
 | **AD-005** | Proxy operation volume spike | A proxy operation's daily session volume is materially above the organization's own recent history for that operation. | A spike indicates unusual volume, not malicious use. Requires sufficient historical activity to establish a baseline before it can fire. |
 | **AD-006** | New proxy operation | A canonical proxy operation title appears for the first time in the organization's recorded history. | First-seen is not inherently unsafe. Verify that the new operation belongs to an approved integration or workflow before escalating. |
+| **AD-010** | Hooks tampered or missing | A coding agent's hooks leave `installed` after baseline, or an uninstall ping is received. | First observation is baseline; upgrade grace applies. Prefer repair over assuming intent. |
+| **AD-011** | DLP disabled | Device reports DLP off without an active exception. | Local `--no-dlp` is allowed until Require DLP is on. |
+| **AD-012** | Device silent | A formerly active device stops checking in past the silence threshold. | Medium severity needs corroboration; retire unused machines. |
+| **AD-013a/b** | Gateway bypass | Gateway usage without hooks, or `direct` routing for a required provider. | `unknown` routing is never bypass; inert without gateway config. |
 
 #### AD-001 — Usage baseline deviation
 
@@ -139,6 +143,12 @@ A canonical proxy operation title appears for the first time in the organization
 
 **Typical next steps:** Verify that the new operation belongs to an approved integration or workflow. First-seen title novelty is an invitation to verify, not evidence of a policy violation.
 
+#### AD-010…AD-013 — Coverage and tamper
+
+Device check-ins and daily coverage jobs surface hook tamper (**AD-010**), DLP-off (**AD-011**), silent devices (**AD-012**), and gateway bypass (**AD-013a/b**, Enterprise reconciliation **AD-013c**). These findings share the same acknowledge / resolve / dismiss workflow as session anomalies.
+
+**Typical next steps:** Open the [Coverage tab](/enterprise/dashboard/coverage) for the device row, then ask for `rclm-hooks-install --repair` or adjust Require DLP / exceptions. Full calculation logic is in [Anomalies](/enterprise/anomalies#ad-010--hooks-tampered-or-missing) and [Coverage Alerts](/enterprise/coverage).
+
 ### Finding status workflow
 
 - **Acknowledge** a new finding when it is under review.
@@ -163,7 +173,7 @@ Click **Configure Email Alerts & Cadence** in the top-right header of the Signal
 ### Configuration options
 
 - **Minimum severity threshold** — filter out lower-severity warnings from email dispatch (`Warning, High & Critical (All)`, `High & Critical only`, or `Critical only`). Findings below the selected threshold remain visible in the dashboard and audit log but do not generate emails.
-- **Included anomaly detectors** — toggle individual detectors (**AD-001** through **AD-006**) to match your team's current focus. For example, if engineering teams are actively exploring new frameworks, you can temporarily exclude **AD-002 (New technology fingerprint)** while keeping **AD-004 (Sensitive file access)** active.
+- **Included anomaly detectors** — toggle individual detectors (**AD-001** through **AD-006**, plus coverage keys **AD-010**…**AD-013** when available) to match your team's current focus. For example, if engineering teams are actively exploring new frameworks, you can temporarily exclude **AD-002 (New technology fingerprint)** while keeping **AD-004 (Sensitive file access)** and **AD-010 (hooks tampered)** active.
 - **Included workflow signals** — toggle individual signal codes (**P1** through **P10**) to tailor the weekly digest.
 - **Recipient inboxes** — provide a comma-separated list of target email addresses (e.g., `security@company.com, leads@company.com`). If left blank, notifications default to all organization administrators.
 - **Excluded projects / sandboxes** — specify comma-separated project names or path prefixes (e.g., `scratch, test-sandbox, playground`) to suppress alerts from experimental or throwaway environments.
