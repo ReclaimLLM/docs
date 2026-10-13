@@ -261,4 +261,12 @@ Counts mean different things by pattern:
 
 ## Automated alerts & notifications
 
-Admins can receive automated weekly signals digests and real-time security alerts via email. Configure delivery frequencies, enabled patterns, and recipient inboxes directly in the Signals tab or Organization Settings. See [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
+Enterprise orgs can receive tiered email for signals and anomalies:
+
+- **Immediate P0** for acute AD-004 / AD-003 findings (with 4-hour throttle and severity escalation)
+- **Daily digest** at 08:00 recipient-local time
+- **Weekly executive digest** on Mondays at 08:00 local (signal counts, anomaly highlights, DLP protection rate)
+
+Admins configure org routing (including a security inbox that always gets AD-004 Critical). Every member can set **My alerts** preferences. Email bodies follow a zero-exfiltration allowlist — no session titles, paths, or prompts.
+
+Configure from the Signals tab or Organization Settings. Full workflow: [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).

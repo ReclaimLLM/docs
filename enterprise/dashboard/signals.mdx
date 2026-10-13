@@ -1,12 +1,12 @@
 ---
 title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
-description: "Find recurring AI-work patterns by team and project, inspect linked sessions, and review deterministic anomalies for unusual usage, new technology, runaway sessions, sensitive file access, and proxy activity."
+description: "Find recurring AI-work patterns, review deterministic anomalies, and configure tiered email alerts with org routing and personal preferences."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly", "sensitive file access", "DLP", "proxy operation spike", "env file", "AI cybersecurity", "email alerts", "alert cadence", "security digests"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly", "sensitive file access", "DLP", "proxy operation spike", "env file", "AI cybersecurity", "email alerts", "alert cadence", "security digests", "security inbox", "zero-exfiltration"]
 ---
 
-The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them.
+The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them. Every org member can also open **Configure Email Alerts & Cadence** to manage personal alert preferences.
 
 <Warning>
   Signals are investigation aids, not employee-performance scores or automatic policy violations. Review the linked evidence and the interpretation guardrails before acting.
@@ -158,40 +158,79 @@ Device check-ins and daily coverage jobs surface hook tamper (**AD-010**), DLP-o
 
 ## Email alerts & notification cadence
 
-Administrators can configure automated email notifications for developer workflow signals and deterministic security anomalies.
+RCLM sends tiered email for workflow signals and deterministic anomalies: immediate P0 security notices, a daily digest, and a Monday weekly executive summary. Digests fire at **08:00 in the recipient's local timezone** (personal preference → organization timezone → `America/Toronto`).
 
-Click **Configure Email Alerts & Cadence** in the top-right header of the Signals tab to open the configuration modal directly on the page, or navigate to Organization **Settings** (`/enterprise/orgs/{org_id}/settings`) under **Email Alerts & Cadence**.
+Click **Configure Email Alerts & Cadence** in the Signals header. The modal has two tabs:
+
+- **Organization** — admin-only routing and cadence policy (also available under Organization **Settings** → **Email Alerts & Cadence**)
+- **My alerts** — personal preferences for every org member
+
+Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the modal opens directly.
 
 ### Delivery cadences
 
 | Alert type | Default cadence | Supported options | Trigger conditions |
 | --- | --- | --- | --- |
-| **Security Alerts (P0)** | Immediate (Real-time) | Immediate, Daily morning digest, Off | Critical findings or sensitive file access (**AD-004** direct tool, shell, or script mentions without DLP). Dispatched immediately upon detection. |
-| **Anomaly Digest** | Daily (08:00 UTC) | Daily, Weekly (Monday 08:00 UTC), Off | Consolidated summary of deterministic findings across rolling 24-hour windows. |
-| **Signals Digest** | Weekly (Monday 08:00 UTC) | Weekly, Daily, Off | Aggregated engineering efficiency patterns and coaching recommendations (**P1–P10**). |
+| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), and **AD-003** High/Critical runaway sessions. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
+| **Anomaly Digest** | Daily (08:00 local) | Daily, Weekly (Monday 08:00 local), Off | Consolidated summary of enabled anomaly findings over the prior local day (or week). |
+| **Signals Digest** | Weekly (Monday 08:00 local) | Weekly, Daily, Off | Aggregated engineering efficiency patterns (**P1–P10**, typically P1 / P2 / P5 / P10 in the weekly executive view) plus DLP protection rate from AD-004 evidence counts. |
 
-### Configuration options
+### Organization configuration (admins)
 
-- **Minimum severity threshold** — filter out lower-severity warnings from email dispatch (`Warning, High & Critical (All)`, `High & Critical only`, or `Critical only`). Findings below the selected threshold remain visible in the dashboard and audit log but do not generate emails.
-- **Included anomaly detectors** — toggle individual detectors (**AD-001** through **AD-006**, plus coverage keys **AD-010**…**AD-013** when available) to match your team's current focus. For example, if engineering teams are actively exploring new frameworks, you can temporarily exclude **AD-002 (New technology fingerprint)** while keeping **AD-004 (Sensitive file access)** and **AD-010 (hooks tampered)** active.
-- **Included workflow signals** — toggle individual signal codes (**P1** through **P10**) to tailor the weekly digest.
-- **Recipient inboxes** — provide a comma-separated list of target email addresses (e.g., `security@company.com, leads@company.com`). If left blank, notifications default to all organization administrators.
-- **Excluded projects / sandboxes** — specify comma-separated project names or path prefixes (e.g., `scratch, test-sandbox, playground`) to suppress alerts from experimental or throwaway environments.
+- **Security inbox** — always receives **AD-004 Critical**, even when security cadence is Off or the project is excluded.
+- **Recipient inboxes** — comma-separated addresses for org-wide alerts. If blank, notifications default to organization administrators.
+- **Organization timezone** — fallback when a member has not set a personal timezone.
+- **Minimum severity** — `All`, `High & Critical only`, or `Critical only`. Findings below the threshold stay on the dashboard but are omitted from email.
+- **Included anomaly detectors** — toggle **AD-001** through **AD-006** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
+- **Included workflow signals** — toggle **P1** through **P10** for digests.
+- **Excluded projects / sandboxes** — case-insensitive project-name filters. Names are used only for filtering; they are never rendered in email bodies.
+- **Recent deliveries** — last 50 delivery attempts with masked recipient addresses, tier, detector, severity, and status.
+
+### My alerts (every member)
+
+- Enable or stop email alerts for yourself
+- Set your own severity floor and toggles for immediate / daily / weekly
+- Disable individual detectors or signal patterns
+- Exclude projects and choose a personal timezone
+- Developers and team leads receive alerts only about **their own sessions**; admins and explicit org recipients see org-wide findings
+
+### Zero-exfiltration payload
+
+Alert email travels over ordinary mailboxes, so the body is deliberately thin.
+
+Emails **may** include: detector key and fixed title, severity, session counts, categorical file-pattern labels (for example `.env`, `*.pem`), surface labels (Direct Tool Read, Shell Read, Script Mention), DLP gap counts, and authenticated deep links.
+
+Emails **never** include: session titles, project names, file paths, shell commands, prompts, secrets, or free-text evidence fields.
+
+<Warning>
+  Over-aggressive project exclusions can hide real findings. Prefer excluding true sandboxes only. The security inbox override still delivers AD-004 Critical regardless of exclusions.
+</Warning>
 
 ### Testing email delivery
 
-You can test mailbox reception and email rendering without waiting for scheduled batches:
+<Steps>
+  <Step title="Open alert settings">
+    Click **Configure Email Alerts & Cadence** in the Signals header (admins land on **Organization**; other members land on **My alerts**).
+  </Step>
+  <Step title="Send a sample">
+    Under **Test Email Delivery**, choose **Test P0 Alert**, **Test Daily Digest**, or **Send test weekly digest**.
+  </Step>
+  <Step title="Confirm the recipient">
+    The sample is sent to the first configured recipient inbox, or your admin account if none is set. The recipient must be you, the security inbox, a configured org recipient, or an org member — arbitrary external addresses are rejected.
+  </Step>
+</Steps>
 
-1. Click **Configure Email Alerts & Cadence** in the Signals header.
-2. Under **Test Email Delivery**, select **Test P0 Alert** (to preview an immediate sensitive file alert) or **Test Daily Digest** (to preview a rolling 24-hour anomaly report).
-3. The server dispatches a sample email to the first configured recipient inbox (or your current admin account if none is specified).
+<Tip>
+  After a real P0 fires, check **Recent deliveries** for `sent` or `failed`. SES failures are recorded and do not abort detector runs.
+</Tip>
 
 ## Who sees it
 
-The Signals tab, organization matrix, anomaly findings, status actions, and monthly CSV export are administrator-only. The navigation hides this tab from team leads and developers, and the backend enforces the same boundary.
+- **Organization matrix, anomaly findings, status actions, and CSV export** — administrators only. The backend enforces the same boundary.
+- **Configure Email Alerts & Cadence / My alerts** — every org member. Non-admins see personal preferences; they do not see the org matrix or finding actions.
 
 <Note>
   Empty matrices or report lists do not mean collection is broken. Signals require eligible completed-session evidence, and anomaly detectors may require sufficient historical coverage before they can fire.
 </Note>
 
-For the surrounding operating model, see [Enterprise Observability](/enterprise/observability). Use [Sessions](/enterprise/dashboard/sessions) to continue a broader investigation and [Tokens](/enterprise/dashboard/tokens) for organization-wide consumption and measured context reduction.
+For the surrounding operating model, see [Enterprise Observability](/enterprise/observability) and the [Anomalies](/enterprise/anomalies) detector reference. Use [Sessions](/enterprise/dashboard/sessions) to continue a broader investigation and [Tokens](/enterprise/dashboard/tokens) for organization-wide consumption and measured context reduction.
