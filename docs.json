@@ -74,6 +74,7 @@
               "enterprise/observability",
               "enterprise/signals",
               "enterprise/anomalies",
+              "enterprise/coverage",
               "enterprise/roles-access",
               {
                 "group": "Dashboard Reference",
@@ -82,6 +83,7 @@
                   "enterprise/dashboard/usage",
                   "enterprise/dashboard/tokens",
                   "enterprise/dashboard/signals",
+                  "enterprise/dashboard/coverage",
                   "enterprise/dashboard/stats",
                   "enterprise/dashboard/model-analysis",
                   "enterprise/dashboard/sessions",

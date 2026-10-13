@@ -1,0 +1,57 @@
+---
+title: "Coverage Tab: Device Posture and Org Coverage %"
+sidebarTitle: "Coverage"
+description: "Monitor hook integrity and DLP posture per device, filter uncovered or silent machines, require DLP, grant exceptions, and export coverage for audits."
+icon: "laptop-code"
+keywords: ["coverage dashboard", "device check-in", "require DLP", "DLP exception", "heartbeat", "device alias", "coverage CSV", "hook repair"]
+---
+
+The Coverage tab (`/enterprise/orgs/{org_id}/coverage`) is the admin view of enrolled developer devices, live coverage percentage, and DLP / heartbeat policy.
+
+For concepts, detectors, and privacy boundaries, see [Coverage Alerts](/enterprise/coverage).
+
+## What you'll see
+
+- **Coverage header** — percent covered, covered/expected developer counts, and a 30-day sparkline from daily snapshots.
+- **By team** — horizontal bars for each team’s coverage when teams exist.
+- **Device table** — user, editable alias (or hashed hostname), client status chips, DLP, heartbeat, routing class, `rclm` version, last seen, open findings.
+- **Filters** — All, Uncovered, DLP off, Silent, Direct routing.
+- **DLP exceptions** — active exceptions with reason and expiry.
+
+<Note>
+  Device rows show a gateway-vs-direct **routing class** only — never URLs or keys. Hostnames are hashed; aliases are admin labels only. No keystrokes, process lists, or file contents are collected.
+</Note>
+
+## What you can do
+
+| Action | How |
+| --- | --- |
+| **Repair a device** | Copy `rclm-hooks-install --repair` from the row or Device health self-view |
+| **Edit alias** | Click the hostname/alias cell, save a short label |
+| **Retire a device** | Mark retired so it leaves expected coverage and silence alerting |
+| **Grant DLP exception** | Row action with reason and duration; audited |
+| **Revoke exception** | Remove from the exceptions list |
+| **Export CSV** | Download the device inventory for auditors |
+| **Require DLP / heartbeat** | Coverage settings (also reachable from org Settings) |
+
+## Coverage settings
+
+Admins can configure:
+
+- **Require DLP** — overrides local `--no-dlp` at runtime unless an unexpired exception applies
+- **Require heartbeat** — installer enables the OS timer (`rclm-heartbeat`) on next install/repair
+- **Gateway hosts / required providers** — used for AD-013 routing checks
+- **Silence threshold** — business days before AD-012 considers a device silent
+- **Provider reconciliation** (Enterprise) — encrypted provider usage credentials for AD-013c
+
+Settings writes are frozen while an organization subscription is inactive; existing **Require DLP** enforcement continues from cached policy.
+
+## Who sees it
+
+Admins and team leads can view coverage and devices (scoped appropriately). Only admins change settings, aliases, retirement, and DLP exceptions.
+
+Developers see their own machines under [User Settings → Device health](/user-portal/settings#device-health).
+
+## Related findings
+
+Coverage-driven findings (**AD-010**…**AD-013**) appear on the [Signals](/enterprise/dashboard/signals) tab. SIEM-bound audit names include `coverage.hooks_tampered`, `coverage.dlp_disabled`, `coverage.device_silent`, `coverage.gateway_bypass`, and policy events for settings/exceptions — see [Audit](/enterprise/dashboard/audit).

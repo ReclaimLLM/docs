@@ -38,6 +38,17 @@ A sub-page under Settings for configuring single sign-on: choose OIDC or SAML, p
 - **Enforce supported compression** — switches installed hooks from observe-only to compression enforcement on their next session start.
 - **Email alerts & cadence** — configures delivery frequencies (immediate P0, daily anomaly digest, weekly signals digest), minimum severity threshold, included detectors, and recipient inboxes. See [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
 
+## Coverage & device policy
+
+Hook integrity and DLP posture are managed primarily from the [Coverage tab](/enterprise/dashboard/coverage). From Settings (or Coverage settings) admins can:
+
+- **Require DLP** — overrides local `--no-dlp` unless an unexpired exception applies
+- **Require heartbeat** — installs the `rclm-heartbeat` OS timer on developer machines
+- Configure gateway hosts / required providers used by AD-013 routing checks
+- (Enterprise) enable provider usage reconciliation for AD-013c
+
+See [Coverage Alerts](/enterprise/coverage) for enrollment, privacy, and detector overview.
+
 ## Who sees it
 
 Admin only, including the SSO sub-page.

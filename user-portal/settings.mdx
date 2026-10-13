@@ -38,6 +38,14 @@ Use **Project Name Mappings** to map derived project names to a preferred displa
 
 Mappings affect project labels and filters across the Dashboard and Stats page. An organization-wide mapping can override a personal mapping for Enterprise sessions.
 
+### Device health
+
+When your account belongs to an organization with Coverage enabled, **Device health** lists your enrolled machines: hook status per coding agent, DLP on/off, and last seen. Use **Copy repair command** (`rclm-hooks-install --repair`) to restore hooks.
+
+What ReclaimLLM collects for coverage: hook install status, DLP flag, heartbeat flag, a gateway-vs-direct routing class (never URLs or keys), `rclm` version, and a hashed hostname. No keystrokes, process lists, or file contents.
+
+Org admins see the fleet view on the [Coverage tab](/enterprise/dashboard/coverage). Concepts: [Coverage Alerts](/enterprise/coverage).
+
 ### API keys
 
 Use **API Keys** to create named personal keys for hooks, the local proxy, or direct ingest integrations. Copy a new key immediately; ReclaimLLM does not show the full secret again.

@@ -1,0 +1,105 @@
+---
+title: "Coverage Alerts: Hook Integrity, DLP Posture, and Silent Devices"
+sidebarTitle: "Coverage Alerts"
+description: "See which developer machines still have ReclaimLLM hooks and DLP, get alerted when protection is removed or bypassed, and measure org and team coverage without MDM."
+icon: "shield-check"
+keywords: ["coverage alerts", "tamper detection", "hook integrity", "DLP required", "device check-in", "silent device", "gateway bypass", "AD-010", "AD-011", "AD-012", "AD-013", "rclm-heartbeat"]
+---
+
+Coverage alerts tell administrators when ReclaimLLM protection is missing, turned off, or bypassed on developer machines — and what share of the org is covered — without requiring MDM.
+
+Protection lives in local hooks. A developer can remove them, disable them, or install with `--no-dlp`. Coverage closes that visibility gap using device check-ins, deterministic anomaly detectors, and a Coverage dashboard.
+
+<Warning>
+  Coverage is **detection**, not OS-level prevention. Fully removing `rclm` plus the heartbeat is visible mainly as silence (and only when corroborating activity exists). Signed policy detects cache edits, not patched binaries. Prevention still needs managed hooks or MDM.
+</Warning>
+
+## What you get
+
+| Capability | What it means |
+| --- | --- |
+| **Org and team coverage %** | Expected active developers vs those with healthy, recent check-ins |
+| **Per-device posture** | Hook status per coding agent, DLP on/off, heartbeat, gateway-vs-direct routing class |
+| **Tamper and DLP findings** | AD-010 (hooks tampered/missing), AD-011 (DLP disabled) |
+| **Silence and bypass** | AD-012 (device silent), AD-013a/b (gateway without hooks / direct routing) |
+| **Admin controls** | Require DLP, require heartbeat, grant expiring DLP exceptions, export CSV |
+| **Developer self-view** | Device health in personal Settings plus `rclm-hooks-install --repair` |
+
+## How enrollment works
+
+Devices enroll lazily — there are no synthetic “bootstrap” devices for existing members.
+
+1. A developer installs hooks (`rclm-hooks-install`) or runs an update / session start.
+2. The client creates a stable `device_id` under `~/.reclaimllm/` and sends check-ins with integrity, DLP, and routing class.
+3. The **first** observation of a client status is a baseline. AD-010 fires only on later transitions away from `installed`.
+4. A 30-minute grace period holds `installed` → `missing`/`partial` right after an `rclm` version change (upgrade/reinstall races).
+
+Check-ins also run from **SessionStart** (throttled) and from **`rclm-heartbeat`** when the OS timer is installed (`--heartbeat` or org **Require heartbeat**).
+
+## Integrity rules that reduce false alarms
+
+- A client is healthy when **global or cwd-local** hooks are healthy (local-only installs are not treated as missing).
+- Ephemeral environments (Codespaces, containers, and similar) are classified; orphans auto-retire; AD-012 does not email for ephemeral devices.
+- Coverage counts only clients the developer actually used in the coverage window — not every possible agent.
+- Routing reports a class (`gateway` / `direct` / `unknown`) only — never URLs or API keys. `unknown` is never treated as bypass.
+- AD-013a/b stay inactive when the org has no gateway hosts / required providers configured.
+
+## Detectors at a glance
+
+| Code | Cadence | Subject | Fires when |
+| --- | --- | --- | --- |
+| **AD-010** | Event (check-in) | Device | Hooks leave `installed`, policy signature invalid, or uninstall ping |
+| **AD-011** | Event (check-in / ingest) | Device | DLP off without an active exception (higher severity if DLP is required) |
+| **AD-012** | Daily | Device | Formerly active device goes silent past the business-day threshold **and** corroboration exists |
+| **AD-013a** | Daily | User | Gateway (proxy) usage without hook sessions |
+| **AD-013b** | Event | Device | Routing class `direct` for a required provider |
+| **AD-013c** | Daily (Enterprise) | Org usage | Provider admin usage vs gateway tokens cannot be reconciled |
+
+Full calculation logic lives in [Anomalies](/enterprise/anomalies#ad-010--hooks-tampered-or-missing). Findings appear on the [Signals](/enterprise/dashboard/signals) tab and can feed email digests and SIEM.
+
+## Privacy: what is collected
+
+Coverage check-ins include:
+
+- Hook install status per coding agent
+- DLP on/off (and whether the org requires DLP)
+- Heartbeat enabled flag
+- Gateway-vs-direct **routing class** (not URLs or keys)
+- `rclm` version and a **hashed** hostname
+- Optional admin-editable device alias
+
+They do **not** include keystrokes, process lists, file contents, or secrets.
+
+Developers can review their own devices under [User Settings → Device health](/user-portal/settings#device-health).
+
+## Admin workflow
+
+<Steps>
+  <Step title="Roll out hooks">
+    Have developers run `rclm-hooks-install` (optionally with `--heartbeat`). Org keys enroll into the shared device plane automatically on check-in.
+  </Step>
+  <Step title="Open Coverage">
+    Use the [Coverage tab](/enterprise/dashboard/coverage) for org %, team bars, filters (Uncovered, DLP off, Silent, Direct), and device rows.
+  </Step>
+  <Step title="Set policy">
+    In Coverage settings, turn on **Require DLP** and optionally **Require heartbeat**. Grant time-boxed DLP exceptions when needed.
+  </Step>
+  <Step title="Respond to findings">
+    Investigate AD-010…013 on [Signals](/enterprise/dashboard/signals). Typical repair: `rclm-hooks-install --repair`.
+  </Step>
+</Steps>
+
+## Limits to state clearly
+
+- Removing hooks without removing `rclm` is visible quickly (especially with heartbeat).
+- Removing `rclm` entirely is mainly silence + gateway corroboration.
+- Alternate config directories, cloud agents, and personal provider accounts on personal machines can remain outside coverage.
+- Provider reconciliation (AD-013c) is Enterprise-only and lags provider usage APIs by design.
+
+## Related pages
+
+- [Coverage dashboard](/enterprise/dashboard/coverage) — UI reference
+- [Anomalies](/enterprise/anomalies) — detector math for AD-010…013
+- [Signals dashboard](/enterprise/dashboard/signals) — findings and email cadence
+- [Sensitive data / DLP](/security/sensitive-data) — local DLP behavior
+- [LLM Gateway](/enterprise/llm-gateway) — governed routing context for AD-013
