@@ -1,0 +1,101 @@
+---
+title: "Compliance Tab: Control Health, Access Reviews, and Exceptions"
+sidebarTitle: "Compliance"
+description: "Use Control health, access reviews, risk exceptions, and CSV evidence exports to produce content-free AI compliance evidence for your organization."
+icon: "clipboard-list-check"
+keywords: ["compliance dashboard", "control health", "compute preview", "access reviews", "risk exceptions", "evidence export", "RC-AI-07", "accept risk"]
+---
+
+The Compliance section (`/enterprise/orgs/{org_id}/compliance`) is the admin and team-lead workspace for control-health evidence. Concepts and catalog details live in [Compliance](/enterprise/compliance).
+
+## Sub-navigation
+
+| Tab | Who | Purpose |
+| --- | --- | --- |
+| **Control health** | Admin, team lead | Latest status per RC-AI control, population drill-down, compute preview |
+| **Access reviews** | Admin, team lead | Campaigns and item decisions |
+| **Exceptions** | Admin, team lead | Risk exception register |
+| **Evidence & exports** | Admin | Period CSV packs |
+| **Settings** | Admin | Compliance retention (also reachable from Admin ▾) |
+
+Developers do not see the Compliance tab.
+
+## Control health
+
+Path: `/enterprise/orgs/{org_id}/compliance`
+
+### What you'll see
+
+- Control ID, title, TSC tags, latest status, population count, exception count
+- A **?** help tooltip explaining pass / warn / fail / na / pending and the buttons
+- Optional retention banner when compliance retention was lowered (RC-AI-10 warn)
+
+### What you can do
+
+| Action | Who | Notes |
+| --- | --- | --- |
+| **Compute preview now** | Admin | Evaluates each control for today and writes snapshots immediately |
+| **View population** | Admin, team lead | Content-free row IDs for the live evaluation; toggle to hide |
+| Read statuses | Admin, team lead | Team leads see team-filtered populations for RC-AI-01, 03, and 04; other controls are org-wide read-only |
+
+Snapshots also run nightly at **02:00** in the organization timezone (from alert settings; default America/Toronto). Until the first snapshot exists, status shows as **pending**.
+
+<Note>
+  Population rows are IDs and categories only. They never include prompts, file contents, or secret values.
+</Note>
+
+## Access reviews
+
+Path: `/enterprise/orgs/{org_id}/compliance/access-reviews`
+
+<Steps>
+  <Step title="Create a campaign">
+    Admins set a label, due date, and scope (`gateway_keys`, `org_api_keys`, `members`). The campaign opens as **active** with frozen item snapshots.
+  </Step>
+  <Step title="Decide items">
+    Reviewers open the campaign, choose keep / revoke / modify / rotate, and enter a required reason. Shared-key exposure items only allow keep or rotate.
+  </Step>
+  <Step title="Complete with attestation">
+    When every item is decided, an admin completes the campaign with the attestation checkbox. The report stores `completed_by`, timestamp, and `report_sha256`.
+  </Step>
+</Steps>
+
+Off-cycle **shared key exposure** campaigns appear after a member is removed, for team gateway keys the departed member could use but did not create.
+
+## Exceptions
+
+Path: `/enterprise/orgs/{org_id}/compliance/exceptions`
+
+- Create an exception with kind, rationale, and expiry
+- Admins approve, revoke, or extend (extension still capped at 12 months from now)
+- Kinds include `accepted_finding`, `dlp_exception`, `control_threshold_override`, and related waiver types
+
+From [Signals → Anomaly reports](/enterprise/dashboard/signals), **Accept risk** creates an `accepted_finding` exception and dismisses the finding.
+
+## Evidence & exports
+
+Path: `/enterprise/orgs/{org_id}/compliance/evidence`
+
+Admins generate a CSV (zipped) evidence pack for a date range and selected controls. Downloads are rate-limited. Exports are content-free control results suitable for auditor packages.
+
+## Compliance settings
+
+Path: `/enterprise/orgs/{org_id}/compliance/settings`
+
+Admins can set **compliance retention days** (default oriented around a Type II window plus fieldwork). Lowering below the recommended floor requires confirmation, writes an audit event, shows a banner on Control health, and makes **RC-AI-10** warn. Legal hold still blocks destructive purge.
+
+## Who sees what
+
+| Role | Control health | Access reviews | Exceptions | Evidence | Settings |
+| --- | --- | --- | --- | --- | --- |
+| Admin | Full | Full | Approve / revoke / extend | Full | Full |
+| Team lead | Read; decide assigned review items | Decide assigned items | Request; view | — | — |
+| Developer | — | — | — | — | — |
+
+## Related pages
+
+- [Compliance concepts](/enterprise/compliance)
+- [Coverage](/enterprise/dashboard/coverage)
+- [Signals](/enterprise/dashboard/signals)
+- [Audit](/enterprise/dashboard/audit)
+- [Settings](/enterprise/dashboard/settings)

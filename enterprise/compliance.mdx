@@ -1,0 +1,81 @@
+---
+title: "AI Compliance Evidence: Control Health Without Content Exfiltration"
+sidebarTitle: "Compliance"
+description: "Daily control-health snapshots, access reviews, and risk exceptions that produce auditor-ready evidence from ReclaimLLM metadata — never prompts or file contents."
+icon: "clipboard-check"
+keywords: ["SOC 2", "AI compliance", "control health", "access review", "risk exceptions", "RC-AI", "evidence pack", "auditor", "content-free", "TSC"]
+---
+
+Compliance in ReclaimLLM is an **evidence report** for AI coding controls — not a SOC 2 attestation or certification. It turns coverage, anomalies, gateway usage, offboarding, and alert delivery into daily control statuses that auditors can rely on without seeing prompts, code, or secrets.
+
+<Warning>
+  ReclaimLLM does **not** certify your organization. Snapshots and exports are designed for auditor reliance; your assessor still owns the attestation opinion.
+</Warning>
+
+## What you get
+
+| Capability | What it means |
+| --- | --- |
+| **Control catalog (RC-AI-*)** | Mapped to TSC (and ISO / NIST AI RMF tags) with explicit pass / warn / fail / na rules |
+| **Daily snapshots** | Nightly evaluation at 02:00 org time; admins can **Compute preview now** |
+| **Population drill-down** | Content-free IDs that made up the latest evaluation |
+| **CSV evidence export** | Period-bounded pack of control results for auditors |
+| **Access reviews** | Quarterly (or off-cycle) campaigns over keys and members with attested completion |
+| **Risk exceptions** | Time-boxed accepted risk with required expiry (≤12 months) |
+| **Offboarding hooks** | Member removal revokes owned keys and opens shared-key exposure reviews |
+
+## Guardrails
+
+1. **Content-free evidence** — IDs, counts, categories, timestamps, and file *patterns* only. Never prompts, code, commands, or secret values.
+2. **Detection is automatic; enforcement is human** — revoke / rotate / dismiss decisions stay on an admin or reviewer.
+3. **Previews before irreversible actions** where the product already requires confirmation (for example key revoke).
+4. **Legal hold** — compliance retention never deletes under legal hold; lowering compliance retention warns on Control health (RC-AI-10).
+
+## Control catalog (shipped)
+
+| ID | Title | Evidence source (high level) | Typical result |
+| --- | --- | --- | --- |
+| **RC-AI-01** | DLP enabled on enrolled devices | Coverage / devices with DLP on | pass ≥98%, warn ≥90% |
+| **RC-AI-02** | Sensitive reads redacted before transmission | AD-004 gap vs covered counts | gap ratio ≤2% and gap findings triaged |
+| **RC-AI-03** | High/critical anomalies triaged within SLA | Findings disposition ≤2 business days | ≥95% on time |
+| **RC-AI-04** | Hook tampering detected and resolved | AD-010 resolved within 5 days | 100% timely resolve |
+| **RC-AI-05** | LLM traffic through approved gateway | Provider usage vs gateway tokens (Enterprise + configured) | unreconciled ≤1%; **na** if not applicable |
+| **RC-AI-07** | Quarterly access review completed | Attested campaign ≤92 days old | pass; **warn** if any SoD self-review |
+| **RC-AI-08** | Departed members access removed ≤24h | Keys revoked on remove; shared-key items | fail if own keys late; **warn** if shared-key open >7 days |
+| **RC-AI-09** | Security policy changes logged | Admin actors + SIEM delivery when enabled | admin-only + delivery % |
+| **RC-AI-10** | Retention executed; legal hold honored | Retention / legal hold / compliance retention days | warn if retention lowered below policy |
+| **RC-AI-11** | Security alerts delivered | Alert delivery success rate | ≥99% |
+
+Controls that need later features (vendor register, incidents) are seeded when those features ship so Control health does not show noisy `na` / `fail` rows early.
+
+## Status meanings
+
+| Status | Meaning |
+| --- | --- |
+| **pass** | Met the control threshold for that day |
+| **warn** | Near miss, soft miss, or recorded SoD / retention exception |
+| **fail** | Missed the control criteria |
+| **na** | Not applicable (no population, feature not enabled, or enterprise prerequisite missing) |
+| **pending** | No snapshot yet for that control |
+
+## Access reviews
+
+Admins create a campaign with a label, due date, and scope (gateway keys, org API keys, members). Items freeze a subject snapshot at creation. Team-scoped keys go to a team lead when possible; reviewers cannot decide their own access when another admin exists (single-admin self-review is allowed and recorded as an SoD exception → RC-AI-07 **warn**).
+
+Decisions are `keep` / `revoke` / `modify` / `rotate` with a required reason. Completing a campaign requires attestation; the product stores `completed_by`, timestamp, and a SHA-256 of the decision set (no cryptographic signature).
+
+Removing a member also creates off-cycle **shared key exposure** items for team gateway keys the departed member could use but did not create. Reviewers choose `rotate` or `keep` (with justification).
+
+## Risk exceptions
+
+A single register covers kinds such as `accepted_finding`, `dlp_exception`, and `control_threshold_override`. Every exception needs a rationale and an **expires_at** within 12 months of approval. On expiry, status becomes `expired` and reversible prior state is restored where applicable.
+
+On [Signals](/enterprise/dashboard/signals), **Accept risk** on an anomaly finding creates an `accepted_finding` exception and dismisses the finding.
+
+## Related pages
+
+- [Compliance dashboard](/enterprise/dashboard/compliance) — Control health, access reviews, exceptions, evidence export
+- [Coverage Alerts](/enterprise/coverage) — device DLP and hook integrity feeding RC-AI-01 / 04
+- [Anomalies](/enterprise/anomalies) — detectors behind RC-AI-02 / 03 / 04
+- [Signals dashboard](/enterprise/dashboard/signals) — triage and Accept risk
+- [Audit](/enterprise/dashboard/audit) — `access_review.*` and `risk_exception.*` events
