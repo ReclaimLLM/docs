@@ -154,6 +154,7 @@ Device check-ins and daily coverage jobs surface hook tamper (**AD-010**), DLP-o
 - **Acknowledge** a new finding when it is under review.
 - **Resolve** it when the relevant work or remediation is complete.
 - **Dismiss** it when the finding is expected behavior or a false positive.
+- **Accept risk** (when Compliance is enabled) creates a time-boxed `accepted_finding` exception with a rationale and expiry (≤12 months), then dismisses the finding. Exceptions appear under [Compliance → Exceptions](/enterprise/dashboard/compliance#exceptions).
 - Resolved and dismissed findings are closed and cannot transition to another status.
 
 ## Email alerts & notification cadence
