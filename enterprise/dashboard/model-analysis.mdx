@@ -48,6 +48,8 @@ A frozen dataset keeps the selected source sessions and evaluation settings fixe
 
 The source model shown on the dataset comes from the captured responses. Freezing the dataset does not call a provider.
 
+The page header counts datasets, completed analysis runs, completed cases, and provider calls. Each dataset card shows its session count, tags, scoring method, and status.
+
 ## Choose an evaluation method
 
 ### Category agreement
@@ -82,7 +84,7 @@ After a run, the **Source ↔ target LLM judge comparison** summarizes each targ
 
 <Steps>
   <Step title="Select target models">
-    On the frozen dataset, select **Prepare full run →**. Choose one or more enabled target models.
+    On the frozen dataset, select **Prepare full run →**. The panel shows the source baseline and the judge model. Search target models by name and tick one or more; the panel shows how many result cases the run will produce.
   </Step>
   <Step title="Prepare compatibility preflight">
     Select **Prepare compatibility preflight**. ReclaimLLM checks every session-target pair without calling a provider.
@@ -96,62 +98,6 @@ After a run, the **Source ↔ target LLM judge comparison** summarizes each targ
 </Steps>
 
 Each selected session runs against every selected target. The header reports resolved cases and provider calls while the run is active. You can cancel an active run.
-
-## Visual walkthrough: compare models
-
-This walkthrough uses an existing run to show the **Compare** flow end to end.
-
-<Steps>
-  <Step title="Review your frozen datasets">
-    A frozen dataset is a saved set of real proxy sessions. The counters at the top show datasets, completed analysis runs, completed cases, and provider calls.
-    <Frame caption="Model Analysis landing page">
-      <img src="/images/model-compare/01-landing.png" alt="Model Analysis landing page with dataset counters" />
-    </Frame>
-  </Step>
-  <Step title="Pick a dataset">
-    Each card shows the number of sessions, tags, scoring method (**Blind LLM judge** or **Category agreement**), and status. Select **Prepare full run →** on the dataset you want to test.
-    <Frame caption="Frozen dataset card">
-      <img src="/images/model-compare/02-dataset-card.png" alt="Frozen dataset card with Prepare full run button" />
-    </Frame>
-  </Step>
-  <Step title="Check the baseline and judge">
-    The panel shows the source baseline, which is the model that originally answered, and the judge model used for scoring.
-    <Frame caption="Prepare a full replay panel">
-      <img src="/images/model-compare/03-prepare-panel.png" alt="Prepare full replay panel showing source baseline and judge" />
-    </Frame>
-  </Step>
-  <Step title="Choose target models">
-    Search the model list by name, then tick one or more target models. The panel shows how many result cases the run will produce, and **Prepare compatibility preflight** becomes available.
-    <Frame caption="Searching target models">
-      <img src="/images/model-compare/04a-model-search.png" alt="Searching the target model list" />
-    </Frame>
-    <Frame caption="Target model selected">
-      <img src="/images/model-compare/04b-target-ticked.png" alt="Target model ticked with result case count" />
-    </Frame>
-    <Note>
-      The preflight only checks compatibility; no model is called yet. It shows the expected candidate and judge calls and the maximum number of calls so you can review them before you confirm the run.
-    </Note>
-  </Step>
-  <Step title="Read the results">
-    Each run has its own tab under **Runs and results**, with a progress bar, counts of total, compatible, succeeded, incompatible, failed, and unscorable cases, and the judge scoreboard with source wins, target wins, and ties. Per-session rows below the scoreboard show the verdict for each session.
-    <Frame caption="Run results and judge scoreboard">
-      <img src="/images/model-compare/05-run-results.png" alt="Run results with progress, case counts, and judge scoreboard" />
-    </Frame>
-  </Step>
-  <Step title="Filter the sessions">
-    Filter sessions by state (succeeded, incompatible, failed, running, retrying, pending, or cancelled) or by target model when a run includes more than one.
-    <Frame caption="State filter">
-      <img src="/images/model-compare/06-state-filter.png" alt="Result list state filter" />
-    </Frame>
-    <Frame caption="Target model filter">
-      <img src="/images/model-compare/07-target-filter.png" alt="Result list target model filter" />
-    </Frame>
-  </Step>
-</Steps>
-
-<Tip>
-  Use the comparison to decide whether a smaller model or another vendor can handle your real workloads before you switch.
-</Tip>
 
 ## How requests are replayed
 
@@ -177,7 +123,9 @@ The run header separates cases into:
 - **Failed**
 - **Unscorable**
 
-Use the state and target-model filters to narrow the result list. **Compatibility & failure reasons** groups the exact causes, even when only one case failed.
+Each run has its own tab under **Runs and results**, with a progress bar and the judge scoreboard of source wins, target wins, and ties. Per-session rows show the verdict for each session.
+
+Use the state filter (succeeded, incompatible, failed, running, retrying, pending, or cancelled) and the target-model filter to narrow the result list. **Compatibility & failure reasons** groups the exact causes, even when only one case failed.
 
 Select any result to open its available evidence and attempt history. Failed results remain selectable even when no target response was produced:
 
