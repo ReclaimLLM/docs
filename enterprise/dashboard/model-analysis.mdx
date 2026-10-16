@@ -48,6 +48,8 @@ A frozen dataset keeps the selected source sessions and evaluation settings fixe
 
 The source model shown on the dataset comes from the captured responses. Freezing the dataset does not call a provider.
 
+The page header counts datasets, completed analysis runs, completed cases, and provider calls. Each dataset card shows its session count, tags, scoring method, and status.
+
 ## Choose an evaluation method
 
 ### Category agreement
@@ -82,7 +84,7 @@ After a run, the **Source ↔ target LLM judge comparison** summarizes each targ
 
 <Steps>
   <Step title="Select target models">
-    On the frozen dataset, select **Prepare full run →**. Choose one or more enabled target models.
+    On the frozen dataset, select **Prepare full run →**. The panel shows the source baseline and the judge model. Search target models by name and tick one or more; the panel shows how many result cases the run will produce.
   </Step>
   <Step title="Prepare compatibility preflight">
     Select **Prepare compatibility preflight**. ReclaimLLM checks every session-target pair without calling a provider.
@@ -121,7 +123,9 @@ The run header separates cases into:
 - **Failed**
 - **Unscorable**
 
-Use the state and target-model filters to narrow the result list. **Compatibility & failure reasons** groups the exact causes, even when only one case failed.
+Each run has its own tab under **Runs and results**, with a progress bar and the judge scoreboard of source wins, target wins, and ties. Per-session rows show the verdict for each session.
+
+Use the state filter (succeeded, incompatible, failed, running, retrying, pending, or cancelled) and the target-model filter to narrow the result list. **Compatibility & failure reasons** groups the exact causes, even when only one case failed.
 
 Select any result to open its available evidence and attempt history. Failed results remain selectable even when no target response was produced:
 
