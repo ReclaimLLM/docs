@@ -97,6 +97,62 @@ After a run, the **Source ↔ target LLM judge comparison** summarizes each targ
 
 Each selected session runs against every selected target. The header reports resolved cases and provider calls while the run is active. You can cancel an active run.
 
+## Visual walkthrough: compare models
+
+This walkthrough uses an existing run to show the **Compare** flow end to end.
+
+<Steps>
+  <Step title="Review your frozen datasets">
+    A frozen dataset is a saved set of real proxy sessions. The counters at the top show datasets, completed analysis runs, completed cases, and provider calls.
+    <Frame caption="Model Analysis landing page">
+      <img src="/images/model-compare/01-landing.png" alt="Model Analysis landing page with dataset counters" />
+    </Frame>
+  </Step>
+  <Step title="Pick a dataset">
+    Each card shows the number of sessions, tags, scoring method (**Blind LLM judge** or **Category agreement**), and status. Select **Prepare full run →** on the dataset you want to test.
+    <Frame caption="Frozen dataset card">
+      <img src="/images/model-compare/02-dataset-card.png" alt="Frozen dataset card with Prepare full run button" />
+    </Frame>
+  </Step>
+  <Step title="Check the baseline and judge">
+    The panel shows the source baseline, which is the model that originally answered, and the judge model used for scoring.
+    <Frame caption="Prepare a full replay panel">
+      <img src="/images/model-compare/03-prepare-panel.png" alt="Prepare full replay panel showing source baseline and judge" />
+    </Frame>
+  </Step>
+  <Step title="Choose target models">
+    Search the model list by name, then tick one or more target models. The panel shows how many result cases the run will produce, and **Prepare compatibility preflight** becomes available.
+    <Frame caption="Searching target models">
+      <img src="/images/model-compare/04a-model-search.png" alt="Searching the target model list" />
+    </Frame>
+    <Frame caption="Target model selected">
+      <img src="/images/model-compare/04b-target-ticked.png" alt="Target model ticked with result case count" />
+    </Frame>
+    <Note>
+      The preflight only checks compatibility; no model is called yet. It shows the expected candidate and judge calls and the maximum number of calls so you can review them before you confirm the run.
+    </Note>
+  </Step>
+  <Step title="Read the results">
+    Each run has its own tab under **Runs and results**, with a progress bar, counts of total, compatible, succeeded, incompatible, failed, and unscorable cases, and the judge scoreboard with source wins, target wins, and ties. Per-session rows below the scoreboard show the verdict for each session.
+    <Frame caption="Run results and judge scoreboard">
+      <img src="/images/model-compare/05-run-results.png" alt="Run results with progress, case counts, and judge scoreboard" />
+    </Frame>
+  </Step>
+  <Step title="Filter the sessions">
+    Filter sessions by state (succeeded, incompatible, failed, running, retrying, pending, or cancelled) or by target model when a run includes more than one.
+    <Frame caption="State filter">
+      <img src="/images/model-compare/06-state-filter.png" alt="Result list state filter" />
+    </Frame>
+    <Frame caption="Target model filter">
+      <img src="/images/model-compare/07-target-filter.png" alt="Result list target model filter" />
+    </Frame>
+  </Step>
+</Steps>
+
+<Tip>
+  Use the comparison to decide whether a smaller model or another vendor can handle your real workloads before you switch.
+</Tip>
+
 ## How requests are replayed
 
 Model Analysis supports captured Chat Completions requests. Before replay, ReclaimLLM:
