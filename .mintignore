@@ -5,3 +5,7 @@
 # Draft content
 drafts/
 *.draft.mdx
+
+# Internal agent instructions (not public docs)
+AGENTS.md
+AGENTS

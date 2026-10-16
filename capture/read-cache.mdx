@@ -5,6 +5,7 @@ description: "Avoid repeated file-read tokens with session-scoped line-range tra
 icon:
   name: "file-clock"
   library: "lucide"
+keywords: ["Claude Code token savings", "file read cache", "context tokens"]
 ---
 
 RCLM's range-aware read cache prevents unchanged file content from being sent to the model repeatedly during the same coding session. It tracks the exact line ranges already served, invalidates them when the file changes, and passes through anything it cannot parse confidently.

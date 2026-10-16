@@ -2,6 +2,7 @@
 title: "Cut Token Costs in Agentic Coding Sessions"
 sidebarTitle: "Context Compression"
 description: "Native hooks reduce repeated context with range caching, stateful deltas, edit receipts, provider-aware shaping, exact local recall, dedupe, and image controls."
+keywords: ["reduce token cost", "agentic coding tokens", "context compression"]
 ---
 
 Tool results can remain in an agent's context and be sent back to the model on later turns. A file read or long command result can therefore consume context more than once. ReclaimLLM's native hooks reduce that repeated context before it reaches the model, while recording what changed and whether the reduction was enforced or only observed.

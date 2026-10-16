@@ -2,6 +2,7 @@
 title: "Native Hooks: Capture Claude, Gemini, Codex, Cursor & Copilot Sessions"
 sidebarTitle: "Overview"
 description: "Install rclm-hooks to capture coding agent sessions — messages, tool calls, file diffs, and token usage — from Claude Code, Gemini CLI, Codex CLI, Cursor, and GitHub Copilot."
+keywords: ["Claude Code hooks", "Cursor hooks", "Gemini CLI hooks", "Codex CLI hooks", "AI coding session capture"]
 ---
 
 Native hooks (`rclm-hooks`) are the highest-fidelity capture method ReclaimLLM offers. They plug directly into the lifecycle events of Claude Code, Gemini CLI, Codex CLI, Cursor, and GitHub Copilot (VS Code), recording everything that happens during a session: every message turn, every tool call and its result, every file the agent created or modified (with before-and-after diffs), and precise token usage. One install command sets everything up invisibly — after that, your sessions appear in the dashboard automatically.
@@ -268,3 +269,7 @@ Every hooks session includes:
     ```
   </Accordion>
 </AccordionGroup>
+
+## Related
+
+Security teams evaluating hooks can read the [Cursor security and DLP overview](https://reclaimllm.com/solutions/cursor-security) and the [Claude Code security and secret redaction overview](https://reclaimllm.com/solutions/claude-code-security).

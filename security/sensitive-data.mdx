@@ -2,6 +2,7 @@
 title: "Configure Sensitive Data Detection and Redaction in RCLM"
 sidebarTitle: "DLP"
 description: "Automatically flag credentials, tokens, and PII, configure local hook redaction rules, scope hook capture to included folders, exclude folders from upload, and review sessions before sharing."
+keywords: ["AI DLP", "secret redaction", "redact API keys", "PII detection", "AI coding assistant DLP"]
 ---
 
 AI sessions frequently contain content that should never leave your machine unreviewed: API keys accidentally pasted into a prompt, database connection strings passed to an agent, or personal information surfaced in a code review. RCLM flags this content automatically on Paid plans and gives every user tools to apply redaction rules before sessions are ever uploaded.
@@ -164,3 +165,7 @@ Enterprise plans include Data Loss Prevention (DLP) scanning and org-wide policy
 | Auto-redaction before storage | Manual only | Hook rules | Org-wide policies (soon) |
 | DLP scanning \+ policy enforcement | — | — | Partial now; org enforcement soon |
 | Sensitive data alerts (Slack / webhook) | — | — | Coming soon |
+
+## Related
+
+For how hook-level redaction compares with ignore files, see [why .cursorignore is not DLP](https://reclaimllm.com/blogs/why-cursorignore-is-not-dlp) and the [AI coding assistant DLP overview](https://reclaimllm.com/solutions/ai-coding-assistant-dlp).

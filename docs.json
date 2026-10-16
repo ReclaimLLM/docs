@@ -152,6 +152,21 @@
       "source": "/features/project-names",
       "destination": "/user-portal/settings#project-name-mappings",
       "permanent": true
+    },
+    {
+      "source": "/sources/site/reclaimllm.com/index",
+      "destination": "https://reclaimllm.com/",
+      "permanent": true
+    },
+    {
+      "source": "/sources/site/reclaimllm.com/:slug*",
+      "destination": "https://reclaimllm.com/:slug*",
+      "permanent": true
+    },
+    {
+      "source": "/AGENTS",
+      "destination": "/introduction",
+      "permanent": true
     }
   ],
   "footer": {
@@ -161,7 +176,12 @@
     }
   },
   "seo": {
-    "indexing": "all"
+    "indexing": "navigable",
+    "metatags": {
+      "og:site_name": "ReclaimLLM",
+      "twitter:card": "summary_large_image",
+      "og:type": "website"
+    }
   },
   "description": "Capture, search, and reuse your AI interactions across ChatGPT, Claude, and Gemini. Full data ownership, DLP protection, and enterprise observability for LLM workflows."
 }
