@@ -3,6 +3,7 @@ title: "OpenTelemetry: Capture Existing LLM API Calls"
 sidebarTitle: "OpenTelemetry"
 description: "Export OpenAI, Anthropic, Azure OpenAI, Gemini, Vertex AI, Bedrock, and other LLM traces to ReclaimLLM over OTLP/HTTP."
 icon: "wave-pulse"
+keywords: ["OpenTelemetry LLM", "GenAI semantic conventions", "LLM observability"]
 ---
 
 Use OpenTelemetry when your application already calls an LLM provider directly and you want ReclaimLLM observability without routing provider traffic through a proxy. Your application continues to call OpenAI, Anthropic, or another provider. An instrumentor emits traces to ReclaimLLM in parallel, so provider latency and credentials stay outside the ReclaimLLM request path.
