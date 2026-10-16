@@ -78,6 +78,16 @@
               "enterprise/compliance",
               "enterprise/roles-access",
               {
+                "group": "Admin guides",
+                "pages": [
+                  "admin/model-analysis",
+                  "admin/signals",
+                  "admin/compliance",
+                  "admin/audit-log",
+                  "admin/teams"
+                ]
+              },
+              {
                 "group": "Dashboard Reference",
                 "pages": [
                   "enterprise/dashboard/overview",

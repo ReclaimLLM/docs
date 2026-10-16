@@ -1,0 +1,72 @@
+---
+title: "Create Teams and Add Members for AI Coding Access"
+sidebarTitle: "Teams"
+description: "Create a team, add members by email, adjust roles from the member list, and open each team's Signals view in ReclaimLLM."
+icon: "users"
+keywords: ["AI coding teams", "team management", "add team member", "team roles", "team signals"]
+---
+
+Rolling out AI coding tools means organizing who uses what. The Teams page lets admins create teams, add members by email, set roles, and open a Signals view scoped to each team.
+
+<div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: "12px" }}>
+  <iframe
+    src="https://www.youtube.com/embed/k2ynkuaOZgU"
+    title="Manage AI coding teams in ReclaimLLM"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  />
+</div>
+
+## Set up a team
+
+<Steps>
+  <Step title="Create the team">
+    At the top of the Teams page, type a name in the inline field and click **Create Team**.
+  </Step>
+  <Step title="Add a member">
+    On the team's card, click **Add member**, enter the teammate's email, and click **Add**.
+  </Step>
+  <Step title="Adjust their role">
+    The add form has no role selector. Change the role afterwards from the **Role** dropdown on the member's row.
+  </Step>
+  <Step title="Open team Signals">
+    Click **View Signals** to see issues concentrated in that team, or a clean empty state when there's nothing to act on.
+  </Step>
+</Steps>
+
+<Frame>
+  <img src="/images/admin/teams/06-create-team-form.png" alt="Inline Create Team field at the top of the Teams page with Demo Team typed in" />
+</Frame>
+
+<Frame>
+  <img src="/images/admin/teams/05-add-member-form.png" alt="Add member form on The A Team with a single user email field and Add button, names and emails blurred" />
+</Frame>
+
+<Frame>
+  <img src="/images/admin/teams/01-teams-list-members.png" alt="Teams admin page with per-team member tables, role selectors, joined and last session dates and View Signals, names and emails blurred" />
+</Frame>
+
+<Frame>
+  <img src="/images/admin/teams/02-a-team-signals.png" alt="Team Signals for The A Team showing session idle gap patterns concentrated across members" />
+</Frame>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Can I set a role when adding a member?">
+    Not in the add form. Add the member by email, then change their role from the Role dropdown on their row.
+  </Accordion>
+  <Accordion title="What does an empty team Signals view mean?">
+    Nothing is concentrated in that team, so no action is needed.
+  </Accordion>
+  <Accordion title="Can I remove someone from a team?">
+    Yes. Use Remove from team on the member's row.
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+- Reference: [Teams tab](/enterprise/dashboard/teams)
+- Product: [Enterprise overview](https://reclaimllm.com/enterprise-overview)

@@ -1,0 +1,88 @@
+---
+title: "SOC 2 Evidence for AI Coding Assistants"
+sidebarTitle: "SOC 2 evidence"
+description: "Track AI coding controls, inspect populations like RC-AI-02, log risk exceptions, export CSV evidence packs with a SHA-256 manifest, and run access reviews."
+icon: "shield-check"
+keywords: ["SOC 2 AI coding assistants", "AI compliance evidence", "TSC mapping", "evidence pack", "access reviews", "DLP gap"]
+---
+
+Auditors are starting to ask how your team controls AI coding tools. The Compliance page lists each AI control with its status and SOC 2 Trust Services Criteria (TSC) mapping, shows the population behind it, and exports evidence your reviewers can verify.
+
+<div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: "12px" }}>
+  <iframe
+    src="https://www.youtube.com/embed/tnBnUmR8pOc"
+    title="SOC 2 evidence for AI coding assistants with ReclaimLLM Compliance"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  />
+</div>
+
+<Note>
+  These controls help you collect evidence for your own audits. ReclaimLLM's own SOC 2 Type II is targeted for Q4 2026; it is not yet certified.
+</Note>
+
+## Prepare audit evidence
+
+<Steps>
+  <Step title="Check control health">
+    The **Control health** tab lists each RC-AI control with pass, fail, or n/a status, TSC mapping, and population and exception counts. Failed controls, like an overdue quarterly access review, are flagged.
+  </Step>
+  <Step title="View a control's population">
+    Click **View population** to see the evidence entries behind a control. Entries contain no session content.
+  </Step>
+  <Step title="Log risk exceptions">
+    Accept a known risk with **Request exception** in the **Risk exceptions** register.
+  </Step>
+  <Step title="Generate an evidence pack">
+    In **Evidence & exports**, pick a period and click **Generate CSV pack**. Packs include a SHA-256 manifest so reviewers can verify nothing changed.
+  </Step>
+  <Step title="Run access reviews">
+    Use **Create campaign** in **Access reviews** to review gateway keys, members, and API keys.
+  </Step>
+</Steps>
+
+<Frame>
+  <img src="/images/admin/compliance/01-control-health-table.png" alt="Compliance Control health table with RC-AI controls, pass fail and n/a status, TSC mapping and a failed quarterly access review callout" />
+</Frame>
+
+## Example: RC-AI-02 population
+
+RC-AI-02 checks that sensitive reads are redacted before transmission. Opening **View population** shows a linked session, `b9b69a10-a7bc-46a4-8309-d9b99f31a381`, with status **new** and flagged **AD-004**:
+
+| Fact | Value |
+| --- | --- |
+| **First seen** | Oct 14, 2026, 08:00 PM |
+| **Access types** | read |
+| **Matched patterns** | `.env` |
+| **DLP gap** | 1 uncovered / 0 covered sensitive reads |
+
+The DLP gap means one sensitive read happened that no policy covered. One click opens the session itself.
+
+<Frame>
+  <img src="/images/admin/compliance/06-rc-ai-02-population.png" alt="RC-AI-02 View population panel with session b9b69a10 flagged AD-004, read access, matched .env pattern and a DLP gap of 1 uncovered sensitive read" />
+</Frame>
+
+<Frame>
+  <img src="/images/admin/compliance/04-evidence-exports-tab.png" alt="Evidence and exports tab with a period picker and Generate CSV pack button" />
+</Frame>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Is ReclaimLLM SOC 2 certified?">
+    Not yet. ReclaimLLM's SOC 2 Type II is targeted for Q4 2026. The Compliance page helps you gather evidence about your own AI coding controls.
+  </Accordion>
+  <Accordion title="What is in an evidence pack?">
+    CSV files for the period you pick, with a SHA-256 manifest so reviewers can confirm the files haven't changed.
+  </Accordion>
+  <Accordion title="What does a DLP gap mean in a population entry?">
+    It counts sensitive reads that were not covered by a policy versus those that were. In the RC-AI-02 example, one .env read was uncovered.
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+- Reference: [Compliance tab](/enterprise/dashboard/compliance)
+- Product: [ReclaimLLM compliance](https://reclaimllm.com/compliance)

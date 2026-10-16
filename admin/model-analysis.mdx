@@ -1,0 +1,87 @@
+---
+title: "Compare AI Coding Models on Your Own Traffic"
+sidebarTitle: "Compare models"
+description: "Replay your team's real AI sessions against other models and decide with category agreement and blind-judge win share, all through your governed proxy."
+icon: "scale-balanced"
+keywords: ["compare LLM models", "AI model evaluation", "blind LLM judge", "model replay", "category agreement", "AI coding models"]
+---
+
+Is your current model the right one for the job? Model Analysis replays your team's real requests against cheaper or better models, so you can compare them with evidence from your own workload before you switch. Results are scored by **category agreement** for classification answers or by a **blind LLM judge** for open-ended responses.
+
+<div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: "12px" }}>
+  <iframe
+    src="https://www.youtube.com/embed/mWhqAN1eAos"
+    title="Compare AI models on your own traffic with ReclaimLLM Model Analysis"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  />
+</div>
+
+## Run a comparison
+
+<Steps>
+  <Step title="Freeze a dataset">
+    Pick real sessions captured by your proxy and freeze them. Freezing makes no provider calls, so you get a stable, repeatable test set. Each dataset uses one scoring method: category agreement or a blind LLM judge.
+  </Step>
+  <Step title="Prepare a full run">
+    Open **Prepare full run** on any frozen dataset. The panel shows the source baseline and, for judge datasets, the frozen judge model.
+  </Step>
+  <Step title="Choose target models">
+    Search the model catalog and tick the targets you want to test.
+  </Step>
+  <Step title="Check the preflight">
+    The compatibility preflight makes no provider calls. It shows how many candidate and judge calls the run needs and the maximum attempts before you confirm.
+  </Step>
+  <Step title="Review, filter, retry">
+    Follow progress and results, filter by state or target model, and retry any failed cases. Open a case for its evidence panel and switch between **Changes**, **Side by side**, and **Raw diff**.
+  </Step>
+</Steps>
+
+<Note>
+  Before each replay the request is normalized: the model is replaced, streaming is turned off, unsupported fields are dropped, and credentials are removed. The replay then goes through your governed enterprise proxy, so every comparison follows your existing controls.
+</Note>
+
+## Reading the results
+
+<Frame>
+  <img src="/images/admin/model-analysis/04-classify-run.png" alt="Model Analysis scoreboard: five classification sessions replayed on Moonshot Kimi K2.6 with 5 of 5 agreement" />
+</Frame>
+
+**Category agreement.** Five classification sessions replayed on Moonshot Kimi K2.6 all matched the original labels: 100% agreement.
+
+<Frame>
+  <img src="/images/admin/model-analysis/07-bigger.png" alt="Larger classification dataset with 75 of 100 sessions in agreement and 9 label-extraction failures listed under compatibility and failure reasons" />
+</Frame>
+
+**At scale, failures included.** A 100-session dataset reached 75% agreement. Nine cases couldn't be scored because label extraction failed; they appear under **Compatibility and failure reasons** and stay in the denominator, so the result isn't inflated.
+
+<Frame>
+  <img src="/images/admin/model-analysis/08-judge-run.png" alt="Blind LLM judge scoreboard comparing summaries from the current model with Azure GPT-5.6 Luna, target won 2 of 3" />
+</Frame>
+
+**Blind judge.** Summaries from the current model were compared with Azure GPT-5.6 Luna. The judge never sees which model wrote which answer. The target won 2 of 3 sessions, a 67% win share, and the verdict lists strengths and weaknesses for each side.
+
+<Frame>
+  <img src="/images/admin/model-analysis/13-preflight.png" alt="Prepare full run panel with a target model ticked and the compatibility preflight enabled" />
+</Frame>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="Does freezing a dataset call any model provider?">
+    No. Freezing only snapshots sessions your proxy already captured. Provider calls happen only after you confirm a run, and the preflight shows the call count first.
+  </Accordion>
+  <Accordion title="Which scoring method should I use?">
+    Use category agreement when the original answer is a label or classification. Use the blind LLM judge for open-ended responses like summaries.
+  </Accordion>
+  <Accordion title="Are failed cases hidden from the score?">
+    No. Cases that can't be scored are listed under Compatibility and failure reasons and stay in the denominator. You can retry them from the results view.
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+- Reference: [Model Analysis tab](/enterprise/dashboard/model-analysis)
+- Product: [Enterprise AI analysis](https://reclaimllm.com/features/enterprise-ai-analysis)

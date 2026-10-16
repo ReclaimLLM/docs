@@ -1,0 +1,68 @@
+---
+title: "AI Assistant Audit Log: Filter and Export Admin Activity"
+sidebarTitle: "Audit log"
+description: "Use the ReclaimLLM audit log to filter admin and sensitive-access events, inspect event details, and export to CSV, with 365-day retention."
+icon: "scroll"
+keywords: ["AI assistant audit log", "audit trail", "CSV export", "sensitive access logging", "security ledger"]
+---
+
+Who changed that policy? Who viewed sensitive sessions? The audit log is a security ledger with 365-day retention that records admin actions and sensitive access, such as viewing model analysis results, encrypted session access, gateway model tests, provider syncs, and billing changes.
+
+<div style={{ position: "relative", paddingBottom: "56.25%", height: 0, overflow: "hidden", borderRadius: "12px" }}>
+  <iframe
+    src="https://www.youtube.com/embed/ujYTo5ZHgZQ"
+    title="AI assistant audit log in ReclaimLLM"
+    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+    frameBorder="0"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+    allowFullScreen
+  />
+</div>
+
+## Investigate and export events
+
+<Steps>
+  <Step title="Set the date range">
+    Pick the period you want to review, for example 15 Sep – 16 Oct 2026.
+  </Step>
+  <Step title="Filter the table">
+    Filter by category, outcome, actor ID, or target type. Choose the **Policy** category to isolate policy changes.
+  </Step>
+  <Step title="Open an event">
+    Click any event to open its detail drawer: outcome, timestamp, identity, target, metadata, and request context.
+  </Step>
+  <Step title="Export to CSV">
+    Click **Export CSV** to download the filtered events for your security review.
+  </Step>
+</Steps>
+
+<Frame>
+  <img src="/images/admin/audit-log/01-audit-header-filters-table.png" alt="Audit security ledger with 365-day retention, date, category, outcome, actor and target type filters, Export CSV button and event table with actors blurred" />
+</Frame>
+
+<Frame>
+  <img src="/images/admin/audit-log/02-event-detail-signal-settings-changed.png" alt="Audit event detail drawer for Signal settings changed showing outcome, timestamp, identity, target, metadata and request context" />
+</Frame>
+
+<Frame>
+  <img src="/images/admin/audit-log/04-category-filter-policy.png" alt="Audit log filtered to the Policy category showing one matching event" />
+</Frame>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="How long are audit events kept?">
+    365 days.
+  </Accordion>
+  <Accordion title="Is viewing sensitive data logged?">
+    Yes. For example, viewing model analysis results is recorded as its own sensitive-access event, as is encrypted session access.
+  </Accordion>
+  <Accordion title="Can I export the audit log?">
+    Yes. Apply filters and click Export CSV.
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+- Reference: [Audit tab](/enterprise/dashboard/audit)
+- Product: [Security & compliance](https://reclaimllm.com/solutions/security-compliance)
