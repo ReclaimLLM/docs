@@ -82,6 +82,7 @@
                 "pages": [
                   "admin/model-analysis",
                   "admin/signals",
+                  "admin/files",
                   "admin/compliance",
                   "admin/audit-log",
                   "admin/teams"
@@ -97,6 +98,7 @@
                   "enterprise/dashboard/coverage",
                   "enterprise/dashboard/compliance",
                   "enterprise/dashboard/stats",
+                  "enterprise/dashboard/files",
                   "enterprise/dashboard/model-analysis",
                   "enterprise/dashboard/sessions",
                   "enterprise/dashboard/members",
