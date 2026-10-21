@@ -192,6 +192,7 @@ This surface matters because hook DLP operates on tool inputs and outputs at the
 2. For `code_mention`, open the linked session and review the script the agent wrote. Determine whether it was executed and whether that execution happened within a DLP-covered hook boundary.
 3. For direct reads or shell reads with a DLP gap (`was_redacted: false`), determine whether secrets were transmitted to an external provider.
 4. If the session used Gemini, Antigravity, or a capture-only integration — clients that do not support pre-execution input redirection — treat any sensitive file activity as a potential gap regardless of `was_redacted`.
+5. Open [Files](/admin/files) for the project and window. **Sensitive Only** shows the filename matches, and **Sensitive Reviews** is where an admin records clear or flag.
 
 <Info>
   Hook DLP default behavior: `rclm-hooks-install` enables DLP on fresh installs. Users who opted out with `--no-dlp` or installed before the default changed may have sessions with no DLP coverage. AD-004 Critical findings are the primary signal for this gap.

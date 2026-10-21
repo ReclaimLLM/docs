@@ -1,0 +1,70 @@
+---
+title: "Files Tab: Project File Lineage and Sensitive Reviews"
+sidebarTitle: "Files"
+description: "The Files tab maps one project's recent AI file activity, opens blame and attribution for a file, and holds sensitive-access reviews plus custom filename patterns."
+icon: "diagram-project"
+keywords: ["files dashboard", "file lineage", "sensitive file review", "particle map", "AI blame"]
+---
+
+The Files tab (`/enterprise/orgs/{org_id}/files`) is the admin workspace for project-scoped AI file activity. How to read the map and review a row is in [File lineage](/admin/files).
+
+## Sub-navigation
+
+| Tab | Who | Purpose |
+| --- | --- | --- |
+| **Particle Map** | Admin | Files touched in the selected project and window |
+| **Sensitive Reviews** | Admin | Accesses that matched a sensitive filename rule |
+| **Sensitive Patterns** | Admin | Extra filename rules for this organization |
+
+Developers and team leads do not have API access to this tab. Paid personal accounts see the map only, under **File Usage Statistics** on [Stats](/user-portal/stats).
+
+## Particle Map
+
+Path: `/enterprise/orgs/{org_id}/files`
+
+### What you'll see
+
+- **Project** menu. Omitting a choice selects the most active named project in the window. Empty project names are not ranked.
+- Window pills: **1h**, **24h**, **7d**. The page opens on **7d**.
+- **Connected** or **All**. Connected hides files with no co-change link.
+- **Sensitive Only**, which draws sensitive files even when they have no link.
+- **Streams**: Full, Quiet, or Lines.
+- Counts for active files, reads, writes plus edits, and sensitive files.
+- Circles colored by access: green create, amber edit, blue read, indigo mixed, rose sensitive.
+
+### What you can do
+
+| Action | Notes |
+| --- | --- |
+| Change project or window | Reloads the map |
+| Drag a circle | Pins that file |
+| Click a circle | Opens **AI Blame & Integrity** and **Attribution & Provenance** |
+| Open a session id | Goes to that session |
+
+A path that names another project active in the same window is left off the map.
+
+<Note>
+  **Unreplayable** on the blame tab means an older edit has no content hash. Line ranges still show when a start line was recorded.
+</Note>
+
+## Sensitive Reviews
+
+Each row shows the path, detected rule, access time, state (`reviewed`, `cleared`, or `flagged`), and note.
+
+| Action | Who | Notes |
+| --- | --- | --- |
+| **Clear** or **Flag** | Admin | Requires a note. Does not change the rose circle |
+| **Export CSV** or **Export SHA-256 JSON** | Admin | Downloads the current review rows |
+| Click a path | Admin | Opens the file drawer |
+
+## Sensitive Patterns
+
+Admins add a glob or filename plus an optional label. Built-in patterns for environment files, keys, certificates, credentials, and token-like names stay active. Deleting a custom pattern stops that extra rule. It does not rewrite accesses already recorded.
+
+## Related pages
+
+- [File lineage guide](/admin/files)
+- [Anomalies](/enterprise/anomalies)
+- [Signals](/enterprise/dashboard/signals)
+- [Audit](/enterprise/dashboard/audit)
+- [Sensitive data](/security/sensitive-data)

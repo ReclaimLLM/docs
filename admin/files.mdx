@@ -1,0 +1,111 @@
+---
+title: "File Lineage: See Which Files an AI Session Touched"
+sidebarTitle: "Files"
+description: "Use the Files page to inspect one project's recent AI file activity, open line history and session attribution, and review sensitive filename matches."
+icon: "diagram-project"
+keywords: ["file lineage", "AI file activity", "sensitive file review", "AI blame", "particle map", "project file activity"]
+---
+
+The Files page shows which files an AI session read or changed in one project. Organization admins open it at `/enterprise/orgs/{org_id}/files`. Paid personal accounts get the same map on [Stats](/user-portal/stats), without the review queue or custom patterns.
+
+<Note>
+  The map is a Paid and Enterprise feature. The Free plan does not include it. The Files tab calls admin-only APIs.
+</Note>
+
+## Inspect a project
+
+<Steps>
+  <Step title="Open Files">
+    In the organization nav, open **Files**. The page title is **File Lineage & Observability**.
+  </Step>
+  <Step title="Keep the default project">
+    The map opens on the named project with the most file activity in the last seven days. Sessions with no project name are left out of that ranking. Use the **Project** menu to switch.
+  </Step>
+  <Step title="Choose a window">
+    The window is **7d**, **24h**, or **1h**. **Connected** is the default: files that never shared a session with another file stay hidden until you switch to **All**.
+  </Step>
+  <Step title="Show sensitive files">
+    **Sensitive Access** counts every file whose name matched a sensitive pattern. **Sensitive Only** draws those files, including ones with no co-change link.
+  </Step>
+  <Step title="Open a circle">
+    Drag a circle to pin it. Click it for **AI Blame & Integrity** and **Attribution & Provenance**. A session id on either tab opens that session.
+  </Step>
+</Steps>
+
+## Read the map
+
+| Tile or color | Meaning |
+| --- | --- |
+| **Active Files** | Distinct files on the selected project in the window |
+| **AI Reads** | Recorded reads |
+| **AI Writes & Edits** | Creates plus edits |
+| **Sensitive Access** | Files marked sensitive |
+| Green **Create** | The file was created |
+| Amber **Edit** | An existing file was edited and not read in the window |
+| Blue **Read** | The file was only read |
+| Indigo | The file was both read and changed |
+| Rose | The filename matched a sensitive pattern. Rose overrides the other colors |
+
+A line means those two files were touched in the same session. The graph draws the strongest links and stops once a file already has three. **Streams: Full** and **Quiet** draw particles along each link. **Lines** draws the stroke and no particles.
+
+A path is left off the selected project when it names a different project that was also active in the window. Relative paths, and folder names that are not a known project, can still appear.
+
+## Open a file
+
+**AI Blame & Integrity** lists line ranges and the session that last wrote them.
+
+| Chain status | Meaning |
+| --- | --- |
+| **Intact** | Each edit's before-hash matches the previous edit's after-hash |
+| **Broken** | A hash no longer lines up |
+| **Unreplayable** | An older edit has no content hash to check |
+
+Older stored edits often have no hashes, so those files stay **unreplayable**. Line ranges still appear when the edit recorded a start line.
+
+**Attribution & Provenance** lists each recorded access: read, write, edit, or blocked, with the client, user, device, time, and a link to the session. If the file was marked sensitive, this tab states the filename rule. Built-in rules cover environment files, private keys, certificates, SSH keys, credentials, secrets, passwords, cloud config, and names that look like an API key or access token. A name such as `102_org_api_keys_revoked_at.sql` can match because it contains `api_key`.
+
+## Review a sensitive access
+
+Open **Sensitive Reviews**. Each row is an access that matched a sensitive-path rule. The detected rule, access time, and state are on the row. Click the path to open the same file drawer.
+
+| Action | What it does |
+| --- | --- |
+| **Clear** | Records that the access was reviewed. A note is required |
+| **Flag** | Records that the access needs security follow-up. A note is required |
+| **Export CSV** | Downloads the review rows |
+| **Export SHA-256 JSON** | Downloads the same rows with a content hash |
+
+Clearing or flagging a review does not change the rose circle. The circle stays rose while any session in the window still matches a sensitive filename rule.
+
+## Add an organization pattern
+
+**Sensitive Patterns** adds extra filename rules for this organization. Built-in patterns stay active when the custom list is empty.
+
+<Steps>
+  <Step title="Enter a pattern">
+    Use a glob such as `*.secret.conf` or a name such as `internal_payroll.csv`.
+  </Step>
+  <Step title="Add an optional label">
+    A label is a department or owner note. It is not part of the match.
+  </Step>
+  <Step title="Save">
+    Click **Add Pattern**. Later ingests that match the pattern are marked sensitive and can create a review row. Delete a row to stop using that extra rule.
+  </Step>
+</Steps>
+
+## Limits
+
+<Warning>
+  A 24-hour window can show writes and zero reads when that period only stored file changes and no read events. Switch to **7d** before treating a zero read count as "this project was not read."
+</Warning>
+
+- Blame cannot call a historical edit intact or broken when that edit has no hash chain. New sessions can record hashes.
+- A path that does not name a known project can still appear on the selected project's map.
+- Personal Stats has the map only. Reviews and custom patterns are on the organization Files page.
+
+## Related pages
+
+- [AD-004 sensitive file access](/enterprise/anomalies#ad-004--sensitive-file-access)
+- [Signals](/enterprise/dashboard/signals)
+- [Sensitive data and DLP](/security/sensitive-data)
+- [Files tab reference](/enterprise/dashboard/files)
