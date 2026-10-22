@@ -3,7 +3,7 @@ title: "Coverage Tab: Device Posture and Org Coverage %"
 sidebarTitle: "Coverage"
 description: "Monitor hook integrity and DLP posture per device, filter uncovered or silent machines, require DLP, grant exceptions, and export coverage for audits."
 icon: "laptop-code"
-keywords: ["coverage dashboard", "device check-in", "require DLP", "DLP exception", "heartbeat", "device alias", "coverage CSV", "hook repair"]
+keywords: ["coverage dashboard", "device check-in", "device API key", "shared machine", "require DLP", "DLP exception", "heartbeat", "device alias", "coverage CSV", "hook repair"]
 ---
 
 The Coverage tab (`/enterprise/orgs/{org_id}/coverage`) is the admin view of enrolled developer devices, live coverage percentage, and DLP / heartbeat policy.
@@ -21,6 +21,49 @@ For concepts, detectors, and privacy boundaries, see [Coverage Alerts](/enterpri
 <Note>
   Device rows show a gateway-vs-direct **routing class** only — never URLs or keys. Hostnames are hashed; aliases are admin labels only. No keystrokes, process lists, or file contents are collected.
 </Note>
+
+The **?** next to the Coverage title summarizes the states below and the shared-account device key rule.
+
+## When a row appears
+
+A device row is created on the first successful check-in and updated only when a later check-in succeeds. `rclm-hooks-install` by itself does not add the machine when check-in is rejected.
+
+| State | Meaning |
+| --- | --- |
+| **Covered** | Last seen within 72 hours, DLP on, and every present client reports hooks installed |
+| **Silent** | Last seen older than 72 hours |
+| **Uncovered** | Fails any covered check |
+| **Direct** | A required provider is classified as bypassing the gateway |
+
+Opening an assistant can refresh **last seen** from session start without completing a full check-in. Hook status, DLP, routing, and heartbeat still change only on a successful check-in. A machine can keep its last healthy inventory while someone is still opening assistants, then move to **Silent** after 72 hours once that stops. Heartbeat cannot fill that gap when check-in is rejected.
+
+## Device identity and the device API key
+
+Each OS account has one device id in `~/.reclaimllm/device.json`. On the first successful check-in for that id, the server issues a `device_api_key` once. The client stores the plaintext only in that account's `~/.reclaimllm/config.json` and sends it on later check-ins. The server keeps a hash and does not return the plaintext again.
+
+This key is separate from the account API key. Session upload and MCP keep using the account API key.
+
+`pip install -U rclm` does not edit the config file. `rclm-hooks-install` merges the existing file and keeps `device_api_key` when it is already there. The installer does not rotate that key. When the file already contains an account `api_key`, the installer reuses that account unless you pass `--api-key`.
+
+### Same OS account, second ReclaimLLM user
+
+Installing hooks for a different ReclaimLLM user in the same home keeps the same device id. The installer does not issue a second device key.
+
+| Local `device_api_key` | What Coverage shows |
+| --- | --- |
+| Still present, and you pass `--api-key` for the new user | The next successful check-in moves that one device row to the new user. There is no second machine. |
+| Missing | Check-in is rejected. The new user never appears. The earlier user's row stays and stops updating. |
+| Present, and you do not pass a new `--api-key` | The machine stays enrolled to the account key already in `config.json`. |
+
+`rclm-hooks-install` and `rclm-hooks-install --repair` retry check-in. They do not restore a missing device key. Session upload still works with the account API key.
+
+<Warning>
+  A lost device key is not reissued while the server still has that device's key hash. Deleting `~/.reclaimllm/device.json` creates a new device id and a new row after the next successful check-in. The previous row stays until it goes silent, and another device for the same user can retire it after 14 days without a successful check-in.
+</Warning>
+
+### Different OS login
+
+A different OS user has a separate home directory. The first user's `device_api_key` stays in their own `~/.reclaimllm/config.json`. The new login enrolls as its own device after its first successful check-in.
 
 ## What you can do
 

@@ -41,7 +41,7 @@ Mappings affect project labels and filters across the Dashboard and Stats page. 
 
 ### Device health
 
-When your account belongs to an organization with Coverage enabled, **Device health** lists your enrolled machines: hook status per coding agent, DLP on/off, and last seen. Use **Copy repair command** (`rclm-hooks-install --repair`) to restore hooks.
+When your account belongs to an organization with Coverage enabled, **Device health** lists your enrolled machines: hook status per coding agent, DLP on/off, and last seen. Use **Copy repair command** (`rclm-hooks-install --repair`) to restore hooks. Repair retries check-in. It does not restore a missing `device_api_key` in `~/.reclaimllm/config.json`. That key is issued once per device id on this OS account. See [Device identity and the device API key](/enterprise/dashboard/coverage#device-identity-and-the-device-api-key).
 
 What ReclaimLLM collects for coverage: hook install status, DLP flag, heartbeat flag, a gateway-vs-direct routing class (never URLs or keys), `rclm` version, and a hashed hostname. No keystrokes, process lists, or file contents.
 

@@ -34,7 +34,9 @@ Devices enroll lazily — there are no synthetic “bootstrap” devices for exi
 3. The **first** observation of a client status is a baseline. AD-010 fires only on later transitions away from `installed`.
 4. A 30-minute grace period holds `installed` → `missing`/`partial` right after an `rclm` version change (upgrade/reinstall races).
 
-Check-ins also run from **SessionStart** (throttled) and from **`rclm-heartbeat`** when the OS timer is installed (`--heartbeat` or org **Require heartbeat**).
+Check-ins also run from **SessionStart** (throttled) and from **`rclm-heartbeat`** when the OS timer is installed (`--heartbeat` or org **Require heartbeat**). A plain `rclm-hooks-install` check-in is skipped when the last fingerprint is unchanged and newer than six hours. `--repair` forces the attempt.
+
+The server issues one `device_api_key` per device id and stores only a hash. Later check-ins must present that key. It lives in the OS account's `~/.reclaimllm/config.json`, separate from the account API key. Reinstalling hooks keeps an existing device key and does not mint a replacement. If the key is missing, check-in is rejected: a second ReclaimLLM user on the same OS account does not appear, and the earlier device row stops updating. A different OS login has its own home directory and enrolls as a separate device. Full cases are in [Device identity and the device API key](/enterprise/dashboard/coverage#device-identity-and-the-device-api-key).
 
 ## Integrity rules that reduce false alarms
 

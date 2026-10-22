@@ -119,6 +119,8 @@ rclm-hooks-install --heartbeat
 rclm-hooks-install --no-dlp
 ```
 
+The installer keeps an existing `device_api_key` in `~/.reclaimllm/config.json` and does not rotate it. On one OS account that key belongs to one device id. Installing again for a different ReclaimLLM user does not create a second key. If `device_api_key` is missing, check-in is rejected and that user does not appear on Coverage. `--repair` retries check-in; it does not restore the key. Details: [Device identity and the device API key](/enterprise/dashboard/coverage#device-identity-and-the-device-api-key).
+
 Admins monitor fleet posture on the [Coverage tab](/enterprise/dashboard/coverage). Concepts: [Coverage Alerts](/enterprise/coverage).
 
 ### Upload folder filters
