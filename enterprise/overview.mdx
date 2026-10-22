@@ -65,6 +65,10 @@ Enterprise builds on top of the full Paid feature set and adds an organizational
   <Card title="Session sharing & governance" icon="key">
     Control whether sessions are visible org-wide or team-only, set data retention and legal hold, and normalize project names across the org — all from the Settings tab.
   </Card>
+
+  <Card title="SIEM webhook" icon="tower-broadcast" href="/enterprise/dashboard/siem">
+    Send completed audit events to one HTTPS endpoint. Delivery is at least once, idempotent on event id, and contains no prompts or session bodies.
+  </Card>
 </CardGroup>
 
 ## How the org layer works
@@ -96,10 +100,6 @@ The current enterprise release focuses on observability, the LLM gateway, role-b
 
   <Accordion title="Sensitive data alerts">
     Route alerts for sensitive-content detections to Slack, PagerDuty, or a webhook of your choice so security teams can respond immediately.
-  </Accordion>
-
-  <Accordion title="SIEM integration">
-    Forward structured event data via webhook or syslog into your existing security information and event management stack.
   </Accordion>
 
   <Accordion title="Audit log">

@@ -105,6 +105,7 @@
                   "enterprise/dashboard/teams",
                   "enterprise/dashboard/api-keys",
                   "enterprise/dashboard/audit",
+                  "enterprise/dashboard/siem",
                   "enterprise/dashboard/settings"
                 ]
               }
