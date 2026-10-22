@@ -101,7 +101,6 @@
                   "enterprise/dashboard/files",
                   "enterprise/dashboard/model-analysis",
                   "enterprise/dashboard/sessions",
-                  "enterprise/dashboard/members",
                   "enterprise/dashboard/teams",
                   "enterprise/dashboard/api-keys",
                   "enterprise/dashboard/audit",
@@ -130,6 +129,11 @@
     }
   },
   "redirects": [
+    {
+      "source": "/enterprise/dashboard/members",
+      "destination": "/enterprise/dashboard/teams",
+      "permanent": true
+    },
     {
       "source": "/features/search-replay",
       "destination": "/user-portal/dashboard",
