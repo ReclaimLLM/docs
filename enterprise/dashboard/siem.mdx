@@ -1,0 +1,72 @@
+---
+title: "SIEM Tab: Webhook Delivery of Audit Events"
+sidebarTitle: "SIEM"
+description: "Send completed enterprise audit events to one HTTPS SIEM webhook, choose categories, and monitor delivery health."
+keywords: ["SIEM", "webhook", "audit events", "security event delivery", "idempotency", "enterprise audit"]
+---
+
+The SIEM tab (`/enterprise/orgs/{org_id}/siem`) forwards completed enterprise audit events to one HTTPS endpoint. ReclaimLLM is the producer. Your SIEM is the consumer.
+
+The internal record stays on the [Audit](/enterprise/dashboard/audit) tab. SIEM delivery sends that record outward. It does not create a second analytics product.
+
+## What you'll see
+
+- **Destination** — enable or disable delivery, one webhook URL, and authentication.
+- **Event categories** — which new audit categories are sent.
+- **Delivery health** — queued, retrying, failed, consecutive failures, last success, and last failure.
+- **Contract** — schema version, at-least-once delivery, `event_id` idempotency, a 24-hour retry window, and no history replay.
+
+<Note>
+  Payloads contain the audit record only. They do not include prompts, responses, session bodies, raw request bodies, or the destination secret.
+</Note>
+
+The **?** next to **SIEM webhook** summarizes the same rules.
+
+## What you can do
+
+| Action | How |
+| --- | --- |
+| **Save configuration** | Set the HTTPS URL, auth mode, secret, and categories, then save |
+| **Send test event** | Deliver a test to the saved destination and show latency or a safe failure code |
+| **Retry failed deliveries** | Requeue events already marked failed. Available when delivery is enabled and the failed count is greater than zero |
+
+Authentication is a bearer token or one API-key header. The header name is required for API-key mode and defaults to `X-SIEM-API-Key`. The secret is encrypted at rest. After it is saved, the page shows that a secret is configured and does not return the value. Leave the field blank to keep the current secret.
+
+Redirects and private-network destinations are rejected.
+
+## Event categories
+
+| Category | What it covers |
+| --- | --- |
+| **Organization** | Organization lifecycle and ownership |
+| **Identity** | Invites, members, and role changes |
+| **Teams** | Team creation and membership |
+| **Policy** | Retention, sharing, hooks, and projects |
+| **Security** | Encryption, SSO, SIEM, and audit exports |
+| **Credentials** | API keys, providers, and gateway models |
+| **Billing** | Checkout and subscription lifecycle |
+| **Sensitive access** | Session decrypt and export access |
+
+Only completed events in the selected categories are delivered, and only events that finish after delivery is enabled. Pending audit events are not sent. Historical replay is off.
+
+## Delivery contract
+
+Each request is one JSON event:
+
+- `schema_version` is `1.0`
+- `event_id` is the idempotency key, also sent as `Idempotency-Key` and `X-ReclaimLLM-Event-ID`
+- A `2xx` response counts as delivered
+- Delivery is at least once. Receivers must tolerate a duplicate `event_id`
+- Temporary failures retry for 24 hours
+- A configuration failure is not retried automatically
+
+Health states are **Disabled**, **Healthy**, **Retrying**, and **Needs attention**.
+
+## Who sees it
+
+Admin only, from the Admin menu.
+
+## Related pages
+
+- [Audit](/enterprise/dashboard/audit) — the ledger these events come from
+- [Compliance](/enterprise/compliance) — RC-AI-09 uses SIEM delivery when it is enabled

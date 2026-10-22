@@ -76,7 +76,7 @@ When a developer joins your organization, their existing captured sessions can b
 
 ## What's coming
 
-The current observability release covers the org-wide usage dashboard, cross-developer analytics, session drill-down, and the Tokens tab. The following are in active development:
+The current observability release covers the org-wide usage dashboard, cross-developer analytics, session drill-down, and the Tokens tab. Completed audit events are a separate feed: admins send them to an external SIEM from the [SIEM tab](/enterprise/dashboard/siem). The following are in active development:
 
 <AccordionGroup>
   <Accordion title="Cost attribution + budget alerts">
@@ -87,9 +87,6 @@ The current observability release covers the org-wide usage dashboard, cross-dev
   </Accordion>
   <Accordion title="Sensitive data alerts">
     Receive real-time alerts when DLP scanning flags sensitive content in captured sessions. Route alerts to Slack, PagerDuty, email, or a webhook.
-  </Accordion>
-  <Accordion title="SIEM integration">
-    Export structured event data via webhook or syslog into your existing SIEM stack for correlation with other organizational security signals.
   </Accordion>
   <Accordion title="Observability backend export">
     Forward normalized cross-provider metrics and events from RCLM into your existing observability stack — dashboards, alerting, or event analysis tools — through a single export integration.
