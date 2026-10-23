@@ -3,7 +3,7 @@ title: "Compliance Tab: Control Health, Access Reviews, and Exceptions"
 sidebarTitle: "Compliance"
 description: "Use Control health, access reviews, risk exceptions, and CSV evidence exports to produce content-free AI compliance evidence for your organization."
 icon: "clipboard-list-check"
-keywords: ["compliance dashboard", "control health", "compute preview", "access reviews", "risk exceptions", "evidence export", "RC-AI-07", "accept risk"]
+keywords: ["compliance dashboard", "control health", "compute preview", "access reviews", "risk exceptions", "evidence export", "RC-AI-01", "RC-AI-05", "RC-AI-07", "accept risk"]
 ---
 
 The Compliance section (`/enterprise/orgs/{org_id}/compliance`) is the admin and team-lead workspace for control-health evidence. Concepts and catalog details live in [Compliance](/enterprise/compliance).
@@ -39,6 +39,8 @@ Path: `/enterprise/orgs/{org_id}/compliance`
 | Read statuses | Admin, team lead | Team leads see team-filtered populations for RC-AI-01, 03, and 04; other controls are org-wide read-only |
 
 Snapshots also run nightly at **02:00** in the organization timezone (from alert settings; default America/Toronto). Until the first snapshot exists, status shows as **pending**.
+
+What each RC-AI id means, and how to produce pass, warn, fail, or na, is in [What each control means](/enterprise/compliance#what-each-control-means).
 
 <Note>
   Population rows are IDs and categories only. They never include prompts, file contents, or secret values.

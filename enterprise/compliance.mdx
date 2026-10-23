@@ -3,7 +3,7 @@ title: "AI Compliance Evidence: Control Health Without Content Exfiltration"
 sidebarTitle: "Compliance"
 description: "Daily control-health snapshots, access reviews, and risk exceptions that produce auditor-ready evidence from ReclaimLLM metadata — never prompts or file contents."
 icon: "clipboard-check"
-keywords: ["SOC 2", "AI compliance", "control health", "access review", "risk exceptions", "RC-AI", "evidence pack", "auditor", "content-free", "TSC"]
+keywords: ["SOC 2", "AI compliance", "control health", "access review", "risk exceptions", "RC-AI", "RC-AI-01", "RC-AI-05", "evidence pack", "auditor", "content-free", "TSC"]
 ---
 
 Compliance in ReclaimLLM is an **evidence report** for AI coding controls — not a SOC 2 attestation or certification. It turns coverage, anomalies, gateway usage, offboarding, and alert delivery into daily control statuses that auditors can rely on without seeing prompts, code, or secrets.
@@ -46,7 +46,7 @@ Compliance in ReclaimLLM is an **evidence report** for AI coding controls — no
 | **RC-AI-10** | Retention executed; legal hold honored | Retention / legal hold / compliance retention days | warn if retention lowered below policy |
 | **RC-AI-11** | Security alerts delivered | Alert delivery success rate | ≥99% |
 
-Controls that need later features (vendor register, incidents) are seeded when those features ship so Control health does not show noisy `na` / `fail` rows early.
+**RC-AI-06** (approved AI vendors) and **RC-AI-12** (incident playbook) are not on Control health yet. They appear when those features ship, so the page does not show empty fail rows.
 
 ## Status meanings
 
@@ -57,6 +57,177 @@ Controls that need later features (vendor register, incidents) are seeded when t
 | **fail** | Missed the control criteria |
 | **na** | Not applicable (no population, feature not enabled, or enterprise prerequisite missing) |
 | **pending** | No snapshot yet for that control |
+
+## How to check a control
+
+<Steps>
+  <Step title="Open Control health">
+    Go to **Compliance → Control health** (`/enterprise/orgs/{org_id}/compliance`). Admins and team leads can read it. Developers do not see this tab.
+  </Step>
+  <Step title="Refresh today's result">
+    Nightly snapshots run at **02:00** org time. An admin can click **Compute preview now** to evaluate every control for today immediately.
+  </Step>
+  <Step title="Open View population">
+    Click **View population** on that row. The panel lists the evidence for the evaluation: counts, categories, and IDs. It never includes prompts, file contents, or secret values. Team leads see team-filtered rows for RC-AI-01, RC-AI-03, and RC-AI-04. Every other control is org-wide.
+  </Step>
+</Steps>
+
+<Note>
+  **View population** evaluates today. The status badge is the latest stored snapshot, which can be yesterday until the nightly job or **Compute preview now** runs.
+</Note>
+
+## What each control means
+
+### RC-AI-01 — DLP enabled on enrolled devices
+
+Share of expected people whose device has DLP on. A person is expected when they are a developer or team lead and they have a recent session, a device check-in, or a non-retired device.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | At least 98% covered |
+| **warn** | At least 90% and below 98% |
+| **fail** | Below 90% |
+| **na** | No expected people |
+
+**View population** shows one row, **Org DLP coverage on** that day. On fail or warn, the panel states how many expected people were covered and links to [Coverage](/enterprise/coverage). A usual miss is someone with recent activity and no enrolled device (`no_device`), a stale device, or DLP turned off.
+
+**Check it:** enroll a device for each active developer and team lead and leave DLP on, then **Compute preview now**. Open Coverage to see the uncovered person. Removing the last expected device makes the control **na**.
+
+### RC-AI-02 — Sensitive reads redacted before transmission
+
+Sensitive file reads should be redacted or blocked before they leave the device. The control uses sensitive file-access events when they exist, and AD-004 findings otherwise.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | DLP gap ratio ≤ 2% and every gap finding is triaged |
+| **warn** | Gap ratio ≤ 4%, or at least 90% of gap findings are triaged |
+| **fail** | Gap ratio above 4% and triage below 90% |
+| **na** | No sensitive reads in the window |
+
+**View population** lists the sensitive reads or AD-004 findings, with the session link, matched pattern, and DLP gap counts.
+
+**Check it:** read a sensitive file (for example a `.env`) with DLP on, then preview. The row should show the read as covered. Turn DLP off for one sensitive read and leave the finding open to see **warn** or **fail**. Disposition the finding on [Signals](/enterprise/dashboard/signals) and preview again.
+
+### RC-AI-03 — High and critical anomalies triaged within SLA
+
+High and critical findings that are old enough to have missed the SLA (default 2 business days), looking back 30 days from that cut.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | At least 95% dispositioned on time |
+| **warn** | At least 85% and below 95% |
+| **fail** | Below 85% |
+| **na** | No high or critical findings in the window |
+
+**View population** lists those findings and whether they are still new or already dispositioned.
+
+**Check it:** leave a high or critical finding open past the SLA, preview, and confirm **fail** or **warn**. Disposition it on Signals within the window and preview again for **pass**. With no such findings, the status stays **na**.
+
+### RC-AI-04 — Hook tampering detected and resolved
+
+AD-010 hook-tamper findings from the last 30 days. Pass requires every finding to be resolved within 5 days.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | 100% resolved within 5 days |
+| **warn** | At least 80% and below 100% |
+| **fail** | Below 80% |
+| **na** | No hook-tamper findings |
+
+**View population** lists the AD-010 findings.
+
+**Check it:** on [Coverage](/enterprise/coverage), confirm there is no open tamper finding (**na** or **pass**). If one exists, resolve it within 5 days and preview. Leaving it open past 5 days fails the control.
+
+### RC-AI-05 — LLM traffic through the approved gateway
+
+Compares provider-reported tokens for the day with tokens on proxy sessions ingested that same UTC day. The control stays **na** until the org is Enterprise, has at least one gateway key that is not revoked, and provider usage reconciliation is on.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | Unreconciled ratio ≤ 1% |
+| **warn** | Above 1% and at or below 3% |
+| **fail** | Above 3%, or both provider and gateway token totals are 0 |
+| **na** | Not Enterprise, no active gateway key, or reconciliation is off |
+
+Zero traffic after reconciliation is enabled is a **fail** (`no_proxy_traffic`). **View population** lists proxy sessions. With no traffic, the only row is the org id and the date.
+
+**Check it:**
+
+1. In org settings, turn on **Enable provider usage reconciliation** and save an Anthropic or OpenAI admin key.
+2. Click **Compute preview now**. With reconciliation on and no usage or proxy tokens today, RC-AI-05 changes from **na** to **fail**.
+3. After gateway traffic and a `provider_usage_daily` total land within 1% of each other, preview again for **pass**. A gap around 2% warns. A gap above 3% fails.
+
+### RC-AI-07 — Quarterly access review completed
+
+An access-review campaign that was completed and attested within 92 days.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | Latest in-window campaign is attested and has no segregation-of-duties exceptions |
+| **warn** | That campaign has at least one SoD self-review |
+| **fail** | No completed and attested campaign in the window |
+
+The fail row explains why (no campaign, still in progress, completed without attestation, or older than the window) and links to Access reviews. **View population** lists the review items from the latest attested campaign.
+
+**Check it:** under **Access reviews**, create a campaign, decide every item, and complete it with attestation checked. Preview. RC-AI-07 should **pass**. Completing it without attestation, or letting the latest attested campaign age past 92 days, **fails**. A single-admin self-review records an SoD exception and **warns**.
+
+### RC-AI-08 — Departed members lose access within 24 hours
+
+Gateway and org API keys created by a removed member must be revoked within 24 hours of `member.removed`. Shared-key exposure items that stay open longer than 7 days warn even when nobody was removed that day.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | Removals in the last 2 days, and every owned key revoked within 24 hours |
+| **warn** | A shared-key exposure item is still open after 7 days |
+| **fail** | An owned key is still active, or was revoked after 24 hours |
+| **na** | No recent removals and no stale shared-key items |
+
+**View population** lists the key ids (`ok` or `late`) or the stale shared-key items.
+
+**Check it:** remove a test member who created a gateway or org API key. Revoke that key immediately and preview for **pass**. Leave the key active and preview for **fail**. After a real removal, decide the off-cycle shared-key items (rotate or keep) within 7 days so the control does not **warn**.
+
+### RC-AI-09 — Security policy changes are logged and authorized
+
+Policy and security audit events for the day must be performed by an admin. When a [SIEM destination](/enterprise/dashboard/siem) is enabled, delivery success for that day is included.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | Every event has an admin actor, and SIEM delivery is at least 99% when SIEM is on |
+| **warn** | Admin share is below 100% but within 5 points, or SIEM delivery is short while admins authored the events |
+| **fail** | Admin share is more than 5 points below 100% |
+| **na** | No policy or security audit events that day |
+
+**View population** lists the audit event ids and whether the actor was an admin.
+
+**Check it:** change a security or policy setting as an admin, then preview. The new event should be in the population with status **admin**, and the control should **pass** when SIEM is off or delivering. A day with no such changes stays **na**.
+
+### RC-AI-10 — Retention is executed and legal hold is honored
+
+Compliance retention stays at or above the Type II window default (400 days). Legal hold blocks purge.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | Compliance retention is at least 400 days and has not been lowered |
+| **warn** | Retention was lowered, or the configured days are below 400 |
+
+**View population** shows one row, **Retention policy**, with the reason. A lowered value also shows a banner on Control health.
+
+**Check it:** leave **Compliance → Settings** at the default and preview for **pass**. Lower compliance retention, confirm the warning, and preview for **warn**. Turning legal hold on keeps purge blocked. The control stays **pass** while retention itself is still at the floor.
+
+### RC-AI-11 — Security alerts are delivered
+
+Share of alert deliveries created that day that reached `sent` or `skipped`.
+
+| Result | Rule |
+| --- | --- |
+| **pass** | At least 99% |
+| **warn** | At least 94% and below 99% |
+| **fail** | Below 94% |
+| **na** | No alert deliveries that day |
+
+**View population** lists each delivery id, tier, and status.
+
+**Check it:** send a test alert from [Signals](/enterprise/dashboard/signals) or wait for a real finding email, then preview. A successful send **passes**. A day with no deliveries stays **na**.
 
 ## Access reviews
 
