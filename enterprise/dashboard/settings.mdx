@@ -5,7 +5,7 @@ description: "Data retention, session sharing, encryption, project name mappings
 keywords: ["data retention", "SSO", "org governance settings"]
 ---
 
-The Settings tab (`/enterprise/orgs/{org_id}/settings`) collects org-wide governance controls that apply across every member and team.
+The Settings tab (`/enterprise/orgs/{org_id}/settings`) collects org-wide governance controls that apply across every member and team. For the admin workflow, including enterprise deletion, see [Enterprise settings](/admin/settings).
 
 ## Data retention policy
 
@@ -53,6 +53,10 @@ See [Coverage Alerts](/enterprise/coverage) for enrollment, privacy, and detecto
 ## Compliance retention
 
 Compliance metadata retention (snapshots, campaigns, exceptions) is managed under **Compliance → Settings**. Lowering the floor requires confirmation, shows a banner on Control health, and makes RC-AI-10 warn. See [Compliance dashboard](/enterprise/dashboard/compliance#compliance-settings).
+
+## Delete the enterprise
+
+The bottom of Settings schedules a 30-day deletion for every current member. Sessions are hidden and API keys are revoked immediately. An admin can cancel during the grace period. Legal hold blocks the action. See [Delete the enterprise](/admin/settings#delete-the-enterprise).
 
 ## Who sees it
 

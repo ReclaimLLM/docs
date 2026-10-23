@@ -68,3 +68,9 @@ Stripe sends issued invoices and receipts to the billing contact configured for 
 Stripe is the source of truth for paid access. An account with an `active`, `trialing`, or `past_due` Stripe subscription is treated as having a current subscription in RCLM and does not receive the expired trial message.
 
 If billing details are temporarily unavailable, retry the page after Stripe connectivity is restored. Enterprise billing is visible only to organization administrators.
+
+## Cancel a plan
+
+To switch a personal Pro plan to Free, or to delete a personal account, follow [Cancel Pro or delete your account](/plans/cancel). Pro stays active until 24 hours before the next payment collection. Account deletion is a separate 30-day process.
+
+Enterprise cancellation is done by an organization admin from [Enterprise settings](/admin/settings#delete-the-enterprise).

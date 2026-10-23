@@ -1,0 +1,66 @@
+---
+title: "Cancel Pro or Delete Your Account"
+sidebarTitle: "Cancel"
+description: "Switch a personal Pro plan to Free before the next payment, or schedule account deletion with a 30-day grace period."
+icon: "circle-xmark"
+keywords: ["cancel Pro", "downgrade to Free", "delete account", "account deletion", "30-day grace period"]
+---
+
+Personal plans are managed from **Settings**. Switching Pro to Free stops the next payment. Deleting the account is a separate 30-day process that removes the account and its personal data.
+
+Enterprise members cannot cancel their own plan or delete their own account. An organization admin does that from [Enterprise settings](/admin/settings#delete-the-enterprise).
+
+## Switch Pro to Free
+
+Open [Settings](https://reclaimllm.com/settings) and select **Free** on the plan control. Pro stays active until 24 hours before the next payment collection, and that payment is not collected. Settings shows the date as **Moves to Free**.
+
+<Warning>
+  If the next payment collection is already within 24 hours, Pro ends immediately so that payment is not collected. There is no proration charge and no final invoice.
+</Warning>
+
+ReclaimLLM emails you when the switch is scheduled, when it happens immediately, and when you keep Pro.
+
+<Steps>
+  <Step title="Open Settings">
+    Go to [reclaimllm.com/settings](https://reclaimllm.com/settings). The plan control is at the top of the page.
+  </Step>
+  <Step title="Select Free">
+    Confirm the date in the dialog. **Billing details** on the same page shows the next payment collection date.
+  </Step>
+  <Step title="Keep Pro if you change your mind">
+    While the switch is scheduled, select **Keep Pro**. The next payment is collected on the original date.
+  </Step>
+</Steps>
+
+The Paid tier stays in place until the scheduled time. After that, the account is Free. Captured sessions remain on the account.
+
+## Delete your account
+
+**Delete account** is at the bottom of Settings. It is available on Free and Pro accounts that are not members of an active enterprise.
+
+<Steps>
+  <Step title="Open Delete account">
+    Select **Delete account...** and type `DELETE`.
+  </Step>
+  <Step title="Confirm">
+    Select **Confirm Schedule Deletion**.
+  </Step>
+  <Step title="Use the account during the grace period">
+    You can still sign in. A banner on the dashboard and Settings shows that deletion is pending.
+  </Step>
+</Steps>
+
+Scheduling deletion does this immediately:
+
+- Personal sessions are hidden
+- Personal API keys are revoked
+- A paid subscription stops renewing
+- ReclaimLLM emails you the permanent-deletion date
+
+You have 30 days to select **Cancel Deletion & Keep Account** in Settings, or **Cancel Deletion & Restore** on the banner. Sessions that were hidden come back. Revoked API keys are not recreated; create new keys if you still need them.
+
+After 30 days the account, sessions, and stored files are permanently removed. That cannot be undone.
+
+<Note>
+  Organization sessions are not deleted by a personal account deletion. Enterprise members must ask an admin to [delete the enterprise](/admin/settings#delete-the-enterprise).
+</Note>
