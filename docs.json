@@ -85,7 +85,8 @@
                   "admin/files",
                   "admin/compliance",
                   "admin/audit-log",
-                  "admin/teams"
+                  "admin/teams",
+                  "admin/settings"
                 ]
               },
               {
@@ -116,6 +117,7 @@
             "pages": [
               "plans/overview",
               "plans/billing",
+              "plans/cancel",
               "plans/faq"
             ]
           }

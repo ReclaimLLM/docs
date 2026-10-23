@@ -1,0 +1,129 @@
+---
+title: "Enterprise Settings: Governance and Deletion"
+sidebarTitle: "Settings"
+description: "Change the org slug, retention, sharing, signals, encryption, coverage, and project names, or schedule deletion of the enterprise and every member."
+icon: "gear"
+keywords: ["enterprise settings", "delete enterprise", "data retention", "legal hold", "session sharing", "org slug"]
+---
+
+Enterprise settings apply to the whole organization. Open the organization, choose **Admin**, then **Settings**. Only organization admins can open this page.
+
+The field reference is also on the [Settings tab](/enterprise/dashboard/settings). This page is the admin workflow, including how to delete the enterprise.
+
+## Organization slug
+
+The slug is the path in the gateway URL, `https://proxy.reclaimllm.com/{slug}/v1`.
+
+<Steps>
+  <Step title="Edit the slug">
+    In **Organization**, change **Slug**. Use lowercase letters, numbers, and hyphens.
+  </Step>
+  <Step title="Save">
+    Select **Save slug**. Clients must call the new gateway URL after the change.
+  </Step>
+</Steps>
+
+The organization name on this page is read-only.
+
+## Data retention
+
+**Data Retention Policy** sets how long session data is kept.
+
+- Leave the day count blank to retain sessions until someone deletes them.
+- Enter a number of days and select **Save Policy** to delete older sessions on the nightly job.
+- Turn on **Legal hold** to stop retention deletion. Legal hold also blocks [enterprise deletion](#delete-the-enterprise).
+
+## Session sharing
+
+Sharing is read-only. A member cannot edit, delete, or re-share a session they do not own.
+
+| Setting | What it does |
+| --- | --- |
+| **Share across organization** | Any member can view and search any other member's sessions. |
+| **Share within teams** | Members can view and search sessions from people on their own teams. This has no effect while organization-wide sharing is on. |
+
+Select **Save sharing settings** after changing either toggle.
+
+## Signals and alerts
+
+**Signals Policy** sets the organization-wide P4 wait threshold and whether hooks enforce compression.
+
+- **Session idle gap threshold** defaults to 20 minutes. P4 counts a session when the next user prompt arrives after that gap.
+- **Enforce supported compression** moves supported hooks out of observe-only mode at their next session start. Surfaces that cannot safely rewrite output stay measurement-only.
+
+Select **Save Signals policy**. Hooks pick up the change at the next session start.
+
+**Email Alerts & Cadence** sets who receives immediate P0 alerts and the daily and weekly digests, the organization timezone, minimum severity, included detectors and signals, and project exclusions. Select **Save alert settings**.
+
+Personal delivery choices stay on **My alerts** in the Signals tab. See [Email alerts](/enterprise/dashboard/signals#email-alerts--notification-cadence).
+
+## Session encryption
+
+**Session Encryption** has two controls:
+
+- Org-wide encryption marks new sessions for background encryption. Existing sessions stay as they are until a backfill runs.
+- **Admin decrypt access** allows or blocks org admins and team leads from opening encrypted member session details. Session owners can still open their own sessions.
+
+Select **Save encryption settings**. Recovery keys are covered in [Session encryption](/security/session-encryption).
+
+## Project names
+
+**Project Name Mappings** renames or merges project labels for the whole organization. An org mapping wins over a member's personal mapping wherever the dashboard shows a project name.
+
+## Coverage and DLP
+
+**Coverage & DLP** is the organization policy. The fleet view is on the [Coverage tab](/enterprise/dashboard/coverage).
+
+- **Require DLP for this organization** overrides a local `--no-dlp` flag unless an unexpired exception applies.
+- Heartbeat, gateway hosts, and required providers feed the coverage checks.
+- Enterprise plans can turn on provider usage reconciliation.
+
+Select **Save coverage settings**.
+
+Compliance retention, evidence, and exceptions are under [Compliance settings](/enterprise/dashboard/compliance#compliance-settings), not on this page. SSO is under [Roles & Access](/enterprise/roles-access#sso-saml-oidc).
+
+## Delete the enterprise
+
+**Delete enterprise** schedules the same 30-day account deletion for every current member, including the admin who starts it. It does not remove the organization immediately.
+
+<Warning>
+  This hides personal and organization sessions, revokes personal, organization, and gateway API keys, and stops the enterprise subscription from renewing. After 30 days, member accounts and the organization are permanently removed.
+</Warning>
+
+Legal hold blocks this action. Clear the hold in **Data Retention Policy** first if the organization should be deleted.
+
+<Steps>
+  <Step title="Open Delete enterprise">
+    At the bottom of Settings, select **Delete enterprise...**.
+  </Step>
+  <Step title="Confirm">
+    Type `DELETE`, then select **Confirm schedule deletion**.
+  </Step>
+  <Step title="Tell members">
+    Each member who was not already pending deletion receives the account-deletion email with the permanent-deletion date.
+  </Step>
+</Steps>
+
+What stops immediately:
+
+- Personal sessions and organization sessions are hidden
+- Personal API keys, organization API keys, and gateway keys are revoked
+- Pending invitations are removed
+- The enterprise subscription and any personal subscriptions stop renewing
+- The gateway and new invites no longer accept this organization
+
+The organization stays in the admin's organization list so Settings can still be opened.
+
+### Cancel enterprise deletion
+
+During the 30 days, an admin can select **Cancel deletion & keep enterprise** on the same page. That restores members who are still pending deletion and brings back the organization sessions that were hidden for this deletion.
+
+<Note>
+  Revoked API keys are not restored. Create new personal, organization, or gateway keys after cancelling.
+</Note>
+
+A member cannot cancel only their own account from personal Settings while the enterprise deletion is still scheduled. After an admin cancels the enterprise deletion, a member who is still pending can restore their own account from personal Settings.
+
+After 30 days the nightly job removes member accounts first, then the organization and its remaining data. That cannot be undone.
+
+Personal Pro cancellation is separate. Members manage that on [Cancel Pro or delete your account](/plans/cancel) only when they are not in an active enterprise.
