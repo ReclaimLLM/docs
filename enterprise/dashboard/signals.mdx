@@ -3,7 +3,7 @@ title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
 description: "Find recurring AI-work patterns, review deterministic anomalies, and configure tiered email alerts with org routing and personal preferences."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "runaway coding agent", "AI usage anomaly", "sensitive file access", "DLP", "proxy operation spike", "env file", "AI cybersecurity", "email alerts", "alert cadence", "security digests", "security inbox", "zero-exfiltration"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
 ---
 
 The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them. Every org member can also open **Configure Email Alerts & Cadence** to manage personal alert preferences.
@@ -145,9 +145,107 @@ A canonical proxy operation title appears for the first time in the organization
 
 #### AD-010…AD-013 — Coverage and tamper
 
-Device check-ins and daily coverage jobs surface hook tamper (**AD-010**), DLP-off (**AD-011**), silent devices (**AD-012**), and gateway bypass (**AD-013a/b**, Enterprise reconciliation **AD-013c**). These findings share the same acknowledge / resolve / dismiss workflow as session anomalies.
+These detectors report when ReclaimLLM protection is missing, turned off, or bypassed. **AD-010**, **AD-011**, and **AD-013b** appear on the next device check-in. **AD-012**, **AD-013a**, and **AD-013c** wait for the nightly anomaly job, so a same-day test stays empty until that run.
 
-**Typical next steps:** Open the [Coverage tab](/enterprise/dashboard/coverage) for the device row, then ask for `rclm-hooks-install --repair` or adjust Require DLP / exceptions. Full calculation logic is in [Anomalies](/enterprise/anomalies#ad-010--hooks-tampered-or-missing) and [Coverage Alerts](/enterprise/coverage).
+Filter **Anomaly reports** by the detector code. The row title is the meaning (`Hooks tampered or missing`, `DLP disabled`, and so on). The code `AD-010` is the stable id above that title. [Coverage](/enterprise/dashboard/coverage) lists open **AD-010**, **AD-011**, **AD-012**, and **AD-013b** on the device row. **AD-013a** is a member finding and **AD-013c** is an org finding, so they show here and not on that device cell.
+
+Calculation detail is in [Anomalies](/enterprise/anomalies#ad-010--hooks-tampered-or-missing) and [Coverage Alerts](/enterprise/coverage).
+
+##### AD-010 — Hooks tampered or missing
+
+Fires when a client that was already `installed` later checks in as `missing`, `partial`, `disabled`, or `modified`, when the client sends an uninstall, or when the policy signature is invalid. The first check-in for a client is a baseline and does not fire. An `rclm` version change holds `installed` → `missing` or `partial` for 30 minutes. Severity is **high** when that user has hook sessions in the last 14 days, otherwise **warning**. The Signals title is **Hooks missing: Cursor** (client and new status), or **Hooks tampered or missing** when the client is not named.
+
+<Steps>
+  <Step title="Establish a baseline">
+    Install hooks and check in once so the client status is `installed`. Confirm Anomaly reports has no AD-010 row.
+  </Step>
+  <Step title="Report the hooks gone">
+    On a later check-in, report that same client as `missing` (or send uninstall). The finding appears immediately on Signals and as `AD-010` on the Coverage device row.
+  </Step>
+  <Step title="Repair">
+    Run `rclm-hooks-install --repair` and check in with status `installed`. The finding resolves itself.
+  </Step>
+</Steps>
+
+<Note>
+  Testing during the 30-minute upgrade window will not fire `installed` → `missing` or `partial`. Wait out the grace period, or use `disabled`, `modified`, uninstall, or an invalid policy signature.
+</Note>
+
+##### AD-011 — DLP disabled
+
+Fires on a check-in where DLP is off and there is no active DLP exception. **Warning** when **Require DLP** is off. **High** when **Require DLP** is on. Turning DLP back on resolves the `disabled` finding. Sending `--no-dlp` while Require DLP is on creates a separate **warning** titled **DLP opt-out attempted**, even when the effective DLP flag stays on.
+
+<Steps>
+  <Step title="Check in with DLP off">
+    Check in with DLP disabled and no DLP exception. Confirm a **DLP disabled** row on Signals and `AD-011` on Coverage.
+  </Step>
+  <Step title="Raise severity">
+    Turn on **Require DLP** in Coverage settings and check in again with DLP still off. The finding is **high**.
+  </Step>
+  <Step title="Clear it">
+    Check in with DLP on. The `disabled` finding resolves. An opt-out attempt while Require DLP is on stays as its own warning until you review it.
+  </Step>
+</Steps>
+
+##### AD-012 — Device silent
+
+Nightly. The device must be a normal machine (not ephemeral, not retired), with check-ins or hook sessions on at least 3 weekdays in the last 10 business days, then quiet past the silence setting (default 2 business days).
+
+After the nightly job, the title is **Device silent** or **Device silent (corroborated)**. Corroborated means that user still has gateway proxy traffic, or another of their devices checked in, during the quiet period. A laptop that is simply off, with no other activity, is the uncorroborated variant.
+
+<Steps>
+  <Step title="Build a baseline">
+    Use a durable device that has checked in or produced hook sessions on at least 3 weekdays in the last 10 business days.
+  </Step>
+  <Step title="Go quiet">
+    Stop check-ins and hook sessions for longer than the silence setting (default 2 business days). Leave gateway traffic or another device active if you want the corroborated variant.
+  </Step>
+  <Step title="Wait for the nightly job">
+    Open Anomaly reports the next day and filter **AD-012**. Coverage shows the open finding on that device row.
+  </Step>
+</Steps>
+
+##### AD-013a — Gateway without hooks
+
+Nightly. The org needs at least one proxy session that day. One user needs at least 3 proxy sessions and zero hook sessions (`record_type = session`) in the same day. The finding is on the member, so it appears in Anomaly reports and not in the Coverage device column. One hook session for that user in the same day keeps it quiet.
+
+<Steps>
+  <Step title="Send gateway traffic without hooks">
+    Produce at least 3 proxy sessions for one user in the evaluation day, and no hook-captured sessions for that user.
+  </Step>
+  <Step title="Wait for the nightly job">
+    Filter Anomaly reports by **AD-013a**. The subject is the member, not a device.
+  </Step>
+</Steps>
+
+##### AD-013b — Direct provider routing
+
+Fires on the next check-in when routing for a **gateway required provider** is `direct`. `unknown` does not fire. With no required providers configured, this detector does not fire. The Signals title is **Direct routing:** plus the provider name.
+
+<Steps>
+  <Step title="Require a provider">
+    In Coverage settings, set at least one gateway required provider, such as Anthropic or OpenAI.
+  </Step>
+  <Step title="Check in as direct">
+    On the next device check-in, report that provider's routing class as `direct`. Confirm **Direct routing** on Signals and `AD-013b` on the Coverage device row.
+  </Step>
+</Steps>
+
+##### AD-013c — Provider usage unreconciled
+
+Stays off until the org is Enterprise, **Enable provider usage reconciliation** is on, and a gateway key exists. The nightly job compares the previous day's provider usage with gateway tokens. It fires **high** when provider usage is on a key that is not a gateway key, or when provider tokens are more than 1.1 times the gateway tokens for that key. A day with no provider usage row does not fire.
+
+<Steps>
+  <Step title="Turn reconciliation on">
+    In org settings, enable provider usage reconciliation and save an Anthropic or OpenAI admin key. Confirm a non-revoked gateway key exists.
+  </Step>
+  <Step title="Create a gap">
+    For the previous UTC day, have provider-reported tokens on a key that is not a gateway key, or provider tokens above 1.1 times that key's gateway tokens.
+  </Step>
+  <Step title="Wait for the nightly job">
+    Filter Anomaly reports by **AD-013c**. The subject is the organization.
+  </Step>
+</Steps>
 
 ### Finding status workflow
 
