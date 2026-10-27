@@ -3,7 +3,7 @@ title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
 description: "Find recurring AI-work patterns, review deterministic anomalies, and configure tiered email alerts with org routing and personal preferences."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "external network egress", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
 ---
 
 The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them. Every org member can also open **Configure Email Alerts & Cadence** to manage personal alert preferences.
@@ -94,6 +94,7 @@ Each finding shows its detector code, severity, status, subject, latest occurren
 | **AD-011** | DLP disabled | Device reports DLP off without an active exception. | Local `--no-dlp` is allowed until Require DLP is on. |
 | **AD-012** | Device silent | A formerly active device stops checking in past the silence threshold. | Medium severity needs corroboration; retire unused machines. |
 | **AD-013a/b** | Gateway bypass | Gateway usage without hooks, or `direct` routing for a required provider. | `unknown` routing is never bypass; inert without gateway config. |
+| **AD-015** | External network egress | Sessions where an AI agent initiates outbound network connections to non-local hosts or IPs via `curl`, `wget`, `scp`, `rsync`, `nc`, inline or agent-written scripts, or native web tools. | Outbound requests can occur during legitimate API testing or documentation fetches. Check the destination host/IP, egress method, and whether data was uploaded (`POST`/`PUT`/`scp`), or add approved internal/partner hosts to the org safe list. |
 
 #### AD-001 — Usage baseline deviation
 
@@ -247,11 +248,27 @@ Stays off until the org is Enterprise, **Enable provider usage reconciliation** 
   </Step>
 </Steps>
 
+#### AD-015 — External network egress
+
+Fires when a session initiates an outbound network connection to a non-local destination across any model or coding client. The detector inspects four surfaces:
+
+- **Shell HTTP** (`curl`, `wget`, `http`/`https`, `xh`, `aria2c`, `Invoke-WebRequest` / `Invoke-RestMethod`)
+- **Shell transfer & sockets** (`scp`, `sftp`, `rsync`, `nc` / `ncat` / `netcat`, `socat`, `telnet`, `ftp`, `/dev/tcp/<host>/<port>`)
+- **Programmatic script egress** (`python -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`, or agent-written files combining `requests`, `urllib`, `httpx`, `aiohttp`, `socket`, `paramiko`, `fetch`, `axios`, or `http.request` with an external URL or IP)
+- **Native web fetch** (`WebFetch`, `web_fetch`, `fetch_url`, `http_request`)
+
+Localhost and loopback addresses (`localhost`, `127.0.0.0/8`, `::1`, `0.0.0.0`, `host.docker.internal`) are automatically ignored. Read-only native `WebFetch` calls fire as **Warning**; shell/script/transfer egress or raw IP literals fire as **High**; and outbound uploads (`POST`/`PUT`/`PATCH`/`--data*`/`-F`/`-T`/remote `scp`), cloud metadata SSRF probes (`169.254.169.254`), `curl | sh` execution chains, or egress in the same session as sensitive file access (`.env`, `.ssh`, keys) or `/etc/resolv.conf` recon fire as **Critical**.
+
+**Safe-listing trusted destinations:** Admins can configure **Allowed Egress URLs, Domains & IPs (AD-015 Safe List)** in **Configure Email Alerts & Cadence → Organization** (accepting URLs, domains/subdomains, IPv4/IPv6 addresses, and CIDR ranges), or click **Mark destination safe** directly on an **AD-015** finding card to allowlist its destination hosts/IPs and dismiss the finding. Cloud metadata SSRF endpoints can never be allowlisted.
+
+**Typical next steps:** Review the sanitized `destination_hosts`, `destination_ips`, `egress_methods`, and `model` badges on the finding card, inspect the linked session, and either mark trusted corporate destinations safe or escalate unexpected external transfers.
+
 ### Finding status workflow
 
 - **Acknowledge** a new finding when it is under review.
 - **Resolve** it when the relevant work or remediation is complete.
 - **Dismiss** it when the finding is expected behavior or a false positive.
+- **Mark destination safe** (on **AD-015** findings with external hosts/IPs) adds the finding's `destination_hosts` and `destination_ips` to the organization's **AD-015** safe list and dismisses the finding.
 - **Accept risk** (when Compliance is enabled) creates a time-boxed `accepted_finding` exception with a rationale and expiry (≤12 months), then dismisses the finding. Exceptions appear under [Compliance → Exceptions](/enterprise/dashboard/compliance#exceptions).
 - Resolved and dismissed findings are closed and cannot transition to another status.
 
@@ -270,19 +287,20 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 
 | Alert type | Default cadence | Supported options | Trigger conditions |
 | --- | --- | --- | --- |
-| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), and **AD-003** High/Critical runaway sessions. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
+| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), **AD-003** High/Critical runaway sessions, and **AD-015** High/Critical external network egress. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
 | **Anomaly Digest** | Daily (08:00 local) | Daily, Weekly (Monday 08:00 local), Off | Consolidated summary of enabled anomaly findings over the prior local day (or week). |
 | **Signals Digest** | Weekly (Monday 08:00 local) | Weekly, Daily, Off | Aggregated engineering efficiency patterns (**P1–P10**, typically P1 / P2 / P5 / P10 in the weekly executive view) plus DLP protection rate from AD-004 evidence counts. |
 
 ### Organization configuration (admins)
 
-- **Security inbox** — always receives **AD-004 Critical**, even when security cadence is Off or the project is excluded.
+- **Security inbox** — always receives **AD-004 Critical** and **AD-015 Critical** (unless all destinations on the `AD-015` finding are covered by the org's allowed egress safe list), even when security cadence is Off or the project is excluded.
 - **Recipient inboxes** — comma-separated addresses for org-wide alerts. If blank, notifications default to organization administrators.
 - **Organization timezone** — fallback when a member has not set a personal timezone.
 - **Minimum severity** — `All`, `High & Critical only`, or `Critical only`. Findings below the threshold stay on the dashboard but are omitted from email.
-- **Included anomaly detectors** — toggle **AD-001** through **AD-006** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
+- **Included anomaly detectors** — toggle **AD-001** through **AD-006** and **AD-015** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
 - **Included workflow signals** — toggle **P1** through **P10** for digests.
 - **Excluded projects / sandboxes** — case-insensitive project-name filters. Names are used only for filtering; they are never rendered in email bodies.
+- **Allowed Egress URLs, Domains & IPs (AD-015 Safe List)** — comma- or newline-separated URLs, domains (matching the domain and its subdomains), wildcards (`*.internal.corp`), IP addresses, or CIDR ranges (`10.0.0.0/8`). Egress targets matching this list are excluded from **AD-015** findings and alerts. Cloud metadata SSRF endpoints (`169.254.169.254`, `metadata.google.internal`) cannot be allowlisted.
 - **Recent deliveries** — last 50 delivery attempts with masked recipient addresses, tier, detector, severity, and status.
 
 ### My alerts (every member)
@@ -297,12 +315,12 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 
 Alert email travels over ordinary mailboxes, so the body is deliberately thin.
 
-Emails **may** include: detector key and fixed title, severity, session counts, categorical file-pattern labels (for example `.env`, `*.pem`), surface labels (Direct Tool Read, Shell Read, Script Mention), DLP gap counts, and authenticated deep links.
+Emails **may** include: detector key and fixed title, severity, session counts, categorical file-pattern labels (for example `.env`, `*.pem`), surface labels (Direct Tool Read, Shell Read, Script Mention, Shell HTTP Egress, Shell File Transfer / Socket, Script Network Egress, Native WebFetch), DLP gap counts, and authenticated deep links.
 
-Emails **never** include: session titles, project names, file paths, shell commands, prompts, secrets, or free-text evidence fields.
+Emails **never** include: session titles, project names, file paths, destination URLs/hosts, shell commands, prompts, secrets, or free-text evidence fields.
 
 <Warning>
-  Over-aggressive project exclusions can hide real findings. Prefer excluding true sandboxes only. The security inbox override still delivers AD-004 Critical regardless of exclusions.
+  Over-aggressive project exclusions can hide real findings. Prefer excluding true sandboxes only. The security inbox override still delivers AD-004 Critical and AD-015 Critical regardless of project exclusions.
 </Warning>
 
 ### Testing email delivery
