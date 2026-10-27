@@ -3,7 +3,7 @@ title: "Anomaly Detectors: Reference and Calculation Logic"
 sidebarTitle: "Anomalies"
 description: "Understand what each RCLM anomaly detector checks, how it fires, what evidence it records, and how administrators should act on its findings."
 icon: "shield-halved"
-keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "coverage", "hook tamper"]
+keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "external network egress", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "coverage", "hook tamper"]
 ---
 
 RCLM anomaly detectors produce deterministic findings for administrator review. Most session-based detectors run on a daily cadence over completed session data. Coverage detectors (**AD-010**, **AD-011**, **AD-013b**) also fire from device check-ins. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
@@ -42,6 +42,7 @@ When a finding fires repeatedly, it updates the same open finding record rather 
 | `AD-013a` | Gateway without hooks | User | Daily | Gateway usage without hook sessions |
 | `AD-013b` | Direct provider routing | Device | Event | Routing class `direct` for a required provider |
 | `AD-013c` | Provider usage unreconciled | Org usage | Daily | Enterprise: provider admin usage vs gateway tokens diverge |
+| `AD-015` | External network egress | Session | Daily, hourly | Outbound network connections to non-local hosts or IPs via `curl`, `wget`, `scp`, `rsync`, `nc`, inline or agent-written scripts, or native web tools |
 
 Coverage concepts and the admin UI are documented in [Coverage Alerts](/enterprise/coverage) and the [Coverage tab](/enterprise/dashboard/coverage).
 
@@ -328,6 +329,53 @@ Incomplete operation labels, capped source data, or insufficient history produce
 
 ---
 
+## AD-015 — External network egress
+
+**What it checks:** Sessions where an AI coding agent initiates an outbound network connection to a non-local destination across any model or coding client.
+
+**Surfaces inspected:**
+
+| Surface | What it detects |
+| --- | --- |
+| **Shell HTTP** (`shell_http`) | Shell commands invoking `curl`, `wget`, `http`/`https` (HTTPie), `xh`, `aria2c`, or PowerShell `Invoke-WebRequest` / `Invoke-RestMethod` (`iwr` / `irm`) targeting an external `http://` or `https://` URL or IP literal. |
+| **Shell transfer & sockets** (`shell_transfer`) | Outbound transfer and socket tools including `scp` (when the destination argument is remote `user@host:path`), `sftp`, `rsync`, `nc` / `ncat` / `netcat`, `socat`, `telnet`, `ftp`, or `/dev/tcp/<host>/<port>`. |
+| **Programmatic script egress** (`script_egress`) | Inline interpreter invocations (`python -c`, `node -e`, `ruby -e`, `perl -e`, `php -r`) or files written/patched by the agent during the session that combine a networking client (`requests`, `urllib.request`, `httpx`, `aiohttp`, `socket`, `paramiko`, `fetch`, `axios`, `http.request`, `net/http`) with an external URL or IP literal. |
+| **Native web fetch** (`native_web_fetch`) | Agent-native web fetch tools (`WebFetch`, `web_fetch`, `fetch_url`, `http_request`) targeting an external URL or IP. |
+
+Local loopback targets (`localhost`, `*.localhost`, `127.0.0.0/8`, `::1`, `0.0.0.0`, `host.docker.internal`) are automatically excluded so routine local dev-server checks do not fire findings.
+
+**Severity tiers:**
+
+- **Warning:** Read-only native `WebFetch` tool calls to standard external HTTPS domains with no shell, transfer, or upload behavior.
+- **High:** Any shell HTTP (`curl`, `wget`), shell transfer/socket tool (`scp`, `rsync`, `nc`), programmatic script egress, `/tmp` staging download (`-o /tmp/...` or `> /tmp/...`), or direct connection to a raw external IP literal.
+- **Critical:** Any of the following high-risk indicators:
+  - Outbound payload upload or exfiltration (`POST`, `PUT`, `PATCH`, `--data*`, `-d`, `-F`, `--upload-file`, `-T`, outbound `scp`/`rsync`/`sftp`, or script `requests.post` / `requests.put` / `urllib` data upload)
+  - Cloud instance metadata SSRF probes (`169.254.169.254`, `100.100.100.200`, `fd00:ec2::254`, `metadata.google.internal`)
+  - Remote code execution chains (`curl ... | sh`, `wget -O- ... | bash`)
+  - Egress occurring in the same session as sensitive file access (`.env`, `.ssh`, private keys, cloud credentials) or system/DNS reconnaissance (`/etc/resolv.conf`, `/etc/hosts`, `uname -a`, `whoami`, `id`)
+
+**Admin safe list (Allowed Egress URLs, Domains & IPs):**
+
+Organization administrators can allowlist trusted destinations (such as internal package registries, corporate APIs, or documentation domains) so they do not trigger `AD-015`:
+
+- In **Signals → Configure Email Alerts & Cadence → Organization** (or **Settings → Email Alerts & Cadence**), add entries under **Allowed Egress URLs, Domains & IPs (AD-015 Safe List)**.
+- Accepted formats: full URLs (`https://api.example.com/v1` — normalized to hostname), domains (`github.com` — matches `github.com` and subdomains like `api.github.com`), wildcards (`*.internal.corp`), IPv4/IPv6 addresses (`203.0.113.10`), and CIDR ranges (`10.20.0.0/16`).
+- On any `AD-015` finding card in **Anomaly reports**, admins can also click **Mark destination safe** to add the finding's `destination_hosts` / `destination_ips` to the organization safe list and dismiss the finding in one step.
+- **Security guardrail:** Cloud metadata SSRF addresses (`169.254.169.254`, `metadata.google.internal`, `169.254.0.0/16`) can never be added to the safe list.
+
+**Evidence recorded:** Sanitized `destination_hosts` (hostname only — never URL paths, query strings, or auth headers), `destination_ips`, `access_types`, `egress_methods`, `command_families`, `model`, `egress_ToolCallCount`, and boolean flags (`sensitive_file_chain`, `system_recon_chain`, `metadata_ip_probe`, `pipe_to_shell`, `tmp_Drop`).
+
+**Interpretation guardrail:** Outbound network calls can occur during legitimate API testing, documentation lookups, or package downloads. Check the destination host/IP, egress method, and whether the call was read-only (`GET`) or an upload (`POST`/`PUT`/`scp`) before escalating.
+
+**Typical next steps:**
+
+1. Inspect `destination_hosts`, `destination_ips`, `egress_methods`, and `model` on the finding card.
+2. Open the linked session to verify whether the network call was user-directed or autonomous.
+3. If the destination is an approved corporate service or registry, click **Mark destination safe** (or add the domain/IP/CIDR in Alert Settings).
+4. If the finding is **Critical** (upload, metadata probe, `curl | sh`, or chained with `.env`/credential reads), rotate any potentially exposed secrets and investigate the workstation.
+
+---
+
 ## Evidence design
 
 All detectors follow the same evidence boundary: findings store compact, allowlisted metadata — identifiers, normalized hashes, counts, categories, statistics, and thresholds. They never store raw prompts, tool inputs, tool results, file contents, secrets, complete shell commands, or personal absolute paths.
@@ -349,7 +397,7 @@ Resolved and dismissed findings are closed. Missing data or a detector error can
 
 ## Email alerts for anomalies
 
-After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers AD-004 Critical (or High with write access) and AD-003 High/Critical. Digests run at 08:00 recipient-local time.
+After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers **AD-004** Critical (or High with write access), **AD-003** High/Critical, and **AD-015** High/Critical. When a dedicated **Security inbox** is configured, **AD-004** Critical and **AD-015** Critical always route to that inbox (unless every destination on an `AD-015` finding is covered by the org's allowed egress safe list). Digests run at 08:00 recipient-local time.
 
 Email payloads stay inside the same privacy boundary as finding evidence: categorical labels and counts only — never titles, paths, commands, or prompts. Configure routing and personal preferences from [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
 

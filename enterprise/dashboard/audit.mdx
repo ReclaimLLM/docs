@@ -1,31 +1,150 @@
 ---
 title: "Audit Tab: Security and Compliance Ledger"
 sidebarTitle: "Audit"
-description: "Review privileged actions, policy changes, membership updates, and export tamper-evident audit logs."
-keywords: ["audit log", "AI compliance audit trail", "admin actions"]
+description: "Review privileged actions, policy changes, membership updates, sensitive access, and export audit logs."
+keywords: ["audit log", "AI compliance audit trail", "admin actions", "sensitive access", "session decryption", "security ledger"]
 ---
 
-The Audit tab (`/enterprise/orgs/{org_id}/audit-log`) provides an immutable security ledger recording privileged actions and sensitive operations across your organization.
+The Audit tab (`/enterprise/orgs/{org_id}/audit-log`) provides an immutable security ledger recording privileged control-plane changes and sensitive data access across your organization. Events are retained for **365 days** and can be inspected in the dashboard, exported to CSV, or forwarded to your SIEM.
+
+A help badge (**?**) next to the page heading provides a quick reference to what is audited and excluded directly within the console.
+
+---
 
 ## What you'll see
 
-- **Security ledger** — a chronological event log tracking every admin and system event with timestamp, actor, action, target, category, and outcome.
-- **Event filters** — filter by date range, category (organization, identity, team, policy, security, credential, billing, sensitive_access), outcome (succeeded, pending, partial, failed), actor ID, and target type.
-- **Detailed metadata** — expand any event to inspect request metadata, actor IP, affected resource IDs, and parameter payloads.
-- **Export CSV** — export current filtered audit records for external compliance reporting or SIEM ingestion.
+- **Security ledger header** — shows the current ledger status and quick link to CSV export.
+- **Help tooltip (`?`)** — hover or focus to view a concise breakdown of audited operations, captured fields, and privacy boundaries.
+- **Filter controls** — narrow events by date range, category, execution outcome, actor user ID, or target resource type. Active filters sync to the browser URL so investigations can be bookmarked and shared.
+- **Event table** — a newest-first feed displaying:
+  - **Time** — local date and exact UTC timestamp.
+  - **Actor** — display name, email, API key name, or System identifier along with the actor's role (`admin`, `team_lead`, `system_task`, etc.).
+  - **Action** — human-readable event name and its high-level category.
+  - **Target** — resource type and identifier/label (e.g., member email, team name, provider ID, or session UUID).
+  - **Outcome** — color-coded status badge (`succeeded`, `pending`, `partial`, or `failed`).
+- **Event detail drawer** — clicking any event row opens a slide-over panel displaying:
+  - Exact ISO-8601 timestamps (`occurred_at` and `completed_at`).
+  - Identity and target entity IDs.
+  - **Safe metadata** — strongly typed, allowlisted parameters describing the change.
+  - **Request context** — Request ID, client Source IP, HTTP User Agent, Event UUID, and failure Reason Code (if applicable).
+- **Cursor pagination** — "Load more events" button backed by deterministic keyset pagination.
+- **Export CSV** — synchronous, streaming export of the currently filtered view (up to a 90-day window per export).
 
-## What you can do
+---
 
-- Search and inspect security events across teams and members.
-- Investigate policy modifications, membership updates, and API key creations/revocations.
-- Review coverage security events such as `coverage.hooks_tampered`, `coverage.dlp_disabled`, `coverage.device_silent`, and `coverage.gateway_bypass`, plus policy events for coverage settings and DLP exceptions.
-- Export audit log records as CSV for legal hold or security compliance reviews.
-- Forward the same completed events to an external SIEM from the [SIEM tab](/enterprise/dashboard/siem).
+## What is audited
+
+ReclaimLLM audits control-plane mutations, security configuration updates, and sensitive data access across eight core categories:
+
+| Category | Description | Representative Events |
+| :--- | :--- | :--- |
+| **`identity`** | Organization membership, role updates, and invitation lifecycles. | `organization.created`, `organization.updated`, `member.added`, `member.role_updated`, `member.removed`, `invite.created`, `invite.accepted`, `invite.cancelled`, `invite.resent` |
+| **`team`** | Team creation and member roster changes. | `team.created`, `team.member_added`, `team.member_removed` |
+| **`policy`** | Governance rules, AI signal thresholds, coverage policies, and access reviews. | `signal_settings.updated`, `hook_policy.updated`, `retention_policy.updated`, `sharing_settings.updated`, `project_settings.updated`, `coverage.settings_updated`, `coverage.dlp_exception_granted/revoked`, `access_review.decided/completed`, `compliance_control.updated` |
+| **`security`** | Encryption settings, SSO configuration, SIEM destination updates, and risk exceptions. | `encryption_settings.updated`, `sso.updated`, `audit_log.export_requested`, `siem.configuration_updated`, `siem.test_sent`, `siem.failed_deliveries_retried`, `compliance_export.generated`, `risk_exception.created/approved/expired/revoked`, `coverage.hooks_tampered`, `coverage.dlp_disabled`, `coverage.device_silent`, `coverage.gateway_bypass` |
+| **`credential`** | Organization API keys, AI Gateway keys, and AI provider configurations. | `org_api_key.created/revoked`, `gateway_api_key.created/updated/revoked/deleted`, `gateway_provider_credential.saved/enabled/disabled/deleted`, `gateway_models.synced`, `gateway_model.created/updated/deleted/tested` |
+| **`sensitive_access`** | Decryption of client-side encrypted sessions, sensitive session exports, and model analysis evaluations. | `session.decrypted`, `session.exported`, `model_analysis.result_viewed` |
+| **`organization`** | Model benchmark datasets and preflight analysis runs. | `model_analysis.dataset_created/archived/deleted`, `model_analysis.run_preflight_created/confirmed/cancelled/deleted`, `model_analysis.result_retried` |
+| **`billing`** | Stripe customer portal access, checkout sessions, subscription changes, and seat adjustments. | `billing.portal_opened`, `billing.checkout_started`, `billing.subscription_updated`, `billing.subscription_cancelled`, `billing.seat_quantity_updated` |
+
+---
+
+## Session access & background processing
+
+Because ReclaimLLM handles sensitive AI developer sessions, session inspection is subject to specific auditing rules depending on encryption and access method:
+
+### Encrypted sessions (`session.decrypted`)
+
+When **Session Encryption** is enabled for an organization, session payloads (transcripts, tool calls, and code diffs) are stored as ciphertext in S3. Any operation that decrypts the session generates an audit record under `category: sensitive_access` with `event_name: session.decrypted`:
+
+* **Web Portal views**: When an administrator or team lead opens a member's session (`/sessions/{id}`), the console fetches the decrypted blob to render conversation turns. This is audited with `access_type: "view"` and records the viewer's role (`org_admin`, `team_lead`, `org_member_shared`, or `owner`).
+* **MCP tool access**: AI coding assistants calling ReclaimLLM MCP tools that inspect session content trigger decryption audits:
+  * `summarize_session` and `handoff` generate `access_type: "context_export"`.
+  * `transfer_session` generates `access_type: "session_transfer"`.
+  * `replay_session` and `replay_compare` generate `access_type: "include_blob"`.
+* **Session exports**: Downloading or exporting session bundles records `session.exported` with the requested format.
+
+### Background task processing (`actor_type: system`)
+
+Automated backend services that process encrypted sessions also trigger `session.decrypted` records:
+
+* **Automatic summarization** (`summarize_task`): When a session finishes, the summarizer decrypts the payload to produce summaries and titles. This is logged with `actor: System`, `actor_role: system_task`, and `access_type: "summarize"`.
+* **Interaction metrics & token statistics** (`stats_task`): Background computation of assistant-to-user response times, token breakdowns, and tool-call stats is logged with `access_type: "stats_task"`, `"tool_calls_task"`, or `"interaction_metrics_task"`.
+* **Gateway proxy task** (`proxy_operation_task`): Audited with `access_type: "proxy_operation_task"`.
+
+<Note>
+  **Embedding Generation (`embedding_gen_qdrant`) does NOT decrypt sessions:**
+  The vector embedding service only embeds high-level metadata from the database (title, tags, project name). If a session is encrypted, the worker explicitly skips the S3 ciphertext payload. Because no decryption takes place, embedding generation does not produce audit records.
+</Note>
+
+### What is NOT logged in the audit ledger
+
+To maintain a focused compliance trail and prevent log fatigue, routine non-privileged activity is excluded:
+
+* **Standard / unencrypted session views**: Routine browsing, search queries, and list views of unencrypted sessions do not generate audit rows.
+* **Signal triage workflow**: Viewing the Signals page, marking signals as seen, or changing signal status (`acted`, `dismissed`, `resolved`) is tracked in operational telemetry tables, not the admin audit ledger. Only changes to organization-wide signal policies (`signal_settings.updated`) are audited.
+* **Inference traffic & model prompts**: Routine developer prompts, AI completions, and gateway routing calls are not control-plane audit events.
+
+---
+
+## Data recorded per event
+
+Every audit row records the following immutable attributes:
+
+| Field | Description | Example |
+| :--- | :--- | :--- |
+| **`event_id`** | Unique UUID v4 assigned before mutation execution. | `7f794c45-8d11-4fba-b3a4-74e79ef2aa51` |
+| **`occurred_at`** | Timestamp when the action was initiated. | `2026-10-24T18:59:22.166Z` |
+| **`completed_at`** | Timestamp when the action finalized. | `2026-10-24T18:59:22.500Z` |
+| **`actor`** | User UUID, email snapshot, role, key name, or system identifier. | `admin@example.com` (`org_admin`), `System` (`system_task`) |
+| **`action`** | Registered event name and category. | `member.role_updated` (`identity`), `session.decrypted` (`sensitive_access`) |
+| **`target`** | Target entity type, ID, and snapshot label. | `member` (`dev@example.com`), `provider` (`azure_openai`), `session` (`uuid`) |
+| **`outcome`** | Terminal status: `succeeded`, `pending`, `partial`, or `failed`. | `succeeded` |
+| **`reason_code`** | Standardized error code if the action failed or partially completed. | `policy_violation`, `seat_limit_exceeded` |
+| **`source_ip`** | Client IP address of the caller. | `198.51.100.24` |
+| **`user_agent`** | Client browser or HTTP client string (truncated to 512 chars). | `Mozilla/5.0...` or `aiohttp/3.9.5` |
+| **`request_id`** | Distributed tracing request ID. | `req_01j7...` |
+| **`metadata`** | Sanitized JSON dictionary of safe before/after parameters. | `{"previous_role": "developer", "new_role": "team_lead"}` |
+
+### Privacy and credential safety
+
+The audit engine enforces strict metadata sanitization by construction:
+* **Allowlisted schemas**: Each event type rejects unknown JSON fields. Metadata size is capped at 16 KiB.
+* **No secrets or tokens**: API keys, auth headers, passwords, certificates, private keys, and encrypted nonces are blocked.
+* **No prompt or session leakage**: Raw user prompts, AI responses, code diff content, and exception tracebacks are never saved to audit metadata.
+* **Spreadsheet formula escaping**: CSV exports automatically sanitize values starting with `=`, `+`, `-`, or `@` to prevent formula injection in Microsoft Excel and Google Sheets.
+
+---
+
+## How to investigate and export
+
+<Steps>
+  <Step title="Select a date range">
+    Pick the investigation window (defaults to the last 30 days). The date range updates the table and export query.
+  </Step>
+  <Step title="Apply filters">
+    Narrow down results by **Category** (e.g., `policy`, `credential`, `sensitive_access`), **Outcome** (`succeeded`, `failed`), specific **Actor ID**, or **Target type**.
+  </Step>
+  <Step title="Inspect event details">
+    Click any row in the table to open the slide-over detail drawer. Review the actor, target, safe metadata payload, IP address, and request ID.
+  </Step>
+  <Step title="Export to CSV">
+    Click **Export CSV** in the top-right corner. The export streams all events matching the active filters (up to 90 days per request) in a format suitable for compliance archives or auditor reviews.
+  </Step>
+</Steps>
+
+---
 
 ## Who sees it
 
-Admin only. Records are retained for 365 days.
+**Organization Administrators only.** Team leads and developers do not have permission to view or export the audit log.
 
-<Tip>
-  New to this page? Follow the step-by-step [Audit log guide](/admin/audit-log) with a video walkthrough.
-</Tip>
+Events are retained for **365 days** regardless of session retention or legal hold policies.
+
+---
+
+## Related pages
+
+- [Audit log walkthrough guide](/admin/audit-log) — step-by-step investigation guide with video tutorial
+- [SIEM webhook delivery](/enterprise/dashboard/siem) — stream audit events in real time to Datadog, Splunk, or custom HTTPS endpoints
+- [Control health compliance](/enterprise/dashboard/compliance) — audit log evidence mapping for SOC 2 (RC-AI-09)
