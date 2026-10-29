@@ -18,9 +18,30 @@ Switch granularity (day/hour) and group-by (project/team/user/model); filter by 
 
 ## Measured context reduction
 
-Enterprise administrators also see **Measured context reduction** for the selected date range. It breaks down estimated tokens saved by method, including Read cache, Search shaping, Exec compaction, Loop breaker, Hash dedupe, and Test output filter.
+Enterprise administrators also see **Measured context reduction** for the selected date range: a per-method breakdown of tokens saved before they reached the model, aggregated across the org.
 
-Each row separates enforced reductions from shadow-mode potential. Shadow mode measures an opportunity while leaving the agent output unchanged.
+Each row separates **enforced** reductions (the model actually received the shorter result) from **shadow-mode** potential (the reduction was measured but the original result was left unchanged). Most methods compare an original and replacement result directly; a couple report an estimate instead, because there is no completed result to diff against.
+
+| Method | What it does | Basis |
+|---|---|---|
+| **Read cache** (`range_cache`, historical `H1_read_cache`) | Tracks line ranges already sent from each file. A fully re-read range becomes a short "unchanged" notice; a partial overlap sends only the unseen lines. Invalidated by file edits or a changed content hash. | Measured |
+| **Search shaping** (`H2_search_shaping`) | Condenses long `grep`/`rg` output into match counts, per-file counts, and representative lines, with narrower follow-up searches still available. | Measured |
+| **Lossless search/path folding** (`lossless_search_path_folding`) | Folds repeated file and directory prefixes in search results and listings. Every fold is expanded and verified against the original before use, so no result rows are dropped. | Measured |
+| **Exec compaction** (`H3_exec_compaction`, `exec_compaction`, historical `legacy_compress`) | Collapses repeated lines in long command output (git, directory listings, generic shell) and keeps bounded beginning/ending context plus an omitted-line count. | Measured |
+| **Provider output canonicalization** (`provider_output_shaping`, `provider_canonicalization`) | Strips known boilerplate — timestamps, execution headers, repeated path prefixes — from Codex and Antigravity result wrappers. | Measured |
+| **Stateful result delta** (`stateful_delta`) | Compares a repeated command, search, or listing against the prior result for the same target and sends only the diff plus an unchanged-line count, when the overlap is high enough. | Measured |
+| **Edit receipts** (`edit_receipt`) | Replaces a tool result that echoes back a diff the agent already supplied with a compact receipt (hunk count, line counts, line ranges, digest). | Measured |
+| **Test output filter** (`test_filter`) | Keeps failures, errors, and the final summary from pytest, Jest, Vitest, Go, and Cargo output while dropping routine passing-test noise. | Measured |
+| **Hash dedupe** (`hash_dedupe`) | Replaces a large result that repeats an earlier result in the same session with a compact reference to the first occurrence. Off by default. | Measured |
+| **Image downscale** (`image_downscale`) | Resizes oversized screenshots and tool-result images before they enter the transcript, preserving aspect ratio. Requires `rclm[images]`. | Measured |
+| **Loop breaker** (`H4_loop_breaker`) | Detects repeated identical calls or repeated failures against the same file and injects corrective context, then asks permission before further retries. | Estimated — no completed result exists to diff |
+| **Image eviction** (`image_eviction`) | Estimates the context released when a newer screenshot supersedes an older one for the same tool, page, and viewport. Measurement-only; never removes an image. | Estimated — opportunity only |
+
+<Note>
+  Shadow-mode and Replay figures are counterfactual context reductions, not realized billing savings — prompt caching, later turns, retries, and model behavior can change the eventual provider-token impact.
+</Note>
+
+For how each method works, which providers enforce it, and how to evaluate it with Replay before enabling enforcement, see [Context Compression](/features/context-compression).
 
 ## Who sees it
 
