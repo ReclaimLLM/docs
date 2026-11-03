@@ -3,7 +3,7 @@ title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
 description: "Find recurring AI-work patterns, review deterministic anomalies, and configure tiered email alerts with org routing and personal preferences."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "external network egress", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "external network egress", "PII detection", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
 ---
 
 The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them. Every org member can also open **Configure Email Alerts & Cadence** to manage personal alert preferences.
@@ -95,6 +95,7 @@ Each finding shows its detector code, severity, status, subject, latest occurren
 | **AD-012** | Device silent | A formerly active device stops checking in past the silence threshold. | Medium severity needs corroboration; retire unused machines. |
 | **AD-013a/b** | Gateway bypass | Gateway usage without hooks, or `direct` routing for a required provider. | `unknown` routing is never bypass; inert without gateway config. |
 | **AD-015** | External network egress | Sessions where an AI agent initiates outbound network connections to non-local hosts or IPs via `curl`, `wget`, `scp`, `rsync`, `nc`, inline or agent-written scripts, or native web tools. | Outbound requests can occur during legitimate API testing or documentation fetches. Check the destination host/IP, egress method, and whether data was uploaded (`POST`/`PUT`/`scp`), or add approved internal/partner hosts to the org safe list. |
+| **AD-016** | PII content exposure | Content matching a validated email, phone, SSN, or credit card pattern in proxy traffic or a hook/agent tool call. | A proxy match means the data already reached the model provider; a hook/agent match without an egress chain has not left the machine yet. Check which surface matched before escalating. |
 
 #### AD-001 — Usage baseline deviation
 
@@ -263,6 +264,16 @@ Localhost and loopback addresses (`localhost`, `127.0.0.0/8`, `::1`, `0.0.0.0`, 
 
 **Typical next steps:** Review the sanitized `destination_hosts`, `destination_ips`, `egress_methods`, and `model` badges on the finding card, inspect the linked session, and either mark trusted corporate destinations safe or escalate unexpected external transfers.
 
+#### AD-016 — PII content exposure
+
+Fires when a session's content — a gateway proxy request/response body or a hook/agent tool-call input/result — contains a validated email address, phone number, SSN, or credit card number. Matching is deterministic (regex plus a Luhn checksum for cards and SSA range rules for SSNs), not a model call.
+
+Severity differs by where the match was found: **proxy** traffic starts at **High** (the data already reached the model provider) and escalates to **Critical** on repeat sessions for the same member; **hook/agent** sessions start at **Warning**, rise to **High** with multiple categories or sessions, and only reach **Critical** when the same session also has an **AD-015** external egress finding.
+
+**Typical next steps:** Check whether the match is a proxy or hook/agent finding, and check `chained_with_egress` for hook/agent findings — a chained finding means the data was both touched and sent externally in one session. Open the linked session; matching tool calls and messages are automatically expanded and highlighted.
+
+See [Anomalies → AD-016](/enterprise/anomalies#ad-016--pii-content-exposure) for the full calculation and evidence detail.
+
 ### Finding status workflow
 
 - **Acknowledge** a new finding when it is under review.
@@ -287,7 +298,7 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 
 | Alert type | Default cadence | Supported options | Trigger conditions |
 | --- | --- | --- | --- |
-| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), **AD-003** High/Critical runaway sessions, and **AD-015** High/Critical external network egress. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
+| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), **AD-003** High/Critical runaway sessions, **AD-015** High/Critical external network egress, and **AD-016** Critical PII content exposure. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
 | **Anomaly Digest** | Daily (08:00 local) | Daily, Weekly (Monday 08:00 local), Off | Consolidated summary of enabled anomaly findings over the prior local day (or week). |
 | **Signals Digest** | Weekly (Monday 08:00 local) | Weekly, Daily, Off | Aggregated engineering efficiency patterns (**P1–P10**, typically P1 / P2 / P5 / P10 in the weekly executive view) plus DLP protection rate from AD-004 evidence counts. |
 
@@ -297,7 +308,7 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 - **Recipient inboxes** — comma-separated addresses for org-wide alerts. If blank, notifications default to organization administrators.
 - **Organization timezone** — fallback when a member has not set a personal timezone.
 - **Minimum severity** — `All`, `High & Critical only`, or `Critical only`. Findings below the threshold stay on the dashboard but are omitted from email.
-- **Included anomaly detectors** — toggle **AD-001** through **AD-006** and **AD-015** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
+- **Included anomaly detectors** — toggle **AD-001** through **AD-006**, **AD-015**, and **AD-016** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
 - **Included workflow signals** — toggle **P1** through **P10** for digests.
 - **Excluded projects / sandboxes** — case-insensitive project-name filters. Names are used only for filtering; they are never rendered in email bodies.
 - **Allowed Egress URLs, Domains & IPs (AD-015 Safe List)** — comma- or newline-separated URLs, domains (matching the domain and its subdomains), wildcards (`*.internal.corp`), IP addresses, or CIDR ranges (`10.0.0.0/8`). Egress targets matching this list are excluded from **AD-015** findings and alerts. Cloud metadata SSRF endpoints (`169.254.169.254`, `metadata.google.internal`) cannot be allowlisted.
@@ -315,7 +326,7 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 
 Alert email travels over ordinary mailboxes, so the body is deliberately thin.
 
-Emails **may** include: detector key and fixed title, severity, session counts, categorical file-pattern labels (for example `.env`, `*.pem`), surface labels (Direct Tool Read, Shell Read, Script Mention, Shell HTTP Egress, Shell File Transfer / Socket, Script Network Egress, Native WebFetch), DLP gap counts, and authenticated deep links.
+Emails **may** include: detector key and fixed title, severity, session counts, categorical file-pattern labels (for example `.env`, `*.pem`), surface labels (Direct Tool Read, Shell Read, Script Mention, Shell HTTP Egress, Shell File Transfer / Socket, Script Network Egress, Native WebFetch), PII category labels (`email`, `phone`, `ssn`, `credit_card`), DLP gap counts, and authenticated deep links.
 
 Emails **never** include: session titles, project names, file paths, destination URLs/hosts, shell commands, prompts, secrets, or free-text evidence fields.
 
