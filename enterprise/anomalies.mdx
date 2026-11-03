@@ -3,7 +3,7 @@ title: "Anomaly Detectors: Reference and Calculation Logic"
 sidebarTitle: "Anomalies"
 description: "Understand what each RCLM anomaly detector checks, how it fires, what evidence it records, and how administrators should act on its findings."
 icon: "shield-halved"
-keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "external network egress", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "coverage", "hook tamper"]
+keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "external network egress", "PII detection", "credit card detection", "SSN detection", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "coverage", "hook tamper"]
 ---
 
 RCLM anomaly detectors produce deterministic findings for administrator review. Most session-based detectors run on a daily cadence over completed session data. Coverage detectors (**AD-010**, **AD-011**, **AD-013b**) also fire from device check-ins. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
@@ -43,6 +43,7 @@ When a finding fires repeatedly, it updates the same open finding record rather 
 | `AD-013b` | Direct provider routing | Device | Event | Routing class `direct` for a required provider |
 | `AD-013c` | Provider usage unreconciled | Org usage | Daily | Enterprise: provider admin usage vs gateway tokens diverge |
 | `AD-015` | External network egress | Session | Daily, hourly | Outbound network connections to non-local hosts or IPs via `curl`, `wget`, `scp`, `rsync`, `nc`, inline or agent-written scripts, or native web tools |
+| `AD-016` | PII content exposure | Member | Daily, hourly | Content matching a validated email, phone, SSN, or credit card pattern in proxy request/response previews or hook/agent tool-call previews |
 
 Coverage concepts and the admin UI are documented in [Coverage Alerts](/enterprise/coverage) and the [Coverage tab](/enterprise/dashboard/coverage).
 
@@ -376,6 +377,44 @@ Organization administrators can allowlist trusted destinations (such as internal
 
 ---
 
+## AD-016 — PII content exposure
+
+**What it checks:** Whether a session's content — a proxy request/response body or a hook/agent tool-call input/result — contains a validated email address, phone number, Social Security Number, or credit card number.
+
+**How it is calculated:** RCLM scans two surfaces, depending on how the session was captured:
+
+- **Hook/agent sessions:** tool-call input and result previews.
+- **Gateway proxy traffic:** the request/response body preview captured at ingest.
+
+Matches are deterministic pattern checks, not a model call and not free-text classification:
+
+- **Credit card** candidates are confirmed with a Luhn checksum.
+- **SSN** candidates are checked against Social Security Administration invalid-range rules (certain area, group, and serial number patterns are never issued).
+- **Phone** candidates exclude reserved fictional test ranges.
+- **Email** matches a standard address pattern.
+
+This keeps false positives low without sending any session content to another model for classification.
+
+**Severity tiers (different for proxy vs. hook/agent sessions, because the risk is different):**
+
+- **Proxy traffic:** PII here has already reached the LLM provider's API — that is what a proxy record is. Severity starts at **High** and escalates to **Critical** once the same member has matches across multiple sessions.
+- **Hook/agent sessions:** a local tool-call read or result has not left the machine yet. Severity starts at **Warning**, rises to **High** with multiple categories or multiple sessions, and only reaches **Critical** when the same session also has an [AD-015](#ad-015--external-network-egress) external network egress finding — meaning the data was both touched locally and sent somewhere external in the same session.
+
+**Evidence includes:** Matched categories (`email`, `phone`, `ssn`, `credit_card`), per-surface session counts (proxy vs. hook/agent), a boolean flag for whether the finding is chained with an AD-015 egress finding, and a bounded list of session IDs.
+
+**Evidence never includes:** The actual email address, phone number, SSN, card number, or any other matched value — only the category label and count are recorded.
+
+**Interpretation guardrail:** A proxy finding means the flagged data already reached the model provider; treat it as having left the organization's perimeter. A hook/agent finding without an egress chain means the data was read or produced locally and has not (yet, as far as RCLM can see) left the machine — the severity reflects that difference.
+
+**Typical next steps:**
+
+1. Check whether the finding is a **proxy** or **hook/agent** match in the evidence — this changes what already happened versus what might happen next.
+2. For a proxy finding, confirm whether the destination provider is an approved one, and whether the workflow that sent this data should be changed to avoid sending it at all.
+3. For a hook/agent finding, check `chained_with_egress`. If true, treat it the same as an AD-015 Critical finding — the data was both touched and sent externally in one session.
+4. Open the linked session. On the session detail page, matching tool calls and messages are automatically expanded and highlighted so you can see exactly where the match occurred without it being hidden behind a collapsed view.
+
+---
+
 ## Evidence design
 
 All detectors follow the same evidence boundary: findings store compact, allowlisted metadata — identifiers, normalized hashes, counts, categories, statistics, and thresholds. They never store raw prompts, tool inputs, tool results, file contents, secrets, complete shell commands, or personal absolute paths.
@@ -397,7 +436,7 @@ Resolved and dismissed findings are closed. Missing data or a detector error can
 
 ## Email alerts for anomalies
 
-After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers **AD-004** Critical (or High with write access), **AD-003** High/Critical, and **AD-015** High/Critical. When a dedicated **Security inbox** is configured, **AD-004** Critical and **AD-015** Critical always route to that inbox (unless every destination on an `AD-015` finding is covered by the org's allowed egress safe list). Digests run at 08:00 recipient-local time.
+After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers **AD-004** Critical (or High with write access), **AD-003** High/Critical, **AD-015** High/Critical, and **AD-016** Critical. When a dedicated **Security inbox** is configured, **AD-004** Critical and **AD-015** Critical always route to that inbox (unless every destination on an `AD-015` finding is covered by the org's allowed egress safe list). Digests run at 08:00 recipient-local time.
 
 Email payloads stay inside the same privacy boundary as finding evidence: categorical labels and counts only — never titles, paths, commands, or prompts. Configure routing and personal preferences from [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
 
