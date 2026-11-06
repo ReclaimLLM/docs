@@ -3,7 +3,7 @@ title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
 description: "Find recurring AI-work patterns, review deterministic anomalies, and configure tiered email alerts with org routing and personal preferences."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "external network egress", "PII detection", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "AD-017", "AD-018", "proxy failure rate", "gateway latency", "external network egress", "PII detection", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
 ---
 
 The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them. Every org member can also open **Configure Email Alerts & Cadence** to manage personal alert preferences.
@@ -96,6 +96,8 @@ Each finding shows its detector code, severity, status, subject, latest occurren
 | **AD-013a/b** | Gateway bypass | Gateway usage without hooks, or `direct` routing for a required provider. | `unknown` routing is never bypass; inert without gateway config. |
 | **AD-015** | External network egress | Sessions where an AI agent initiates outbound network connections to non-local hosts or IPs via `curl`, `wget`, `scp`, `rsync`, `nc`, inline or agent-written scripts, or native web tools. | Outbound requests can occur during legitimate API testing or documentation fetches. Check the destination host/IP, egress method, and whether data was uploaded (`POST`/`PUT`/`scp`), or add approved internal/partner hosts to the org safe list. |
 | **AD-016** | PII content exposure | Content matching a validated email, phone, SSN, or credit card pattern in proxy traffic or a hook/agent tool call. | A proxy match means the data already reached the model provider; a hook/agent match without an egress chain has not left the machine yet. Check which surface matched before escalating. |
+| **AD-017** | Proxy failure rate | The share of failing Enterprise LLM Gateway calls is well above the organization's own recent rate, for the whole org or one operation. | The rate is relative to this organization's history. Calls rejected before the gateway identifies the org, or by gateway policy (403), are not recorded. Thresholds are adjustable under **Proxy Thresholds**. |
+| **AD-018** | Proxy latency regression | A model's p95 and median latency on successful, non-streaming gateway calls are well above that model's own recent baseline. | Latency also depends on prompt and output size. Streaming calls are not evaluated yet, and a model needs a few earlier days with enough calls before it is scored. |
 
 #### AD-001 — Usage baseline deviation
 
@@ -274,6 +276,20 @@ Severity differs by where the match was found: **proxy** traffic starts at **Hig
 
 See [Anomalies → AD-016](/enterprise/anomalies#ad-016--pii-content-exposure) for the full calculation and evidence detail.
 
+#### AD-017 — Proxy failure rate
+
+Fires when the share of failing gateway calls (error responses plus streams that broke after starting) is well above the organization's own recent rate. It is scored for the whole organization, for calls not yet labeled with an operation, and for each operation, every hour and every day. Hourly findings need two abnormal hours in a row. The organization-wide finding is **High** at a 50% failure rate or 5× the usual rate, and sends an immediate P0 email; everything else is a **Warning** in the digest.
+
+**Typical next steps:** Check whether the rise is organization-wide (often a provider outage, expired credential, or exhausted credits) or limited to one operation, then open the linked failing sessions and compare status codes.
+
+#### AD-018 — Proxy latency regression
+
+Fires once a day when a model's p95 and median latency on successful, non-streaming gateway calls are both well above that model's own recent baseline. A single slow call cannot fire it, because the median must rise too.
+
+**Typical next steps:** Open the linked slowest sessions and compare input and output size with earlier days; if the work is unchanged, check provider status or a region or deployment change.
+
+See [Anomalies → AD-017](/enterprise/anomalies#ad-017--proxy-failure-rate) and [AD-018](/enterprise/anomalies#ad-018--proxy-latency-regression) for the full calculation, evidence, and the thresholds you can tune.
+
 ### Finding status workflow
 
 - **Acknowledge** a new finding when it is under review.
@@ -298,7 +314,7 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 
 | Alert type | Default cadence | Supported options | Trigger conditions |
 | --- | --- | --- | --- |
-| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), **AD-003** High/Critical runaway sessions, **AD-015** High/Critical external network egress, and **AD-016** Critical PII content exposure. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
+| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), **AD-003** High/Critical runaway sessions, **AD-015** High/Critical external network egress, **AD-016** Critical PII content exposure, and the organization-wide **AD-017** High failure rate. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
 | **Anomaly Digest** | Daily (08:00 local) | Daily, Weekly (Monday 08:00 local), Off | Consolidated summary of enabled anomaly findings over the prior local day (or week). |
 | **Signals Digest** | Weekly (Monday 08:00 local) | Weekly, Daily, Off | Aggregated engineering efficiency patterns (**P1–P10**, typically P1 / P2 / P5 / P10 in the weekly executive view) plus DLP protection rate from AD-004 evidence counts. |
 
@@ -308,10 +324,11 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 - **Recipient inboxes** — comma-separated addresses for org-wide alerts. If blank, notifications default to organization administrators.
 - **Organization timezone** — fallback when a member has not set a personal timezone.
 - **Minimum severity** — `All`, `High & Critical only`, or `Critical only`. Findings below the threshold stay on the dashboard but are omitted from email.
-- **Included anomaly detectors** — toggle **AD-001** through **AD-006**, **AD-015**, and **AD-016** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
+- **Included anomaly detectors** — toggle **AD-001** through **AD-006** and **AD-015** through **AD-018** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
 - **Included workflow signals** — toggle **P1** through **P10** for digests.
 - **Excluded projects / sandboxes** — case-insensitive project-name filters. Names are used only for filtering; they are never rendered in email bodies.
 - **Allowed Egress URLs, Domains & IPs (AD-015 Safe List)** — comma- or newline-separated URLs, domains (matching the domain and its subdomains), wildcards (`*.internal.corp`), IP addresses, or CIDR ranges (`10.0.0.0/8`). Egress targets matching this list are excluded from **AD-015** findings and alerts. Cloud metadata SSRF endpoints (`169.254.169.254`, `metadata.google.internal`) cannot be allowlisted.
+- **Proxy Thresholds (AD-017/018)** — a separate button in the Signals header, next to **Egress Policy (AD-015)**. Adjust the minimum calls, failure and latency rise multiples, and the history needed before a model or window is scored. Blank fields use the defaults; see [Anomalies → Tuning AD-017 and AD-018](/enterprise/anomalies#tuning-ad-017-and-ad-018).
 - **Recent deliveries** — last 50 delivery attempts with masked recipient addresses, tier, detector, severity, and status.
 
 ### My alerts (every member)
