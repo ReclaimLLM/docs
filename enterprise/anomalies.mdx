@@ -3,10 +3,10 @@ title: "Anomaly Detectors: Reference and Calculation Logic"
 sidebarTitle: "Anomalies"
 description: "Understand what each RCLM anomaly detector checks, how it fires, what evidence it records, and how administrators should act on its findings."
 icon: "shield-halved"
-keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "external network egress", "PII detection", "credit card detection", "SSN detection", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "coverage", "hook tamper"]
+keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "external network egress", "PII detection", "credit card detection", "SSN detection", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "AD-017", "AD-018", "proxy failure rate", "gateway latency", "p95 latency", "coverage", "hook tamper"]
 ---
 
-RCLM anomaly detectors produce deterministic findings for administrator review. Most session-based detectors run on a daily cadence over completed session data. Coverage detectors (**AD-010**, **AD-011**, **AD-013b**) also fire from device check-ins. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
+RCLM anomaly detectors produce deterministic findings for administrator review. Most session-based detectors run on a daily cadence over completed session data, and the proxy reliability detectors (**AD-017**, **AD-018**) read Enterprise LLM Gateway calls. Coverage detectors (**AD-010**, **AD-011**, **AD-013b**) also fire from device check-ins. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
 
 A finding is an investigation lead with bounded evidence. Administrators decide whether it is significant, dismiss it as expected behavior, or resolve it after remediation.
 
@@ -44,6 +44,8 @@ When a finding fires repeatedly, it updates the same open finding record rather 
 | `AD-013c` | Provider usage unreconciled | Org usage | Daily | Enterprise: provider admin usage vs gateway tokens diverge |
 | `AD-015` | External network egress | Session | Daily, hourly | Outbound network connections to non-local hosts or IPs via `curl`, `wget`, `scp`, `rsync`, `nc`, inline or agent-written scripts, or native web tools |
 | `AD-016` | PII content exposure | Member | Daily, hourly | Content matching a validated email, phone, SSN, or credit card pattern in proxy request/response previews or hook/agent tool-call previews |
+| `AD-017` | Proxy failure rate | Org, operation | Daily, hourly | Share of failing Enterprise LLM Gateway calls well above the organization's own recent rate |
+| `AD-018` | Proxy latency regression | Model | Daily | A model's p95 and median latency on successful gateway calls well above its own recent baseline |
 
 Coverage concepts and the admin UI are documented in [Coverage Alerts](/enterprise/coverage) and the [Coverage tab](/enterprise/dashboard/coverage).
 
@@ -415,6 +417,84 @@ This keeps false positives low without sending any session content to another mo
 
 ---
 
+## AD-017 — Proxy failure rate
+
+**What it checks:** Whether the share of Enterprise LLM Gateway calls that fail is materially above the organization's own recent failure rate. It covers the gateway only; calls through the local proxy are not scored.
+
+**How it is calculated:** For each completed hour and each completed day, RCLM computes:
+
+`failure rate = (error responses + interrupted streams) ÷ calls with a known status`
+
+- An **error response** is any status other than 2xx, including provider timeouts and provider rate-limit or out-of-credit responses.
+- An **interrupted stream** is a streamed response that failed after it had started. The client already received status 200, so RCLM records it as a 200 with a stream-interrupted flag and counts it as a failure.
+- Calls with **no recorded status** are never counted as failures and are removed from the denominator.
+
+It is scored separately for the whole organization, for calls not yet labeled with an operation, and for each canonical operation. A finding requires all of:
+
+- At least the minimum number of calls (default 20) and failures (default 5) in the window.
+- A failure rate at least 2× the organization's usual rate, and at least 5 percentage points higher.
+- A strong statistical deviation (z-score above threshold).
+
+The usual rate is built from up to 14 earlier windows of the same kind that had enough calls. With fewer than 7 such windows, RCLM uses a fixed rule instead: a failure rate of at least 20% with the minimum failures.
+
+**Hourly windows need confirmation.** An abnormal hour does not create a finding by itself. It is recorded as an evaluation, and the finding is created when the next hour is abnormal too. Daily windows fire on a single window. When the next hour has too few calls to be scored, the first hour is never confirmed.
+
+**Labels and capture health:**
+- Operation subjects return insufficient data while some calls in the window are still waiting for an operation label. The organization-wide rate is always evaluated, so a labeling delay cannot hide an outage.
+- A separate capture-health finding fires when 10% or more of calls in a window have no recorded status.
+
+**Severity:** **Warning** for operation and unlabeled findings. The organization-wide finding is **High** when the failure rate is 50% or higher, or at least 5× the usual rate, and High sends an immediate P0 email.
+
+**Evidence includes:** Call and failure counts, a breakdown by rate limit (429), other 4xx, 5xx and timeout, the failure rate, baseline statistics, thresholds, capture coverage (unknown-status and missing-duration counts), and up to 20 session IDs of failing calls.
+
+**Evidence never includes:** Prompts, request or response bodies, or provider credentials.
+
+**Interpretation guardrail:** The rate is relative to this organization's history, so a steady high failure rate becomes the baseline over time. Requests rejected before the gateway can identify the organization (an invalid gateway key) or by gateway policy (model not allowed for the key, which returns 403) are not recorded, so they do not appear here.
+
+**Typical next steps:**
+
+1. Check whether the finding is organization-wide or limited to one operation. An organization-wide rise usually points to a provider outage, an expired provider credential, or exhausted provider credits.
+2. Open the linked sessions and compare status codes and error classes. Many 429s indicate a provider rate limit; many timeouts indicate a slow or unreachable provider.
+3. For an operation-only rise, look at what changed for that workload: model, prompt size, or caller.
+
+---
+
+## AD-018 — Proxy latency regression
+
+**What it checks:** Whether a model has become materially slower on the Enterprise LLM Gateway compared with its own recent history.
+
+**How it is calculated:** Once per completed day, for each model, RCLM looks only at successful, non-streaming calls. It compares the day's 95th-percentile latency (p95) and median latency with that model's own earlier days (up to 14) that had enough calls. A finding requires all of:
+
+- At least the minimum number of successful calls that day (default 20).
+- At least the required number of earlier days with enough calls (default 3). Until then the model is not scored.
+- p95 at least 1.5× the usual p95, at least 500 ms slower, and a strong statistical deviation.
+- Median at least 1.25× the usual median.
+
+Requiring the median to rise too means a single very slow call, which moves p95 on its own, cannot create a finding. There is no fixed latency limit, because normal latency differs widely between models.
+
+**Severity:** Warning. Findings go to the digest.
+
+**Evidence includes:** The model name, the number of successful calls, the day's p50 and p95, baseline statistics and the median ratio, thresholds, and up to 20 session IDs of the slowest calls.
+
+**Evidence never includes:** Prompts, request or response bodies, or provider credentials.
+
+**Interpretation guardrail:** Latency depends on prompt and output size as well as provider health, so a change in workload can look like a regression. Streaming calls are not evaluated yet, because total stream time mostly reflects output length. Models with highly variable latency, such as small self-hosted models, can produce noisy findings until they have a longer history.
+
+**Typical next steps:** Open the linked slowest sessions and compare input size and output length with earlier days. If the work is unchanged, check provider status or a deployment or region change.
+
+### Tuning AD-017 and AD-018
+
+Organization administrators can adjust the main thresholds for both detectors in **Signals → Proxy Thresholds (AD-017/018)**, next to **Egress Policy (AD-015)**. Each field shows its default; leave it blank to use the default. Values outside the allowed range are rejected when you save.
+
+| Detector | Settings you can change |
+| --- | --- |
+| **AD-017** | Minimum calls and failures per window, fixed failure rate used while history is short, rise vs baseline (×), minimum rise in percentage points, earlier windows needed, unknown-status share, failure rate that counts as High |
+| **AD-018** | Minimum successful calls per day, p95 rise (×), median rise (×), minimum p95 rise in milliseconds, earlier days needed |
+
+Lower values make a detector more sensitive and produce more findings; higher values reduce noise. The z-score requirement, the baseline length, and the 5× baseline High rule are fixed.
+
+---
+
 ## Evidence design
 
 All detectors follow the same evidence boundary: findings store compact, allowlisted metadata — identifiers, normalized hashes, counts, categories, statistics, and thresholds. They never store raw prompts, tool inputs, tool results, file contents, secrets, complete shell commands, or personal absolute paths.
@@ -436,7 +516,7 @@ Resolved and dismissed findings are closed. Missing data or a detector error can
 
 ## Email alerts for anomalies
 
-After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers **AD-004** Critical (or High with write access), **AD-003** High/Critical, **AD-015** High/Critical, and **AD-016** Critical. When a dedicated **Security inbox** is configured, **AD-004** Critical and **AD-015** Critical always route to that inbox (unless every destination on an `AD-015` finding is covered by the org's allowed egress safe list). Digests run at 08:00 recipient-local time.
+After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers **AD-004** Critical (or High with write access), **AD-003** High/Critical, **AD-015** High/Critical, **AD-016** Critical, and the organization-wide **AD-017** High failure-rate finding. When a dedicated **Security inbox** is configured, **AD-004** Critical and **AD-015** Critical always route to that inbox (unless every destination on an `AD-015` finding is covered by the org's allowed egress safe list). Digests run at 08:00 recipient-local time.
 
 Email payloads stay inside the same privacy boundary as finding evidence: categorical labels and counts only — never titles, paths, commands, or prompts. Configure routing and personal preferences from [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
 
