@@ -1,8 +1,8 @@
 ---
 title: "Cut Token Costs in Agentic Coding Sessions"
 sidebarTitle: "Context Compression"
-description: "Native hooks reduce repeated context with range caching, stateful deltas, edit receipts, provider-aware shaping, exact local recall, dedupe, and image controls."
-keywords: ["reduce token cost", "agentic coding tokens", "context compression"]
+description: "Native hooks reduce repeated context with range caching, cross-session outlines, stateful deltas, edit receipts, log and blob minifiers, provider-aware shaping, exact local recall, dedupe, and image controls."
+keywords: ["reduce token cost", "agentic coding tokens", "context compression", "cross-session outline", "log collapse", "saved vs potential tokens"]
 ---
 
 Tool results can remain in an agent's context and be sent back to the model on later turns. A file read or long command result can therefore consume context more than once. ReclaimLLM's native hooks reduce that repeated context before it reaches the model, while recording what changed and whether the reduction was enforced or only observed.
@@ -114,6 +114,68 @@ Recognized successful edit tools can return an entire diff after the agent alrea
 
 Failures, malformed diffs, and target mismatches remain unchanged. Antigravity edit receipts can currently be evaluated in Replay, but Antigravity does not expose a post-result rewrite field for live enforcement.
 
+### Repeated log-line collapse
+
+**Telemetry ID:** `repeated_line_collapse` · **Flag:** `--compress` · **Measured**
+
+Retry loops, pollers, and progress logs often print the same line many times with only numbers changing. When at least five such lines repeat and the fold saves at least 200 characters, ReclaimLLM keeps the first occurrence and adds a marker:
+
+```text
+WARN retry attempt 1 for job sync-users after 50ms  [rclm: +149 similar lines differing only in numbers]
+ERROR job sync-users gave up: connection refused
+```
+
+Only log-like lines are eligible. Tables, CSV rows, JSON, and `key: value` or `key=value` lines are never folded, because the numbers in them are usually the data.
+
+### Blob placeholders
+
+**Telemetry ID:** `blob_placeholder` · **Flag:** `--compress` · **Measured**
+
+Long base64 runs (160+ characters, including `data:` URIs) and long hex runs (128+ characters) are replaced with a placeholder that keeps the kind, length, and a short digest:
+
+```text
+[rclm: base64 blob, 6,144 chars, sha256:3f9a1c0e7b22]
+```
+
+Shorter hex values, such as commit hashes and SHA-256 digests, are left unchanged because agents quote them.
+
+<Note>
+  Both minifiers run only on successful (exit code 0) shell output that no command-specific filter already claimed. They never touch file contents (`Read`, `cat`, `head`, `tail`, `nl`, `sed -n`, …), edit results, failed commands, error results, or images. Each step is recorded as its own mechanism, so the dashboards show what each one saved.
+</Note>
+
+### Cross-session outline on re-read
+
+**Telemetry ID:** `cross_session_outline` · **Config:** `cross_session_outline` · **Measured** · **Observe by default**
+
+Different sessions in the same repository often re-read the same large files from the top. When a native Claude Code `Read` would return at least 200 lines from line 1 of a file with at least 300 lines, and another session already read the same content (verified by re-hashing the file on disk), the model receives a symbol outline instead:
+
+```text
+[RCLM] src/service.py (677 lines) is unchanged since an earlier session of this
+project read it, so its outline is shown instead of the content. The L numbers below
+are real file line numbers ... Read with offset/limit for the exact lines you need;
+read without them again for the full content.
+
+L12: class SyncService
+L31: def handler_1(request)
+...
+```
+
+The outline covers Python, JavaScript/TypeScript, Go, Rust, SQL, and Markdown headings, and it is used at most once per file per session. Reading the file again returns the real content.
+
+If the model re-reads an outlined file anyway, ReclaimLLM records a negative saving equal to that read, so the dashboard does not keep credit for a replacement that cost a follow-up read.
+
+The outline stays in observe mode until you enable it in `~/.reclaimllm/config.json`:
+
+```json
+{
+  "cross_session_outline": "enforce"
+}
+```
+
+Accepted values are `off`, `observe` (default), and `enforce`. Enterprise policy can set the mode per organization. Unlike other mechanisms, the outline is not switched to enforce by organization-wide forced enforcement, because it hides content the model asked for.
+
+The shared read history lives on the local machine under `~/.reclaimllm/project_reads/`, one file per repository, capped at 5,000 files with the last five sessions per file.
+
 ### Recallable compact results
 
 **Telemetry:** attributed to the transform that shortened the result · **Flag:** existing `--compress` enforcement
@@ -181,12 +243,27 @@ This mechanism is measurement-only today. It never removes an image, even outsid
 For successful text results, the hot path applies mechanisms in this order:
 
 1. DLP redaction, when enabled.
-2. Range cache.
-3. Stateful result delta.
-4. Provider or command compaction, edit receipts, and verified lossless folding.
-4. Hash dedupe.
+2. Cross-session outline (native Claude Code `Read` only).
+3. Range cache.
+4. Stateful result delta.
+5. Provider or command compaction, edit receipts, and verified lossless folding, followed by blob placeholders and repeated log-line collapse on eligible shell output.
+6. Hash dedupe.
 
-A mechanism that claims a result prevents later lossy mechanisms from reshaping or double-counting it. Command-aware compaction and verified lossless folding can still contribute independently when both shorten the same recognized result. Any parser error or unsupported shape returns the original result.
+A mechanism that claims a result prevents later lossy mechanisms from reshaping or double-counting it. Command-aware compaction, verified lossless folding, and the two minifiers can still contribute independently when each shortens the same recognized result. Any parser error or unsupported shape returns the original result.
+
+Every mechanism shapes a result once, as it enters the context. Earlier turns are never rewritten, so the provider's prompt cache stays valid.
+
+### Compaction and subagents
+
+Range cache, stateful delta, hash dedupe, and outline state all point back to content the model saw earlier. When Claude Code compacts a conversation, that content may no longer be in context, so ReclaimLLM resets this state as soon as the transcript shows a compaction boundary. Each subagent also keeps its own state, so a notice like "unchanged since turn 14" never refers to a read made by a different agent.
+
+### Replacement shape on Claude Code
+
+Claude Code applies a replacement tool result only when it has the same shape as the original result: file content for `Read`, `stdout`/`stderr` for `Bash`, and `content` for other tools. A plain-string replacement is silently ignored. ReclaimLLM keeps the original shape for every replacement, including DLP redaction.
+
+<Warning>
+  `rclm` releases before this fix could log Claude Code read-cache replacements as enforced when the model still received the original output, and redacted `Read`/`cat` output could be dropped the same way. Upgrade with `pip install -U rclm`.
+</Warning>
 
 Image results follow the separate image-lifecycle path.
 
@@ -196,7 +273,7 @@ Image results follow the separate image-lifecycle path.
 
 <AccordionGroup>
   <Accordion title="Measured reduction">
-    Range cache, search shaping, lossless folding, exec compaction, provider canonicalization, stateful deltas, edit receipts, test filtering, hash dedupe, and image downscaling compare an original result with a shorter candidate. Dashboards report the observed before-and-after token estimate, split into enforced and potential counts.
+    Range cache, search shaping, lossless folding, exec compaction, provider canonicalization, stateful deltas, edit receipts, repeated log-line collapse, blob placeholders, cross-session outline, test filtering, hash dedupe, and image downscaling compare an original result with a shorter candidate. Every event records whether it was applied. Dashboards report **saved** tokens (the model received the shorter result) separately from **potential** tokens (measured in observe mode, original result kept).
   </Accordion>
 
   <Accordion title="Estimated opportunity">
@@ -214,7 +291,8 @@ Image results follow the separate image-lifecycle path.
 
 ## Provider boundaries
 
-- **Claude Code:** uses the ordered text pipeline, including range caching, stateful deltas, recognized result compaction, edit receipts where eligible, test filtering, hash dedupe, and loop detection. Supported images can be downscaled.
+- **Claude Code:** uses the ordered text pipeline, including range caching, cross-session outlines, stateful deltas, recognized result compaction, log-line and blob minifiers, edit receipts where eligible, test filtering, hash dedupe, and loop detection. Supported images can be downscaled.
+- **Cross-session outline:** enforced only on Claude Code today. Codex CLI, Cursor, Gemini CLI, and GitHub Copilot record it in observe mode.
 - **Codex CLI:** uses the ordered text pipeline and now preserves both standard and custom tool-call output blocks during capture. MCP image downscaling remains measured but is not rewritten today.
 - **Gemini CLI:** uses range caching, stateful deltas, recognized text compaction, test filtering, and hash dedupe through its native hook contract.
 - **Cursor:** preserves explicit empty and falsy captured results and uses text reduction only where its hook contract provides a safe rewrite path. Results absent from historical transcripts cannot be reconstructed.
@@ -251,7 +329,9 @@ Brevity adds an advisory instruction at session start. Its impact is a cohort es
 
 Individual users can review the mechanism breakdown in **User Portal → Stats → Measured Context Reduction**. Enterprise administrators can review organization-wide results in **Enterprise → Tokens → Measured context reduction**.
 
-Each technique has a help tooltip, token-reduction total, and enforced or potential event count. Look for `stateful_delta`, `edit_receipt`, `provider_output_shaping`, and `provider_canonicalization` to isolate the new result-reduction stages. Select a row with linked evidence to inspect contributing sessions.
+Each technique has a help tooltip, a saved total, a potential total, and enforced and observe-only event counts, for example `9k saved (3 enforced) · 3k potential (2 observe-only)`. Select a row with linked evidence to inspect contributing sessions.
+
+For data recorded before the applied flag existed, a mechanism's savings count as saved only when it never ran in observe mode; otherwise its historical saved figure is 0. This undercounts some history rather than overstating it.
 
 <Info>
   These pages need captured session telemetry to populate. New organizations show an empty state until eligible sessions have been processed.
@@ -289,6 +369,10 @@ See [Verify token reduction with Replay](/features/mcp-server#verify-token-savin
 
   <Accordion title="No automatic flag recommendations">
     ReclaimLLM does not yet change compression flags automatically based on session patterns. Review shadow telemetry and Replay evidence before enforcement.
+  </Accordion>
+
+  <Accordion title="Outline and minifier trade-offs">
+    An outline can cost an extra turn when the model needs most of the file anyway; the negative event records the tokens, not the round trip. Log-line collapse can fold lines where the numbers mattered. Report either case with the session so thresholds can be tuned. Runtime token figures are character-based estimates (characters ÷ 4), not provider tokenizer counts.
   </Accordion>
 
   <Accordion title="Recall is local">

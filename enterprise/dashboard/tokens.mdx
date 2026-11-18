@@ -20,7 +20,16 @@ Switch granularity (day/hour) and group-by (project/team/user/model); filter by 
 
 Enterprise administrators also see **Measured context reduction** for the selected date range: a per-method breakdown of tokens saved before they reached the model, aggregated across the org.
 
-Each row separates **enforced** reductions (the model actually received the shorter result) from **shadow-mode** potential (the reduction was measured but the original result was left unchanged). Most methods compare an original and replacement result directly; a couple report an estimate instead, because there is no completed result to diff against.
+A totals card shows two figures:
+
+- **Saved — reached the model:** tokens removed from results the model actually received.
+- **Potential — measured in observe mode, not applied:** reductions measured while the original result was left unchanged.
+
+Each method row shows both, for example `9k saved (3 enforced) · 3k potential (2 observe-only)`. Project badges split saved from potential the same way, and the **Saved/Session** and **Saved/Line** ratio columns use saved tokens only. Most methods compare an original and replacement result directly; a couple report an estimate instead, because there is no completed result to diff against.
+
+<Note>
+  Data recorded before each event carried an applied flag counts as saved only when that mechanism never ran in observe mode. Otherwise its historical saved figure is 0, so older totals may be lower than what the page showed before.
+</Note>
 
 | Method | What it does | Basis |
 |---|---|---|
@@ -31,6 +40,9 @@ Each row separates **enforced** reductions (the model actually received the shor
 | **Provider output canonicalization** (`provider_output_shaping`, `provider_canonicalization`) | Strips known boilerplate — timestamps, execution headers, repeated path prefixes — from Codex and Antigravity result wrappers. | Measured |
 | **Stateful result delta** (`stateful_delta`) | Compares a repeated command, search, or listing against the prior result for the same target and sends only the diff plus an unchanged-line count, when the overlap is high enough. | Measured |
 | **Edit receipts** (`edit_receipt`) | Replaces a tool result that echoes back a diff the agent already supplied with a compact receipt (hunk count, line counts, line ranges, digest). | Measured |
+| **Repeated log-line collapse** (`repeated_line_collapse`) | Keeps the first of 5+ log lines that differ only in numbers and appends a `+N similar lines` marker. Never folds tables, CSV, JSON, or key/value lines. | Measured |
+| **Blob placeholders** (`blob_placeholder`) | Replaces long base64 (160+ chars) and hex (128+ chars) runs in shell output with a placeholder carrying length and a short digest. Commit hashes and SHA-256 digests are kept. | Measured |
+| **Cross-session outline** (`cross_session_outline`) | Returns a symbol outline with real line numbers when a large file is re-read from the top, unchanged since another session read it. A later full re-read is recorded as a negative saving. Observe by default. | Measured |
 | **Test output filter** (`test_filter`) | Keeps failures, errors, and the final summary from pytest, Jest, Vitest, Go, and Cargo output while dropping routine passing-test noise. | Measured |
 | **Hash dedupe** (`hash_dedupe`) | Replaces a large result that repeats an earlier result in the same session with a compact reference to the first occurrence. Off by default. | Measured |
 | **Image downscale** (`image_downscale`) | Resizes oversized screenshots and tool-result images before they enter the transcript, preserving aspect ratio. Requires `rclm[images]`. | Measured |
@@ -42,6 +54,24 @@ Each row separates **enforced** reductions (the model actually received the shor
 </Note>
 
 For how each method works, which providers enforce it, and how to evaluate it with Replay before enabling enforcement, see [Context Compression](/features/context-compression).
+
+## Weekly tokens digest
+
+Org admins receive a weekly tokens and usage digest every Monday at 08:00 recipient-local time. It covers the previous seven days and reports saved tokens only. Open the digest settings from the Tokens tab to turn it on or off and choose its sections: token totals, AI usage summary, top projects by tokens saved, and developer activity.
+
+<Steps>
+  <Step title="Open digest settings">
+    On the Tokens tab, open the weekly digest settings.
+  </Step>
+  <Step title="Choose a week">
+    Under **Send Digest Now**, pick **This week (so far)**, **Last week**, or up to **12 weeks ago**.
+  </Step>
+  <Step title="Send">
+    Select **Send Digest**. The real digest for that week, built from your sessions with the saved sections, is emailed to you.
+  </Step>
+</Steps>
+
+Manual sends use Monday 00:00 week boundaries in the organization timezone, while the scheduled digest covers Monday 08:00 to Monday 08:00, so the two can differ by a few hours of sessions. A week with no sessions is rejected instead of sending an empty email, and manual sends do not affect the scheduled delivery.
 
 ## Who sees it
 
