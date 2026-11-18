@@ -61,6 +61,12 @@ RCLM records the file hash and line intervals delivered to the model.
 
 Write and edit tools invalidate the target immediately. This includes Claude Code Write, Edit, and NotebookEdit operations and the equivalent Gemini write and replace operations.
 
+Cache state also resets when Claude Code compacts the conversation, because earlier reads may no longer be in the model's context. Each subagent keeps its own cache, so an "unchanged since turn N" notice always refers to a read that agent actually received.
+
+<Tip>
+  A re-read of a large file that **another session** already read is handled by the [cross-session outline](/features/context-compression#cross-session-outline-on-re-read), which runs before the range cache.
+</Tip>
+
 ## Supported read forms
 
 <Tabs>
