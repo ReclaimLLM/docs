@@ -71,8 +71,8 @@ Enterprise customers can run RCLM entirely within their own infrastructure, keep
     The RCLM server (`rclm-server`) is open source. You can self-host it on any infrastructure you control today using Docker.
   </Card>
 
-  <Card title="Packaged Helm deployment" icon="dharmachakra">
-    A fully packaged Helm chart for Kubernetes-based on-premises deployment is coming soon. This will be the supported enterprise deployment path for VPC and air-gapped environments.
+  <Card title="Kubernetes Helm chart" icon="dharmachakra">
+    The ReclaimLLM Helm chart implementation for Kubernetes self-hosting is complete and verified. Contact [info@reclaimllm.com](mailto:info@reclaimllm.com) for chart access, application image availability, and deployment guidance. You provide the object storage and other infrastructure required by your environment; an air-gap bundle is not currently available.
   </Card>
 </CardGroup>
 
@@ -84,19 +84,12 @@ Enterprise customers can run RCLM entirely within their own infrastructure, keep
   Point your capture tools (hooks, proxy, browser extension) at your self-hosted server by setting the API endpoint in your RCLM config. All session data stays within your infrastructure.
 </Accordion>
 
-<Accordion title="Helm / Kubernetes (coming soon)">
-  A packaged Helm chart is in development for teams that run Kubernetes in their VPC or on-premises data center. This will include:
-
-  - Pre-configured deployment manifests
-  - Integrated database and object storage configuration
-  - Enterprise feature parity with the hosted product
-  - Support for air-gapped environments
-
-  Contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to discuss your deployment timeline and requirements.
+<Accordion title="Helm / Kubernetes">
+  The ReclaimLLM Helm chart implementation is complete and verified for Kubernetes deployments in a VPC or on-premises environment. It coordinates application and Supabase-compatible services, schema migrations, retained secrets, network policies, and backups. You must provide or build/mirror the application images and configure object storage, SMTP, ingress, and network access. The chart does not include an air-gap bundle or offline feature licensing. Contact [info@reclaimllm.com](mailto:info@reclaimllm.com) for chart access, image availability, and setup guidance.
 </Accordion>
 
 <Tip>
-  If you are evaluating RCLM for a regulated environment (HIPAA, FedRAMP, SOC 2, or similar), reach out to [enterprise@rclm.ai](mailto:enterprise@rclm.ai) before self-hosting. The enterprise team can provide guidance on deployment architecture, data handling documentation, and compliance requirements.
+  If you are evaluating RCLM for a regulated environment (HIPAA, FedRAMP, SOC 2, or similar), reach out to [info@reclaimllm.com](mailto:info@reclaimllm.com) before self-hosting. The team can provide guidance on deployment architecture, data handling documentation, and compliance requirements.
 </Tip>
 
 ## Frequently asked questions
@@ -118,7 +111,7 @@ Enterprise customers can run RCLM entirely within their own infrastructure, keep
 </Accordion>
 
 <Accordion title="Are additional regions (APAC, etc.) planned?">
-  RCLM currently supports US and EU regions. Additional regions are on the roadmap, with priority determined by demand. Contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) if a specific region is a requirement for your deployment.
+  RCLM currently supports US and EU regions. Additional regions are on the roadmap, with priority determined by demand. Contact [info@reclaimllm.com](mailto:info@reclaimllm.com) if a specific region is a requirement for your deployment.
 </Accordion>
 
 ## Related

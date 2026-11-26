@@ -121,6 +121,26 @@ rclm-hooks-install --no-dlp
 
 Admins monitor fleet posture on the [Coverage tab](/enterprise/dashboard/coverage). Concepts: [Coverage Alerts](/enterprise/coverage).
 
+### Cursor fail-closed shell gate
+
+Cursor lets an action through when a hook crashes, times out, or prints nothing. That is Cursor's default, and it means a broken guard fails silently. rclm installs its Cursor `beforeShellExecution` hook with `failClosed: true` and a 30-second timeout, so a failed shell gate blocks the command instead.
+
+```bash
+# Let shell commands run even if the rclm shell hook fails (remembered across reinstalls)
+rclm-hooks-install --cursor --fail-open
+
+# Restore the default
+rclm-hooks-install --cursor --fail-closed
+```
+
+Only the shell gate fails closed. It is the hook that runs the egress policy. Other Cursor events enforce nothing, so blocking them on failure would only add lockout risk. This option is Cursor-only; other coding agents define their own failure behavior.
+
+<Warning>
+  If you uninstall `rclm` with `pip` without running `rclm-hooks-uninstall` first, Cursor blocks shell commands until the hook entry is removed. Run `rclm-hooks-uninstall --cursor`, or reinstall with `--fail-open`.
+</Warning>
+
+Failed and timed-out hook runs are reported for every coding agent at the next check-in. See [Installed is not the same as running](/enterprise/coverage#installed-is-not-the-same-as-running).
+
 ### Upload folder filters
 
 Use `--include-folder` when hooks are installed globally but uploads should be limited to specific project trees:
@@ -192,7 +212,7 @@ Each mechanism is configured independently. See [Read Cache](/capture/read-cache
 rclm-hooks-install --dlp
 ```
 
-Enables local redaction before session uploads, applying your account's configured substitution rules on the machine before any payload is sent. See [Sensitive Data](/security/sensitive-data) for how to configure substitution rules, `include_folders`, and `exclude_folders`. Run `rclm-update` after changing app-managed substitutions to refresh the local cache.
+Enables local redaction before session uploads. On the machine, before any payload is sent, it replaces values from workspace `.env` files, self-identifying credentials such as GitHub tokens and AWS access keys, and your account's configured substitution rules. See [Sensitive Data](/security/sensitive-data) for how to configure substitution rules, `include_folders`, and `exclude_folders`. Run `rclm-update` after changing app-managed substitutions to refresh the local cache.
 
 ## What gets captured
 
@@ -205,6 +225,23 @@ Every hooks session includes:
 | **File diffs** | Before-and-after snapshots for every file the agent created or changed |
 | **Token usage** | Input and output token counts per session, with cost attribution |
 | **Provider context** | Provider name, model identifier, and timestamps |
+| **Model per turn** | The model for each assistant turn, when it differs within a session (see below) |
+| **Subagents** | Subagent transcripts as linked child sessions, with the subagent's own model |
+
+### Which model ran each turn
+
+A session can use more than one model: subagents, helpers, and model switches mid-session. RCLM records the model per assistant turn and shows a model label on turns that differ from the session's model.
+
+| Agent | Source | What it proves |
+| --- | --- | --- |
+| **Claude Code**, **Codex CLI** | The model the agent recorded in its own transcript for that turn | The model that produced the turn |
+| **Cursor** | The model Cursor's hooks report for the turn (`model` on `beforeSubmitPrompt`), and `subagent_model` on `subagentStart` for subagents | The model Cursor reports as **selected**. Cursor's transcript does not record a model, and Cursor does not report which model actually served the turn |
+
+Cursor subagents are uploaded as child sessions when the subagent stops, linked to the parent session.
+
+<Note>
+  Cursor's headless CLI does not run the prompt hooks, so those sessions have no per-turn model and carry a `prompt_hooks_missing` capture warning. The gap is labeled rather than hidden.
+</Note>
 
 ## File and config locations
 

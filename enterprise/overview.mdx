@@ -80,14 +80,20 @@ When a developer joins your organization, their sessions are tagged server-side 
 - **Non-disruptive rollout** — enabling the enterprise layer does not change individual developer capture tools. Everything each developer already has set up continues to work as before.
 
 <Note>
-  The enterprise tier requires an organization account. Individual Paid accounts can be upgraded — contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai) to start the process.
+  The enterprise tier requires an organization account. Individual Paid accounts can be upgraded — contact [info@reclaimllm.com](mailto:info@reclaimllm.com) to start the process.
 </Note>
 
 ## Pricing
 
 Enterprise starts at **\$10/seat/month**, with your first 3 months completely free — no credit card charge until day 91. Cancel before day 91 and you won't be billed.
 
-For larger teams, volume pricing and annual billing are available. [Contact us](mailto:enterprise@rclm.ai) for a custom quote.
+For larger teams, volume pricing and annual billing are available. [Contact us](mailto:info@reclaimllm.com) for a custom quote.
+
+## Self-hosted Kubernetes deployment
+
+The ReclaimLLM Helm chart implementation is complete and verified for Kubernetes deployments. It coordinates the application and Supabase-compatible services, migrations, retained secrets, network policies, and backups. Contact [info@reclaimllm.com](mailto:info@reclaimllm.com) for chart access, application image availability, and deployment guidance.
+
+Operators must provide or build/mirror the application images and configure object storage, SMTP, ingress, and network access. The chart does not include an air-gap bundle or offline feature licensing. Its verified application replica profile requires external PostgreSQL; PostgreSQL, Qdrant, and the worker are not made highly available by that profile.
 
 ## What's coming soon
 
@@ -114,9 +120,6 @@ The current enterprise release focuses on observability, the LLM gateway, role-b
     SSO configuration storage is available now. Enforced SSO login and SCIM provisioning are in progress.
   </Accordion>
 
-  <Accordion title="On-premises deployment">
-    Run RCLM entirely inside your VPC. Docker-based self-hosting is available today; a fully packaged Helm chart is coming soon.
-  </Accordion>
 </AccordionGroup>
 
 ## Get started
@@ -137,7 +140,7 @@ The current enterprise release focuses on observability, the LLM gateway, role-b
 </Steps>
 
 <Tip>
-  For a guided setup, contact [enterprise@rclm.ai](mailto:enterprise@rclm.ai). We'll walk through the initial configuration with you.
+  For a guided setup, contact [info@reclaimllm.com](mailto:info@reclaimllm.com). We'll walk through the initial configuration with you.
 </Tip>
 
 ## Explore the enterprise features

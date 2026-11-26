@@ -3,10 +3,10 @@ title: "Anomaly Detectors: Reference and Calculation Logic"
 sidebarTitle: "Anomalies"
 description: "Understand what each RCLM anomaly detector checks, how it fires, what evidence it records, and how administrators should act on its findings."
 icon: "shield-halved"
-keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "external network egress", "PII detection", "credit card detection", "SSN detection", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "AD-017", "AD-018", "proxy failure rate", "gateway latency", "p95 latency", "coverage", "hook tamper"]
+keywords: ["anomaly detection", "enterprise anomalies", "sensitive file access", "DLP", "runaway agent", "proxy spike", "external network egress", "PII detection", "credit card detection", "SSN detection", "AI cybersecurity", "AD-001", "AD-002", "AD-003", "AD-004", "AD-005", "AD-006", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "AD-017", "AD-018", "AD-019", "AD-020", "secret written by agent", "git config token", "hook failures", "hook timeout", "proxy failure rate", "gateway latency", "p95 latency", "coverage", "hook tamper"]
 ---
 
-RCLM anomaly detectors produce deterministic findings for administrator review. Most session-based detectors run on a daily cadence over completed session data, and the proxy reliability detectors (**AD-017**, **AD-018**) read Enterprise LLM Gateway calls. Coverage detectors (**AD-010**, **AD-011**, **AD-013b**) also fire from device check-ins. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
+RCLM anomaly detectors produce deterministic findings for administrator review. Most session-based detectors run on a daily cadence over completed session data, and the proxy reliability detectors (**AD-017**, **AD-018**) read Enterprise LLM Gateway calls. Coverage detectors (**AD-010**, **AD-011**, **AD-013b**) also fire from device check-ins, and **AD-020** reads the hook run counts those check-ins report. They are not AI-generated classifications, not employee-performance scores, and not automatic enforcement actions.
 
 A finding is an investigation lead with bounded evidence. Administrators decide whether it is significant, dismiss it as expected behavior, or resolve it after remediation.
 
@@ -46,6 +46,8 @@ When a finding fires repeatedly, it updates the same open finding record rather 
 | `AD-016` | PII content exposure | Member | Daily, hourly | Content matching a validated email, phone, SSN, or credit card pattern in proxy request/response previews or hook/agent tool-call previews |
 | `AD-017` | Proxy failure rate | Org, operation | Daily, hourly | Share of failing Enterprise LLM Gateway calls well above the organization's own recent rate |
 | `AD-018` | Proxy latency regression | Model | Daily | A model's p95 and median latency on successful gateway calls well above its own recent baseline |
+| `AD-019` | Secret written by agent | Session | Daily, hourly | The agent put a credential into a file write, an edit, or a shell command, such as a token in a git remote URL or a key in source code |
+| `AD-020` | Hook run failures | Device | Daily | An installed hook crashed or timed out on 3 or more runs for one coding agent |
 
 Coverage concepts and the admin UI are documented in [Coverage Alerts](/enterprise/coverage) and the [Coverage tab](/enterprise/dashboard/coverage).
 
@@ -495,6 +497,54 @@ Lower values make a detector more sensitive and produce more findings; higher va
 
 ---
 
+## AD-019 — Secret written by agent
+
+**What it checks:** Whether the coding agent wrote a credential into a file or a shell command. Coding tools mask secrets in what they display, and teams tell agents never to write secrets, but neither stops a command or an edit from putting a token into `.git/config`, a shell profile, or source code.
+
+**How it is calculated:** At ingest, RCLM classifies every file write, file edit, and shell command over its full input, before previews are truncated. A call counts when its written content contains either:
+
+- a self-identifying credential (GitHub, GitLab, Slack, Stripe, OpenAI-style, Google, SendGrid, AWS access keys, Cursor `crsr_` keys, private key blocks, or a password in a URL), or
+- the placeholder rclm's upload redaction left for one of those credentials (see [Credentials redacted automatically](/security/sensitive-data#credentials-redacted-automatically)).
+
+The destination is classified as **git config**, **shell profile or history**, **credential-bearing URL**, **shell command**, or **source file**. The detector creates one finding per session with at least one such call.
+
+What does not count:
+
+- Writes to `.env`, `.env.*`, and `.envrc` files. That is where secrets belong, and access to them is reported by AD-004.
+- The old side of an edit. Removing a secret is not writing one.
+- Placeholders for values from a workspace `.env` file, such as `[REDACTED:DATABASE_URL]`. The agent also sees these placeholders after DLP redacts an env read, so copying one is not evidence that a real secret was written.
+
+**Severity:** **High**. The credential now exists in a second place on disk and, because the write was a tool call, in the model's context. **Critical** when the same session also has an [AD-015](#ad-015--external-network-egress) external egress finding. High and Critical findings are sent as immediate alerts.
+
+**Evidence includes:** Credential kinds, destination classes, the number of writes, the session ID, and whether the finding is chained with egress. Never the value, the file path, or the command.
+
+**Interpretation guardrail:** This is detection, not prevention: the write already happened. Test fixtures with realistic fake keys can match. Dismiss those, or move them to obviously fake values.
+
+**Typical next steps:**
+
+1. Open the session and find the write.
+2. Rotate the credential first.
+3. Remove the copies: git config, shell history, and the edited file. Rewrite git history only if the file was committed.
+4. Prefer a git credential helper over tokens in remote URLs.
+
+---
+
+## AD-020 — Hook run failures
+
+**What it checks:** Whether a hook that is installed on a device keeps failing. A hook can be configured correctly (so AD-010 stays quiet) and still crash or time out on every call.
+
+**How it is calculated:** Each hook run records a start and an end locally, and every check-in reports the counts since the previous one. A run that started but never finished counts as a timeout, because the coding agent killed it. Over each daily window, RCLM sums errors and timeouts per device and coding agent. A finding requires at least **3** failed or timed-out runs.
+
+**Severity:** **Warning**, or **High** when at least half of that agent's runs failed. High findings are sent as immediate alerts.
+
+**Evidence includes:** Device ID, coding agent, run, error, and timeout counts, failure ratio, and the name of the hook event that failed last.
+
+**Interpretation guardrail:** Devices on rclm versions without hook run reporting never fire this detector. Its absence is not proof that hooks ran.
+
+**Typical next steps:** Ask the developer to run `rclm-hooks-install --repair` and `rclm-update`. For Cursor, a failing shell gate blocks commands by design ([Cursor fail-closed shell gate](/capture/native-hooks#cursor-fail-closed-shell-gate)). Reinstalling with `--fail-open` unblocks the developer while you find the cause.
+
+---
+
 ## Evidence design
 
 All detectors follow the same evidence boundary: findings store compact, allowlisted metadata — identifiers, normalized hashes, counts, categories, statistics, and thresholds. They never store raw prompts, tool inputs, tool results, file contents, secrets, complete shell commands, or personal absolute paths.
@@ -516,7 +566,7 @@ Resolved and dismissed findings are closed. Missing data or a detector error can
 
 ## Email alerts for anomalies
 
-After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers **AD-004** Critical (or High with write access), **AD-003** High/Critical, **AD-015** High/Critical, **AD-016** Critical, and the organization-wide **AD-017** High failure-rate finding. When a dedicated **Security inbox** is configured, **AD-004** Critical and **AD-015** Critical always route to that inbox (unless every destination on an `AD-015` finding is covered by the org's allowed egress safe list). Digests run at 08:00 recipient-local time.
+After detector windows complete, RCLM can email acute findings as **immediate P0** alerts and roll others into **daily** or **weekly** digests. P0 covers **AD-004** Critical (or High with write access), **AD-003** High/Critical, **AD-015** High/Critical, **AD-016** Critical, **AD-019** High/Critical, **AD-020** High, and the organization-wide **AD-017** High failure-rate finding. When a dedicated **Security inbox** is configured, **AD-004** Critical and **AD-015** Critical always route to that inbox (unless every destination on an `AD-015` finding is covered by the org's allowed egress safe list). Digests run at 08:00 recipient-local time.
 
 Email payloads stay inside the same privacy boundary as finding evidence: categorical labels and counts only — never titles, paths, commands, or prompts. Configure routing and personal preferences from [Signals Dashboard → Email alerts & notification cadence](/enterprise/dashboard/signals#email-alerts--notification-cadence).
 

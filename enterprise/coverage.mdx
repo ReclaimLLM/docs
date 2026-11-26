@@ -22,6 +22,7 @@ Protection lives in local hooks. A developer can remove them, disable them, or i
 | **Per-device posture** | Hook status per coding agent, DLP on/off, heartbeat, gateway-vs-direct routing class |
 | **Tamper and DLP findings** | AD-010 (hooks tampered/missing), AD-011 (DLP disabled) |
 | **Silence and bypass** | AD-012 (device silent), AD-013a/b (gateway without hooks / direct routing) |
+| **Hook run health** | Whether each installed hook actually ran, and AD-020 when it keeps crashing or timing out |
 | **Admin controls** | Require DLP, require heartbeat, grant expiring DLP exceptions, export CSV |
 | **Developer self-view** | Device health in personal Settings plus `rclm-hooks-install --repair` |
 
@@ -54,14 +55,36 @@ Check-ins also run from **SessionStart** (throttled) and from **`rclm-heartbeat`
 | **AD-013a** | Daily | User | Gateway (proxy) usage without hook sessions |
 | **AD-013b** | Event | Device | Routing class `direct` for a required provider |
 | **AD-013c** | Daily (Enterprise) | Org usage | Provider admin usage vs gateway tokens cannot be reconciled |
+| **AD-020** | Daily | Device | An installed hook failed or timed out on 3 or more runs for one coding agent |
 
 Full calculation logic lives in [Anomalies](/enterprise/anomalies#ad-010--hooks-tampered-or-missing). How to produce each finding is in [Signals → AD-010…AD-013](/enterprise/dashboard/signals#ad-010…ad-013-—-coverage-and-tamper). Findings appear on the Signals tab and can feed email digests and SIEM.
+
+## Installed is not the same as running
+
+A hook can be configured correctly and still fail on every call: a broken Python environment, a slow cold start that hits the coding agent's timeout, or a client update that changes the payload. Integrity checks (AD-010) cannot see this, because the configuration file still looks right.
+
+Each hook run records a start and an end locally, and the next check-in reports per agent:
+
+| Field | Meaning |
+| --- | --- |
+| **Last ran OK** | Last time a hook for that agent finished successfully |
+| **Errors** | Runs where the hook raised an error |
+| **Timeouts** | Runs that started but never finished, because the coding agent killed the hook |
+
+On the [Coverage tab](/enterprise/dashboard/coverage), a client chip shows **hook failing** when its most recent failure is newer than its last successful run. Hover the chip to see both times and the hook event that failed. Devices on older rclm versions show no run data, which is not the same as failing.
+
+**AD-020 (Hook run failures)** fires when one agent on one device has 3 or more failed or timed-out runs in a day. It is **High** when at least half of that agent's runs failed, and High findings are sent as immediate alerts.
+
+<Warning>
+  A failing hook means different things per agent. On fail-open agents, capture and DLP silently stop for those calls. On Cursor, the rclm shell hook fails closed by default, so a failing hook blocks the developer's shell commands. See [Cursor fail-closed shell gate](/capture/native-hooks#cursor-fail-closed-shell-gate).
+</Warning>
 
 ## Privacy: what is collected
 
 Coverage check-ins include:
 
 - Hook install status per coding agent
+- Hook run counts per coding agent (runs, errors, timeouts, last success and failure times, and the hook event name that failed)
 - DLP on/off (and whether the org requires DLP)
 - Heartbeat enabled flag
 - Gateway-vs-direct **routing class** (not URLs or keys)
@@ -94,6 +117,7 @@ Developers can review their own devices under [User Settings → Device health](
 - Removing hooks without removing `rclm` is visible quickly (especially with heartbeat).
 - Removing `rclm` entirely is mainly silence + gateway corroboration.
 - Alternate config directories, cloud agents, and personal provider accounts on personal machines can remain outside coverage.
+- Some agent surfaces skip hooks entirely. Cursor's headless CLI does not run the prompt hooks, and Cursor's backend tools never reach local hooks. Sessions captured without prompt events carry a `prompt_hooks_missing` capture warning instead of looking complete.
 - Provider reconciliation (AD-013c) is Enterprise-only and lags provider usage APIs by design.
 
 ## Related pages
