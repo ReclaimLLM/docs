@@ -41,6 +41,30 @@ Local hook redaction runs on your machine, before sessions are uploaded. When a 
 
 This is the most effective layer: no sensitive value ever reaches RCLM's servers if your rules cover it.
 
+### Credentials redacted automatically
+
+With DLP on (the default), the uploader also replaces credentials that identify themselves by their format, even when they are not in a workspace `.env` file. This matters most for secrets the agent wrote itself, for example a token embedded in a git remote URL or a key pasted into source code.
+
+| Credential | Placeholder |
+| --- | --- |
+| GitHub tokens (`ghp_`, `gho_`, `ghu_`, `ghs_`, `ghr_`, `github_pat_`) | `[REDACTED:GITHUB_TOKEN]` |
+| GitLab tokens (`glpat-`) | `[REDACTED:GITLAB_TOKEN]` |
+| Slack tokens (`xoxb-`, `xoxp-`, ...) | `[REDACTED:SLACK_TOKEN]` |
+| Stripe keys (`sk_live_`, `sk_test_`, `rk_`) | `[REDACTED:STRIPE_KEY]` |
+| OpenAI-style API keys (`sk-`) | `[REDACTED:API_KEY]` |
+| Google API keys (`AIza`) | `[REDACTED:GOOGLE_API_KEY]` |
+| SendGrid keys (`SG.`) | `[REDACTED:SENDGRID_KEY]` |
+| AWS access key IDs (`AKIA`) | `[REDACTED:AWS_ACCESS_KEY]` |
+| Cursor API keys (`crsr_`) | `[REDACTED:CURSOR_KEY]` |
+| Private key blocks (`-----BEGIN ... PRIVATE KEY-----`) | `[REDACTED:PRIVATE_KEY]` |
+| Passwords in URLs (`scheme://user:password@host`) | `[REDACTED:URL_PASSWORD]` (scheme, user, and host are kept) |
+
+This applies to the uploaded session record only. What the agent sees is unchanged. Placeholders remain detectable, so a session where the agent wrote one of these credentials still raises [AD-019 (Secret written by agent)](/enterprise/anomalies#ad-019--secret-written-by-agent).
+
+<Note>
+  Format matching cannot recognize a credential with no distinctive prefix, such as a random password. Add those to your substitution rules.
+</Note>
+
 ### How rules are applied
 
 RCLM computes an effective substitution map by combining **remote substitutions** (managed in the app, synced via `rclm-update`) and **local substitutions** (defined directly in your local config file). If the same source string appears in both, the local value takes precedence — giving you machine-specific overrides on top of account-wide defaults.

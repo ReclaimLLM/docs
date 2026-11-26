@@ -3,7 +3,7 @@ title: "Signals Tab: Investigate Workflow Waste and Deterministic Anomalies"
 sidebarTitle: "Signals"
 description: "Find recurring AI-work patterns, review deterministic anomalies, and configure tiered email alerts with org routing and personal preferences."
 icon: "wave-pulse"
-keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "AD-017", "AD-018", "proxy failure rate", "gateway latency", "external network egress", "PII detection", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
+keywords: ["enterprise signals", "AI workflow waste", "anomaly detection", "AD-010", "AD-011", "AD-012", "AD-013", "AD-015", "AD-016", "AD-017", "AD-018", "AD-019", "AD-020", "secret written by agent", "hook failures", "proxy failure rate", "gateway latency", "external network egress", "PII detection", "hook tamper", "DLP disabled", "device silent", "gateway bypass", "email alerts", "alert cadence", "security digests", "zero-exfiltration"]
 ---
 
 The Signals tab (`/enterprise/orgs/{org_id}/signals`) helps organization administrators find recurring AI-work patterns and investigate deterministic anomaly findings with the sessions behind them. Every org member can also open **Configure Email Alerts & Cadence** to manage personal alert preferences.
@@ -98,6 +98,8 @@ Each finding shows its detector code, severity, status, subject, latest occurren
 | **AD-016** | PII content exposure | Content matching a validated email, phone, SSN, or credit card pattern in proxy traffic or a hook/agent tool call. | A proxy match means the data already reached the model provider; a hook/agent match without an egress chain has not left the machine yet. Check which surface matched before escalating. |
 | **AD-017** | Proxy failure rate | The share of failing Enterprise LLM Gateway calls is well above the organization's own recent rate, for the whole org or one operation. | The rate is relative to this organization's history. Calls rejected before the gateway identifies the org, or by gateway policy (403), are not recorded. Thresholds are adjustable under **Proxy Thresholds**. |
 | **AD-018** | Proxy latency regression | A model's p95 and median latency on successful, non-streaming gateway calls are well above that model's own recent baseline. | Latency also depends on prompt and output size. Streaming calls are not evaluated yet, and a model needs a few earlier days with enough calls before it is scored. |
+| **AD-019** | Secret written by agent | The agent put a credential into a file write, edit, or shell command, such as a token in a git remote URL, an export line in a shell profile, or a key in source code. | Detection only: the write already happened. Writes to `.env` files and copies of `.env` placeholders are not counted. Realistic fake keys in test fixtures can match. |
+| **AD-020** | Hook run failures | An installed hook crashed or timed out on 3 or more runs for one coding agent on one device in a day. | Configured is not the same as running. Devices on rclm versions without run reporting never fire it. |
 
 #### AD-001 — Usage baseline deviation
 
@@ -290,6 +292,18 @@ Fires once a day when a model's p95 and median latency on successful, non-stream
 
 See [Anomalies → AD-017](/enterprise/anomalies#ad-017--proxy-failure-rate) and [AD-018](/enterprise/anomalies#ad-018--proxy-latency-regression) for the full calculation, evidence, and the thresholds you can tune.
 
+#### AD-019 — Secret written by agent
+
+Fires once per session in which the agent wrote a credential into a file or shell command. The card title names where it went (for example **Secret written to git config**), and the summary lists the credential types. It never shows the value or the path. The finding is **High**, and **Critical** when the same session also made an external network call (AD-015). Both send an immediate P0 email.
+
+**Typical next steps:** Open the session, rotate the credential, then remove the copies. See [Anomalies → AD-019](/enterprise/anomalies#ad-019--secret-written-by-agent).
+
+#### AD-020 — Hook run failures
+
+Fires per device and coding agent when a hook keeps crashing or timing out. The card shows crash and timeout counts and the hook event that failed last. **High** findings (half or more of the runs failed) send an immediate P0 email. The [Coverage tab](/enterprise/dashboard/coverage) marks the same client chip **hook failing**.
+
+**Typical next steps:** Ask the developer to run `rclm-hooks-install --repair` and `rclm-update`. See [Anomalies → AD-020](/enterprise/anomalies#ad-020--hook-run-failures).
+
 ### Finding status workflow
 
 - **Acknowledge** a new finding when it is under review.
@@ -314,7 +328,7 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 
 | Alert type | Default cadence | Supported options | Trigger conditions |
 | --- | --- | --- | --- |
-| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), **AD-003** High/Critical runaway sessions, **AD-015** High/Critical external network egress, **AD-016** Critical PII content exposure, and the organization-wide **AD-017** High failure rate. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
+| **Security Alerts (P0)** | Immediate | Immediate, Daily morning digest, Off | Acute findings after hourly or daily detector runs: **AD-004** Critical (or High with write access), **AD-003** High/Critical runaway sessions, **AD-015** High/Critical external network egress, **AD-016** Critical PII content exposure, **AD-019** High/Critical secrets written by the agent, **AD-020** High hook run failures, and the organization-wide **AD-017** High failure rate. Repeats for the same finding are suppressed for **4 hours** unless severity escalates. |
 | **Anomaly Digest** | Daily (08:00 local) | Daily, Weekly (Monday 08:00 local), Off | Consolidated summary of enabled anomaly findings over the prior local day (or week). |
 | **Signals Digest** | Weekly (Monday 08:00 local) | Weekly, Daily, Off | Aggregated engineering efficiency patterns (**P1–P10**, typically P1 / P2 / P5 / P10 in the weekly executive view) plus DLP protection rate from AD-004 evidence counts. |
 
@@ -324,7 +338,7 @@ Deep links in emails open `/enterprise/orgs/{org_id}/signals?alerts=1` so the mo
 - **Recipient inboxes** — comma-separated addresses for org-wide alerts. If blank, notifications default to organization administrators.
 - **Organization timezone** — fallback when a member has not set a personal timezone.
 - **Minimum severity** — `All`, `High & Critical only`, or `Critical only`. Findings below the threshold stay on the dashboard but are omitted from email.
-- **Included anomaly detectors** — toggle **AD-001** through **AD-006** and **AD-015** through **AD-018** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
+- **Included anomaly detectors** — toggle **AD-001** through **AD-006** and **AD-015** through **AD-020** (coverage keys such as **AD-010**…**AD-013** appear when that product surface is enabled).
 - **Included workflow signals** — toggle **P1** through **P10** for digests.
 - **Excluded projects / sandboxes** — case-insensitive project-name filters. Names are used only for filtering; they are never rendered in email bodies.
 - **Allowed Egress URLs, Domains & IPs (AD-015 Safe List)** — comma- or newline-separated URLs, domains (matching the domain and its subdomains), wildcards (`*.internal.corp`), IP addresses, or CIDR ranges (`10.0.0.0/8`). Egress targets matching this list are excluded from **AD-015** findings and alerts. Cloud metadata SSRF endpoints (`169.254.169.254`, `metadata.google.internal`) cannot be allowlisted.
